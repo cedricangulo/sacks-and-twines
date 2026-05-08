@@ -22,7 +22,8 @@
       "!**/.turbo/",
       "!**/coverage/",
       "!**/pnpm-lock.yaml",
-      "!**/.pnpm-store/"
+      "!**/.pnpm-store/",
+      "!**/components/ui/**"
     ]
   },
   "css": {

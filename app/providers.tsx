@@ -1,3 +1,5 @@
+import { Toaster } from "sileo"
+import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 
 interface Props {
@@ -7,7 +9,10 @@ interface Props {
 export default function Providers({ children }: Props) {
   return (
     <>
-      <TooltipProvider>{children}</TooltipProvider>
+      <ThemeProvider>
+        <Toaster position="top-center" />
+        <TooltipProvider>{children}</TooltipProvider>
+      </ThemeProvider>
     </>
   )
 }
