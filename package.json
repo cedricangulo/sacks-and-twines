@@ -1,12 +1,14 @@
 {
   "name": "sacks-and-twines",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "check": "biome check --write",
     "check:unsafe": "biome check --write --unsafe",
     "format": "biome format --write",
@@ -21,6 +23,7 @@
     "@auth/core": "0.37.0",
     "@base-ui/react": "^1.4.1",
     "@convex-dev/auth": "^0.0.92",
+    "@convex-dev/migrations": "^0.3.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.38.0",
@@ -39,12 +42,15 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.14",
+    "@edge-runtime/vm": "^5.0.0",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "convex-test": "^0.0.51",
     "postcss": "^8",
     "tailwindcss": "^4.2.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.5"
   }
 }

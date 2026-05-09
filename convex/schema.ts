@@ -3,14 +3,15 @@ import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
 
 export default defineSchema({
-  // Tables required for Convex Auth (Beta)
   ...authTables,
 
-  // We extend the users table to include your specific roles
+  // Minimal users table: only the fields we use in the app.
+  // Make these optional to accommodate different auth flows and migrations.
   users: defineTable({
+    email: v.string(),
     name: v.optional(v.string()),
-    email: v.optional(v.string()),
     role: v.optional(v.union(v.literal("owner"), v.literal("staff"))),
+    status: v.optional(v.union(v.literal("active"), v.literal("deactivated"))),
   }).index("by_email", ["email"]),
 
   products: defineTable({

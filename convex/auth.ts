@@ -8,8 +8,6 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         return {
           email: params.email as string,
           name: params.name as string,
-          // You could logic here to check if they should be a staff or owner
-          role: "staff", // Default everyone to staff
         }
       },
     }),
