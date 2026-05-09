@@ -7,7 +7,7 @@ export const currentUser = query({
     const userId = await getAuthUserId(ctx)
 
     if (userId === null) {
-      throw new Error("Client is not authenticated!")
+      return null
     }
     return await ctx.db.get(userId)
   },

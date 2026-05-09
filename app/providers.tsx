@@ -1,18 +1,26 @@
+"use client"
+
+import { ConvexAuthNextjsProvider } from "@convex-dev/auth/nextjs"
+import { ConvexReactClient } from "convex/react"
+import { ConvexQueryCacheProvider } from "convex-helpers/react/cache/provider"
 import { Toaster } from "sileo"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 
+const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
 interface Props {
   children: React.ReactNode
 }
 
 export default function Providers({ children }: Props) {
   return (
-    <>
-      <ThemeProvider>
-        <Toaster position="top-center" />
-        <TooltipProvider>{children}</TooltipProvider>
-      </ThemeProvider>
-    </>
+    <ConvexAuthNextjsProvider client={convex}>
+      <ConvexQueryCacheProvider>
+        <ThemeProvider>
+          <Toaster position="top-center" />
+          <TooltipProvider>{children}</TooltipProvider>
+        </ThemeProvider>
+      </ConvexQueryCacheProvider>
+    </ConvexAuthNextjsProvider>
   )
 }
