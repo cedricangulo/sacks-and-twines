@@ -29,9 +29,10 @@ export default defineSchema({
 
   suppliers: defineTable({
     companyName: v.string(),
-    contactPerson: v.optional(v.string()),
-    contactNumber: v.optional(v.string()),
-    address: v.optional(v.string()),
+    contactPerson: v.string(),
+    contactNumber: v.string(),
+    address: v.string(),
+    archivedAt: v.optional(v.number()),
   }).index("by_company", ["companyName"]),
 
   batches: defineTable({
