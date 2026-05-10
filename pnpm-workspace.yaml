@@ -1,0 +1,5 @@
+allowBuilds:
+  esbuild: true   # Allow esbuild to run its build script
+  msw: true       # Allow msw
+  sharp: true     # Allow sharp
+  # some-other-package: false  # Explicitly block
