@@ -9,7 +9,10 @@ import { api } from "@/convex/_generated/api"
 export default function HomePage() {
   const { isLoading, isAuthenticated } = useConvexAuth()
   const router = useRouter()
-  const user = useQuery(api.users.currentUser, isAuthenticated ? {} : "skip")
+  const user = useQuery(
+    api.users.queries.currentUser,
+    isAuthenticated ? {} : "skip"
+  )
 
   useEffect(() => {
     if (isLoading) return

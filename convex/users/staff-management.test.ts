@@ -11,14 +11,13 @@ const authMocks = vi.hoisted(() => ({
 const modules = {
   "./_generated/api.ts": () => import("../_generated/api"),
   "./_generated/server.ts": () => import("../_generated/server"),
-  "./users.ts": () => import("../users"),
-  "./users/create.ts": () => import("./create"),
-  "./users/deactivate.ts": () => import("./deactivate"),
-  "./users/list.ts": () => import("./list"),
+  "./users/queries.ts": () => import("./queries"),
+  "./users/mutations.ts": () => import("./mutations"),
 }
 
 vi.mock("@convex-dev/auth/server", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@convex-dev/auth/server")>()
+  const actual =
+    await importOriginal<typeof import("@convex-dev/auth/server")>()
 
   return {
     ...actual,
@@ -39,7 +38,12 @@ describe("staff management", () => {
 
   async function createTestUser(
     t: ReturnType<typeof convexTest>,
-    user: { email: string; name: string; role: "owner" | "staff"; status: "active" | "deactivated" },
+    user: {
+      email: string
+      name: string
+      role: "owner" | "staff"
+      status: "active" | "deactivated"
+    }
   ) {
     return await t.run(async (ctx) => {
       return await ctx.db.insert("users", user)
@@ -62,10 +66,10 @@ describe("staff management", () => {
       status: "active",
     })
 
-    const result = await t.query(api.users.list.list)
+    const result = await t.query(api.users.queries.list)
 
     expect(result).toHaveLength(1)
-    expect(result[0]?.profile).toMatchObject({
+    expect(result[0]).toMatchObject({
       email: "staff@test.com",
       name: "Staff User",
       role: "staff",
@@ -78,11 +82,11 @@ describe("staff management", () => {
     authMocks.getAuthUserId.mockResolvedValueOnce(null)
 
     await expect(
-      t.mutation(api.users.create.create, {
+      t.mutation(api.users.mutations.create, {
         name: "New Staff",
         email: "staff@test.com",
         password: "password123",
-      }),
+      })
     ).rejects.toThrowError("Unauthorized")
   })
 
@@ -97,11 +101,11 @@ describe("staff management", () => {
     authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
 
     await expect(
-      t.mutation(api.users.create.create, {
+      t.mutation(api.users.mutations.create, {
         name: "New Staff",
         email: "staff@test.com",
         password: "password123",
-      }),
+      })
     ).rejects.toThrowError("Only owners can create staff users")
   })
 
@@ -115,19 +119,25 @@ describe("staff management", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
     authMocks.createAccount.mockImplementation(async (ctx, args) => {
-      const userId = await (ctx as { db: { insert: (table: "users", value: Record<string, unknown>) => Promise<unknown> } }).db.insert(
-        "users",
-        {
-          email: args.profile.email,
-          name: args.profile.name,
-          role: args.profile.role,
-          status: args.profile.status,
-        },
-      )
+      const userId = await (
+        ctx as {
+          db: {
+            insert: (
+              table: "users",
+              value: Record<string, unknown>
+            ) => Promise<unknown>
+          }
+        }
+      ).db.insert("users", {
+        email: args.profile.email,
+        name: args.profile.name,
+        role: args.profile.role,
+        status: args.profile.status,
+      })
       return { _id: userId, ...args.profile }
     })
 
-    const result = await t.mutation(api.users.create.create, {
+    const result = await t.mutation(api.users.mutations.create, {
       name: "New Staff",
       email: "staff@test.com",
       password: "password123",
@@ -155,7 +165,10 @@ describe("staff management", () => {
     })
 
     const auditLog = await t.query(async (ctx) => {
-      return await ctx.db.query("auditLogs").filter((q) => q.eq(q.field("action"), "user_create")).first()
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "user_create"))
+        .first()
     })
 
     expect(auditLog).toMatchObject({
@@ -182,7 +195,9 @@ describe("staff management", () => {
 
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const result = await t.mutation(api.users.deactivate.deactivate, { userId: staffId })
+    const result = await t.mutation(api.users.mutations.deactivate, {
+      userId: staffId,
+    })
     expect(result).toBe(true)
 
     const staffUser = await t.query(async (ctx) => {
@@ -196,7 +211,10 @@ describe("staff management", () => {
     })
 
     const auditLog = await t.query(async (ctx) => {
-      return await ctx.db.query("auditLogs").filter((q) => q.eq(q.field("action"), "user_deactivate")).first()
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "user_deactivate"))
+        .first()
     })
 
     expect(auditLog).toMatchObject({
@@ -215,7 +233,7 @@ describe("staff management", () => {
       status: "active",
     })
 
-    const owner = await t.query(internal.users.getOwnerByEmail, {
+    const owner = await t.query(internal.users.queries.getOwnerByEmail, {
       email: "owner@test.com",
     })
 

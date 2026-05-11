@@ -23,7 +23,6 @@ export const create = mutation({
       throw new Error("Password must be at least 8 characters")
     }
 
-    // Ensure email is unique using index
     const existing = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", email))
@@ -32,12 +31,6 @@ export const create = mutation({
       throw new Error("A user with this email already exists")
     }
 
-    // Create the auth account using Convex Auth helper. It requires an Action
-    // context at the type level; pass `ctx as any` per community guidance.
-    // This will create the account and also create/return the auth user object.
-    // The `profile` passed here will be available on the created user document.
-    // createAccount expects an Action context at the type level; pass the
-    // mutation ctx at runtime by casting to `never` to avoid `any` errors.
     const newUser = await createAccount(ctx as unknown as never, {
       provider: "password",
       account: {
@@ -54,7 +47,6 @@ export const create = mutation({
       shouldLinkViaPhone: false,
     })
 
-    // Audit log
     await ctx.db.insert("auditLogs", {
       userId: callerId,
       action: "user_create",
@@ -62,5 +54,43 @@ export const create = mutation({
     })
 
     return newUser
+  },
+})
+
+export const deactivate = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const callerId = await getAuthUserId(ctx)
+    if (callerId === null) {
+      throw new Error("Unauthorized")
+    }
+
+    const caller = await ctx.db.get(callerId)
+    if (!caller || caller.role !== "owner") {
+      throw new Error("Only owners can deactivate users")
+    }
+
+    if (callerId.toString() === userId.toString()) {
+      throw new Error("You cannot deactivate yourself")
+    }
+
+    const target = await ctx.db.get(userId)
+    if (!target) {
+      throw new Error("User not found")
+    }
+
+    if (target.role !== "staff") {
+      throw new Error("Can only deactivate staff users")
+    }
+
+    await ctx.db.patch(userId, { status: "deactivated" })
+
+    await ctx.db.insert("auditLogs", {
+      userId: callerId,
+      action: "user_deactivate",
+      description: `Deactivated user ${target.email ?? String(userId)}`,
+    })
+
+    return true
   },
 })

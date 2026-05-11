@@ -13,9 +13,12 @@ export const seedOwner = internalAction({
       throw new Error("OWNER_EMAIL and OWNER_PASSWORD env vars must be set")
     }
 
-    const existing = await ctx.runQuery(internal.users.getOwnerByEmail, {
-      email: OWNER_EMAIL, // ← must be passed here
-    })
+    const existing = await ctx.runQuery(
+      internal.users.queries.getOwnerByEmail,
+      {
+        email: OWNER_EMAIL, // ← must be passed here
+      }
+    )
 
     if (existing !== null) {
       console.log("Owner already exists, skipping seed.")

@@ -7,7 +7,10 @@ import { api } from "@/convex/_generated/api"
 
 export default function Dashboard() {
   const { isAuthenticated } = useConvexAuth()
-  const user = useQuery(api.users.currentUser, isAuthenticated ? {} : "skip")
+  const user = useQuery(
+    api.users.queries.currentUser,
+    isAuthenticated ? {} : "skip"
+  )
 
   const hours = new Date().getHours()
   const greetings =
@@ -17,7 +20,12 @@ export default function Dashboard() {
     <>
       <h2 className="font-semibold type-lg">
         Good {greetings},{" "}
-        {user === undefined ? <Skeleton className="inline-block w-32 h-5" /> : user?.name}!
+        {user === undefined ? (
+          <Skeleton className="inline-block w-32 h-5" />
+        ) : (
+          user?.name
+        )}
+        !
       </h2>
     </>
   )
