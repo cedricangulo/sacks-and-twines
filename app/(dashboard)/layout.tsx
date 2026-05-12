@@ -25,7 +25,9 @@ export default function DashboardLayout({ children }: Props) {
             /> */}
           </div>
         </header>
-        <main className="p-6 space-y-6">{children}</main>
+        <main className="p-6 space-y-6" suppressHydrationWarning>
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   )

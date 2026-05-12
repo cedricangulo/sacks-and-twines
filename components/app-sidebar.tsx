@@ -82,7 +82,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { signOut } = useAuthActions()
-  const router = useRouter()
+  // const router = useRouter()
   const pathname = usePathname()
   const isActive = (url: string) => {
     return url === pathname
@@ -134,9 +134,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={() =>
-                void signOut().then(() => router.replace("/sign-in"))
-              }
+              onClick={() => {
+                window.location.href = "/sign-in"
+                signOut()
+              }}
             >
               Sign Out
             </SidebarMenuButton>
