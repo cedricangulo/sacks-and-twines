@@ -1,14 +1,11 @@
 import { createAccount, getAuthUserId } from "@convex-dev/auth/server"
-import { v } from "convex/values"
-import { mutation } from "../_generated/server"
+import { globalLimit, perUserLimit } from "../rate_limiter"
+import { zMutation } from "../server"
+import { createUserArgs, deactivateUserArgs } from "../validators/users"
 
-export const create = mutation({
-  args: {
-    name: v.string(),
-    email: v.string(),
-    password: v.string(),
-  },
-  handler: async (ctx, { name, email, password }) => {
+export const create = zMutation({
+  args: createUserArgs,
+  handler: async (ctx, { name, email, password, userAgent }) => {
     const callerId = await getAuthUserId(ctx)
     if (callerId === null) {
       throw new Error("Unauthorized")
@@ -19,9 +16,8 @@ export const create = mutation({
       throw new Error("Only owners can create staff users")
     }
 
-    if (password.length < 8) {
-      throw new Error("Password must be at least 8 characters")
-    }
+    await perUserLimit(ctx, "createUser", callerId)
+    await globalLimit(ctx, "globalCreateUser")
 
     const existing = await ctx.db
       .query("users")
@@ -51,15 +47,16 @@ export const create = mutation({
       userId: callerId,
       action: "user_create",
       description: `Created staff ${email}`,
+      userAgent,
     })
 
     return newUser
   },
 })
 
-export const deactivate = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
+export const deactivate = zMutation({
+  args: deactivateUserArgs,
+  handler: async (ctx, { userId, userAgent }) => {
     const callerId = await getAuthUserId(ctx)
     if (callerId === null) {
       throw new Error("Unauthorized")
@@ -69,6 +66,9 @@ export const deactivate = mutation({
     if (!caller || caller.role !== "owner") {
       throw new Error("Only owners can deactivate users")
     }
+
+    await perUserLimit(ctx, "deactivateUser", callerId)
+    await globalLimit(ctx, "globalMutations")
 
     if (callerId.toString() === userId.toString()) {
       throw new Error("You cannot deactivate yourself")
@@ -89,6 +89,7 @@ export const deactivate = mutation({
       userId: callerId,
       action: "user_deactivate",
       description: `Deactivated user ${target.email ?? String(userId)}`,
+      userAgent,
     })
 
     return true

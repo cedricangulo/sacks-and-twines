@@ -3,6 +3,7 @@
 import { useMutation } from "convex/react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
+import { sileoRateLimitError } from "@/lib/rate-limit-error"
 
 export type CreateStaffData = {
   name: string
@@ -15,19 +16,13 @@ export function useCreateStaff() {
 
   const submit = async (data: CreateStaffData) => {
     await sileo
-      .promise(createStaff(data), {
+      .promise(createStaff({ ...data, userAgent: navigator.userAgent }), {
         loading: { title: "Creating staff account..." },
         success: {
           title: "Staff created",
           description: `${data.email} has been added as staff.`,
         },
-        error: (err: unknown) => ({
-          title: "Failed to create staff",
-          description:
-            err instanceof Error
-              ? err.message
-              : "An unexpected error occurred.",
-        }),
+        error: (err) => sileoRateLimitError(err, "Failed to create staff"),
       })
       .catch(() => {})
   }

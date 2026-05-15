@@ -17,6 +17,12 @@ export const currentUser = query({
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (userId === null) throw new Error("Unauthorized")
+
+    const caller = await ctx.db.get(userId)
+    if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
+
     return await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("role"), "staff"))

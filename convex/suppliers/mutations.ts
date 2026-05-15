@@ -1,17 +1,18 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
-import { v } from "convex/values"
-import { mutation } from "../_generated/server"
+import { zid } from "convex-helpers/server/zod4"
+import { globalLimit, perUserLimit } from "../rate_limiter"
+import { zMutation } from "../server"
+import {
+  archiveSupplierArgs,
+  createSupplierArgs,
+  updateSupplierArgs,
+} from "../validators/suppliers"
 
-export const create = mutation({
-  args: {
-    companyName: v.string(),
-    contactPerson: v.string(),
-    contactNumber: v.string(),
-    address: v.string(),
-  },
+export const create = zMutation({
+  args: createSupplierArgs,
   handler: async (
     ctx,
-    { companyName, contactPerson, contactNumber, address }
+    { companyName, contactPerson, contactNumber, address, userAgent }
   ) => {
     const callerId = await getAuthUserId(ctx)
     if (callerId === null) throw new Error("Unauthorized")
@@ -19,6 +20,9 @@ export const create = mutation({
     const caller = await ctx.db.get(callerId)
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can create suppliers")
+
+    await perUserLimit(ctx, "createSupplier", callerId)
+    await globalLimit(ctx, "globalCreateSupplier")
 
     const existing = await ctx.db
       .query("suppliers")
@@ -38,23 +42,25 @@ export const create = mutation({
       userId: callerId,
       action: "supplier_create",
       description: `Created supplier ${companyName}`,
+      userAgent,
     })
 
     return supplierId
   },
 })
 
-export const update = mutation({
-  args: {
-    supplierId: v.id("suppliers"),
-    companyName: v.string(),
-    contactPerson: v.string(),
-    contactNumber: v.string(),
-    address: v.string(),
-  },
+export const update = zMutation({
+  args: updateSupplierArgs,
   handler: async (
     ctx,
-    { supplierId, companyName, contactPerson, contactNumber, address }
+    {
+      supplierId,
+      companyName,
+      contactPerson,
+      contactNumber,
+      address,
+      userAgent,
+    }
   ) => {
     const callerId = await getAuthUserId(ctx)
     if (callerId === null) throw new Error("Unauthorized")
@@ -62,6 +68,9 @@ export const update = mutation({
     const caller = await ctx.db.get(callerId)
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can update suppliers")
+
+    await perUserLimit(ctx, "updateSupplier", callerId)
+    await globalLimit(ctx, "globalMutations")
 
     const existing = await ctx.db.get(supplierId)
     if (!existing) throw new Error("Supplier not found")
@@ -88,21 +97,25 @@ export const update = mutation({
       userId: callerId,
       action: "supplier_update",
       description: `Updated supplier ${existing.companyName} → ${companyName}`,
+      userAgent,
     })
 
     return true
   },
 })
 
-export const archive = mutation({
-  args: { supplierId: v.id("suppliers") },
-  handler: async (ctx, { supplierId }) => {
+export const archive = zMutation({
+  args: archiveSupplierArgs,
+  handler: async (ctx, { supplierId, userAgent }) => {
     const callerId = await getAuthUserId(ctx)
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can archive suppliers")
+
+    await perUserLimit(ctx, "archiveSupplier", callerId)
+    await globalLimit(ctx, "globalMutations")
 
     const existing = await ctx.db.get(supplierId)
     if (!existing) throw new Error("Supplier not found")
@@ -125,6 +138,7 @@ export const archive = mutation({
       userId: callerId,
       action: "supplier_archive",
       description: `Archived supplier ${existing.companyName}`,
+      userAgent,
     })
 
     return true

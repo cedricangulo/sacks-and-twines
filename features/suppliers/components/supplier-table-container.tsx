@@ -5,8 +5,8 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  useReactTable,
   type SortingState,
+  useReactTable,
 } from "@tanstack/react-table"
 import { useMemo, useState } from "react"
 import SupplierTable, { type Supplier } from "./supplier-table"

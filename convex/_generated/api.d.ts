@@ -8,30 +8,41 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
+import type * as http from "../http.js";
+import type * as init from "../init.js";
+import type * as migrations from "../migrations.js";
+import type * as rate_limiter from "../rate_limiter.js";
+import type * as server from "../server.js";
+import type * as suppliers_mutations from "../suppliers/mutations.js";
+import type * as suppliers_queries from "../suppliers/queries.js";
+import type * as users_mutations from "../users/mutations.js";
+import type * as users_queries from "../users/queries.js";
+import type * as validators_helpers from "../validators/helpers.js";
+import type * as validators_suppliers from "../validators/suppliers.js";
+import type * as validators_users from "../validators/users.js";
+
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
-} from "convex/server"
-import type * as auth from "../auth.js"
-import type * as http from "../http.js"
-import type * as init from "../init.js"
-import type * as migrations from "../migrations.js"
-import type * as suppliers_mutations from "../suppliers/mutations.js"
-import type * as suppliers_queries from "../suppliers/queries.js"
-import type * as users_mutations from "../users/mutations.js"
-import type * as users_queries from "../users/queries.js"
+} from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  auth: typeof auth
-  http: typeof http
-  init: typeof init
-  migrations: typeof migrations
-  "suppliers/mutations": typeof suppliers_mutations
-  "suppliers/queries": typeof suppliers_queries
-  "users/mutations": typeof users_mutations
-  "users/queries": typeof users_queries
-}>
+  auth: typeof auth;
+  http: typeof http;
+  init: typeof init;
+  migrations: typeof migrations;
+  rate_limiter: typeof rate_limiter;
+  server: typeof server;
+  "suppliers/mutations": typeof suppliers_mutations;
+  "suppliers/queries": typeof suppliers_queries;
+  "users/mutations": typeof users_mutations;
+  "users/queries": typeof users_queries;
+  "validators/helpers": typeof validators_helpers;
+  "validators/suppliers": typeof validators_suppliers;
+  "validators/users": typeof validators_users;
+}>;
 
 /**
  * A utility for referencing Convex functions in your app's public API.
@@ -44,7 +55,7 @@ declare const fullApi: ApiFromModules<{
 export declare const api: FilterApi<
   typeof fullApi,
   FunctionReference<any, "public">
->
+>;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -57,8 +68,9 @@ export declare const api: FilterApi<
 export declare const internal: FilterApi<
   typeof fullApi,
   FunctionReference<any, "internal">
->
+>;
 
 export declare const components: {
-  migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">
-}
+  migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+};

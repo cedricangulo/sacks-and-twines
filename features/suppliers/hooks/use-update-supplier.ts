@@ -4,6 +4,7 @@ import { useMutation } from "convex/react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { sileoRateLimitError } from "@/lib/rate-limit-error"
 import type { SupplierFormData } from "../validation"
 
 export function useUpdateSupplier() {
@@ -14,20 +15,17 @@ export function useUpdateSupplier() {
     data: SupplierFormData
   ) => {
     await sileo
-      .promise(updateSupplier({ supplierId, ...data }), {
-        loading: { title: "Updating supplier..." },
-        success: {
-          title: "Supplier updated",
-          description: `${data.companyName} has been updated.`,
-        },
-        error: (err: unknown) => ({
-          title: "Failed to update supplier",
-          description:
-            err instanceof Error
-              ? err.message
-              : "An unexpected error occurred.",
-        }),
-      })
+      .promise(
+        updateSupplier({ supplierId, ...data, userAgent: navigator.userAgent }),
+        {
+          loading: { title: "Updating supplier..." },
+          success: {
+            title: "Supplier updated",
+            description: `${data.companyName} has been updated.`,
+          },
+          error: (err) => sileoRateLimitError(err, "Failed to update supplier"),
+        }
+      )
       .catch(() => {})
   }
 

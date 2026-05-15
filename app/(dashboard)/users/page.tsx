@@ -17,13 +17,11 @@ export default function UsersPage() {
   const staff = useQuery(api.users.queries.list, isAuthenticated ? {} : "skip")
   const [search, setSearch] = useQueryState(
     "search",
-    parseAsString
-      .withDefault("")
-      .withOptions({
-        history: "replace",
-        shallow: false,
-        limitUrlUpdates: debounce(300),
-      })
+    parseAsString.withDefault("").withOptions({
+      history: "replace",
+      shallow: false,
+      limitUrlUpdates: debounce(300),
+    })
   )
 
   return (
@@ -34,14 +32,14 @@ export default function UsersPage() {
         onChange={(e) => void setSearch(e.target.value)}
         className="max-w-sm"
       />
-      {user === undefined ? (
+      {user === undefined || staff === undefined ? (
         <Skeleton className="h-64 w-full" />
       ) : user?.role !== "owner" ? (
         <p className="text-sm text-muted-foreground">
           You don&apos;t have permission to access this page.
         </p>
       ) : (
-        <StaffTableContainer staff={staff ?? []} search={search} />
+        <StaffTableContainer staff={staff} search={search} />
       )}
     </div>
   )

@@ -36,18 +36,36 @@ export default function EditSupplierDialog({
   const update = useUpdateSupplier()
   const [open, setOpen] = useState(false)
   const [errors, setErrors] = useState<SupplierFieldErrors>({})
+  const [dirty, setDirty] = useState(false)
+
+  const initial = {
+    companyName: supplier.companyName,
+    contactPerson: supplier.contactPerson ?? "",
+    contactNumber: supplier.contactNumber ?? "",
+    address: supplier.address ?? "",
+  }
+
+  const [formValues, setFormValues] = useState(initial)
+
+  const handleChange = (field: keyof typeof initial, value: string) => {
+    setFormValues((prev) => {
+      const next = { ...prev, [field]: value }
+      setDirty(
+        next.companyName !== initial.companyName ||
+          next.contactPerson !== initial.contactPerson ||
+          next.contactNumber !== initial.contactNumber ||
+          next.address !== initial.address
+      )
+      return next
+    })
+    clearFieldError(field)
+  }
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setErrors({})
 
-    const formData = new FormData(event.currentTarget)
-    const result = validateSupplier({
-      companyName: formData.get("companyName"),
-      contactPerson: formData.get("contactPerson"),
-      contactNumber: formData.get("contactNumber"),
-      address: formData.get("address"),
-    })
+    const result = validateSupplier(formValues)
 
     if (!result.success) {
       setErrors(result.errors)
@@ -76,11 +94,7 @@ export default function EditSupplierDialog({
           <DialogDescription>Update supplier information.</DialogDescription>
         </DialogHeader>
 
-        <form
-          key={String(open)}
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-6"
-        >
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <FieldGroup>
             <Field data-invalid={!!errors.companyName}>
               <FieldLabel htmlFor="edit-companyName">Company Name</FieldLabel>
@@ -89,9 +103,11 @@ export default function EditSupplierDialog({
                   id="edit-companyName"
                   name="companyName"
                   placeholder="Company name"
-                  defaultValue={supplier.companyName}
+                  value={formValues.companyName}
                   aria-invalid={!!errors.companyName}
-                  onInput={() => clearFieldError("companyName")}
+                  onInput={(e) =>
+                    handleChange("companyName", e.currentTarget.value)
+                  }
                 />
               </FieldContent>
               {errors.companyName ? (
@@ -108,9 +124,11 @@ export default function EditSupplierDialog({
                   id="edit-contactPerson"
                   name="contactPerson"
                   placeholder="Full name"
-                  defaultValue={supplier.contactPerson ?? ""}
+                  value={formValues.contactPerson}
                   aria-invalid={!!errors.contactPerson}
-                  onInput={() => clearFieldError("contactPerson")}
+                  onInput={(e) =>
+                    handleChange("contactPerson", e.currentTarget.value)
+                  }
                 />
               </FieldContent>
               {errors.contactPerson ? (
@@ -127,9 +145,11 @@ export default function EditSupplierDialog({
                   id="edit-contactNumber"
                   name="contactNumber"
                   placeholder="Phone number"
-                  defaultValue={supplier.contactNumber ?? ""}
+                  value={formValues.contactNumber}
                   aria-invalid={!!errors.contactNumber}
-                  onInput={() => clearFieldError("contactNumber")}
+                  onInput={(e) =>
+                    handleChange("contactNumber", e.currentTarget.value)
+                  }
                 />
               </FieldContent>
               {errors.contactNumber ? (
@@ -145,9 +165,11 @@ export default function EditSupplierDialog({
                   name="address"
                   rows={3}
                   placeholder="Street address"
-                  defaultValue={supplier.address ?? ""}
+                  value={formValues.address}
                   aria-invalid={!!errors.address}
-                  onInput={() => clearFieldError("address")}
+                  onInput={(e) =>
+                    handleChange("address", e.currentTarget.value)
+                  }
                 />
               </FieldContent>
               {errors.address ? (
@@ -164,7 +186,9 @@ export default function EditSupplierDialog({
             >
               Cancel
             </Button>
-            <Button type="submit">Save changes</Button>
+            <Button type="submit" disabled={!dirty}>
+              Save changes
+            </Button>
           </div>
         </form>
       </DialogContent>

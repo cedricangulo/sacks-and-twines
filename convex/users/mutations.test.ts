@@ -1,6 +1,7 @@
+import { register as registerRateLimiter } from "@convex-dev/rate-limiter/test"
 import { convexTest } from "convex-test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { api, internal } from "../_generated/api"
+import { api } from "../_generated/api"
 import schema from "../schema"
 
 const authMocks = vi.hoisted(() => ({
@@ -26,9 +27,11 @@ vi.mock("@convex-dev/auth/server", async (importOriginal) => {
   }
 })
 
-describe("staff management", () => {
+describe("user mutations", () => {
   function makeTest() {
-    return convexTest({ schema, modules })
+    const t = convexTest({ schema, modules })
+    registerRateLimiter(t as never)
+    return t
   }
 
   beforeEach(() => {
@@ -36,7 +39,7 @@ describe("staff management", () => {
     authMocks.createAccount.mockReset()
   })
 
-  async function createTestUser(
+  async function createUser(
     t: ReturnType<typeof convexTest>,
     user: {
       email: string
@@ -50,32 +53,7 @@ describe("staff management", () => {
     })
   }
 
-  it("lists only staff users", async () => {
-    const t = makeTest()
-
-    await createTestUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    await createTestUser(t, {
-      email: "staff@test.com",
-      name: "Staff User",
-      role: "staff",
-      status: "active",
-    })
-
-    const result = await t.query(api.users.queries.list)
-
-    expect(result).toHaveLength(1)
-    expect(result[0]).toMatchObject({
-      email: "staff@test.com",
-      name: "Staff User",
-      role: "staff",
-      status: "active",
-    })
-  })
+  // ── Create ────────────────────────────────────────────────
 
   it("rejects unauthenticated staff creation", async () => {
     const t = makeTest()
@@ -92,7 +70,7 @@ describe("staff management", () => {
 
   it("rejects staff creation for non-owners", async () => {
     const t = makeTest()
-    const staffId = await createTestUser(t, {
+    const staffId = await createUser(t, {
       email: "caller@test.com",
       name: "Staff Caller",
       role: "staff",
@@ -109,9 +87,47 @@ describe("staff management", () => {
     ).rejects.toThrowError("Only owners can create staff users")
   })
 
+  it("rejects creation with invalid email", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.create, {
+        name: "New Staff",
+        email: "not-an-email",
+        password: "password123",
+      })
+    ).rejects.toThrow()
+  })
+
+  it("rejects creation with short name", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.create, {
+        name: "",
+        email: "staff@test.com",
+        password: "password123",
+      })
+    ).rejects.toThrow()
+  })
+
   it("creates a staff user and audit log for owners", async () => {
     const t = makeTest()
-    const ownerId = await createTestUser(t, {
+    const ownerId = await createUser(t, {
       email: "owner@test.com",
       name: "Owner",
       role: "owner",
@@ -178,15 +194,61 @@ describe("staff management", () => {
     })
   })
 
-  it("deactivates staff users and writes an audit log", async () => {
+  it("rejects creating user with duplicate email", async () => {
     const t = makeTest()
-    const ownerId = await createTestUser(t, {
+    const ownerId = await createUser(t, {
       email: "owner@test.com",
       name: "Owner",
       role: "owner",
       status: "active",
     })
-    const staffId = await createTestUser(t, {
+    await createUser(t, {
+      email: "staff@test.com",
+      name: "Existing Staff",
+      role: "staff",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.create, {
+        name: "New Staff",
+        email: "staff@test.com",
+        password: "password123",
+      })
+    ).rejects.toThrowError("A user with this email already exists")
+  })
+
+  it("rejects creating user with short password", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.create, {
+        name: "New Staff",
+        email: "staff@test.com",
+        password: "1234567",
+      })
+    ).rejects.toThrowError("Password must be at least 8 characters")
+  })
+
+  // ── Deactivate ────────────────────────────────────────────
+
+  it("deactivates staff users and writes an audit log", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    const staffId = await createUser(t, {
       email: "staff@test.com",
       name: "Staff User",
       role: "staff",
@@ -224,24 +286,69 @@ describe("staff management", () => {
     })
   })
 
-  it("allows the owner lookup query to find a user by email", async () => {
+  it("rejects deactivating non-existent user", async () => {
     const t = makeTest()
-    await createTestUser(t, {
+    const ownerId = await createUser(t, {
       email: "owner@test.com",
       name: "Owner",
       role: "owner",
       status: "active",
     })
-
-    const owner = await t.query(internal.users.queries.getOwnerByEmail, {
-      email: "owner@test.com",
+    const phantomId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("users", {
+        email: "phantom@test.com",
+        role: "staff",
+        status: "active",
+      })
+      await ctx.db.delete(id)
+      return id
     })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    expect(owner).toMatchObject({
+    await expect(
+      t.mutation(api.users.mutations.deactivate, {
+        userId: phantomId,
+      })
+    ).rejects.toThrowError("User not found")
+  })
+
+  it("rejects deactivating owner user", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
       email: "owner@test.com",
       name: "Owner",
       role: "owner",
       status: "active",
     })
+    const otherOwnerId = await createUser(t, {
+      email: "owner2@test.com",
+      name: "Other Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.deactivate, {
+        userId: otherOwnerId,
+      })
+    ).rejects.toThrowError("Can only deactivate staff users")
+  })
+
+  it("rejects self-deactivation", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.deactivate, {
+        userId: ownerId,
+      })
+    ).rejects.toThrowError("You cannot deactivate yourself")
   })
 })

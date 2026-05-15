@@ -20,13 +20,11 @@ export default function SuppliersPage() {
   )
   const [search, setSearch] = useQueryState(
     "search",
-    parseAsString
-      .withDefault("")
-      .withOptions({
-        history: "replace",
-        shallow: false,
-        limitUrlUpdates: debounce(300),
-      })
+    parseAsString.withDefault("").withOptions({
+      history: "replace",
+      shallow: false,
+      limitUrlUpdates: debounce(300),
+    })
   )
 
   return (
@@ -37,17 +35,14 @@ export default function SuppliersPage() {
         onChange={(e) => void setSearch(e.target.value)}
         className="max-w-sm"
       />
-      {user === undefined ? (
+      {user === undefined || suppliers === undefined ? (
         <Skeleton className="h-64 w-full" />
       ) : user?.role !== "owner" ? (
         <p className="text-sm text-muted-foreground">
           You don&apos;t have permission to access this page.
         </p>
       ) : (
-        <SupplierTableContainer
-          suppliers={suppliers ?? []}
-          search={search}
-        />
+        <SupplierTableContainer suppliers={suppliers} search={search} />
       )}
     </div>
   )

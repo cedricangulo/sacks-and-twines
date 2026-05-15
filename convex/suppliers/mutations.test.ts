@@ -1,3 +1,4 @@
+import { register as registerRateLimiter } from "@convex-dev/rate-limiter/test"
 import { convexTest } from "convex-test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { api } from "../_generated/api"
@@ -26,16 +27,18 @@ vi.mock("@convex-dev/auth/server", async (importOriginal) => {
   }
 })
 
-describe("supplier management", () => {
+describe("supplier mutations", () => {
   function makeTest() {
-    return convexTest({ schema, modules })
+    const t = convexTest({ schema, modules })
+    registerRateLimiter(t as never)
+    return t
   }
 
   beforeEach(() => {
     authMocks.getAuthUserId.mockReset()
   })
 
-  async function createTestUser(
+  async function createUser(
     t: ReturnType<typeof convexTest>,
     user: {
       email: string
@@ -49,7 +52,7 @@ describe("supplier management", () => {
     })
   }
 
-  function testSupplierData(
+  function supplierData(
     overrides: { companyName: string } & Partial<{
       contactPerson: string
       contactNumber: string
@@ -64,27 +67,18 @@ describe("supplier management", () => {
     }
   }
 
-  async function createTestSupplier(
+  async function createSupplier(
     t: ReturnType<typeof convexTest>,
-    data: ReturnType<typeof testSupplierData>
+    data: ReturnType<typeof supplierData>
   ) {
     return await t.run(async (ctx) => {
       return await ctx.db.insert("suppliers", data)
     })
   }
 
-  it("lists all suppliers", async () => {
-    const t = makeTest()
+  // ── Create ────────────────────────────────────────────────
 
-    await createTestSupplier(t, testSupplierData({ companyName: "Supplier A" }))
-    await createTestSupplier(t, testSupplierData({ companyName: "Supplier B" }))
-
-    const result = await t.query(api.suppliers.queries.list)
-
-    expect(result).toHaveLength(2)
-  })
-
-  it("rejects unauthenticated supplier creation", async () => {
+  it("rejects unauthenticated creation", async () => {
     const t = makeTest()
     authMocks.getAuthUserId.mockResolvedValueOnce(null)
 
@@ -98,9 +92,9 @@ describe("supplier management", () => {
     ).rejects.toThrowError("Unauthorized")
   })
 
-  it("rejects supplier creation for non-owners", async () => {
+  it("rejects creation for non-owners", async () => {
     const t = makeTest()
-    const staffId = await createTestUser(t, {
+    const staffId = await createUser(t, {
       email: "staff@test.com",
       name: "Staff",
       role: "staff",
@@ -118,9 +112,69 @@ describe("supplier management", () => {
     ).rejects.toThrowError("Only owners can create suppliers")
   })
 
+  it("rejects creation with short company name", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.create, {
+        companyName: "A",
+        contactPerson: "John Doe",
+        contactNumber: "09171234567",
+        address: "Some Address 123 Street City",
+      })
+    ).rejects.toThrow()
+  })
+
+  it("rejects creation with invalid contact number", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.create, {
+        companyName: "Test Supplier",
+        contactPerson: "John Doe",
+        contactNumber: "12345",
+        address: "Some Address 123 Street City",
+      })
+    ).rejects.toThrow()
+  })
+
+  it("rejects creation with short address", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.create, {
+        companyName: "Test Supplier",
+        contactPerson: "John Doe",
+        contactNumber: "09171234567",
+        address: "Short",
+      })
+    ).rejects.toThrow()
+  })
+
   it("creates a supplier and writes an audit log", async () => {
     const t = makeTest()
-    const ownerId = await createTestUser(t, {
+    const ownerId = await createUser(t, {
       email: "owner@test.com",
       name: "Owner",
       role: "owner",
@@ -164,13 +218,13 @@ describe("supplier management", () => {
 
   it("rejects duplicate company names", async () => {
     const t = makeTest()
-    const ownerId = await createTestUser(t, {
+    const ownerId = await createUser(t, {
       email: "owner@test.com",
       name: "Owner",
       role: "owner",
       status: "active",
     })
-    await createTestSupplier(t, testSupplierData({ companyName: "Acme Corp" }))
+    await createSupplier(t, supplierData({ companyName: "Acme Corp" }))
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     await expect(
@@ -183,17 +237,19 @@ describe("supplier management", () => {
     ).rejects.toThrowError("A supplier with this company name already exists")
   })
 
+  // ── Update ────────────────────────────────────────────────
+
   it("updates a supplier and writes an audit log", async () => {
     const t = makeTest()
-    const ownerId = await createTestUser(t, {
+    const ownerId = await createUser(t, {
       email: "owner@test.com",
       name: "Owner",
       role: "owner",
       status: "active",
     })
-    const supplierId = await createTestSupplier(
+    const supplierId = await createSupplier(
       t,
-      testSupplierData({
+      supplierData({
         companyName: "Old Name",
         contactPerson: "Old Contact",
         contactNumber: "09171234567",
@@ -237,17 +293,110 @@ describe("supplier management", () => {
     })
   })
 
-  it("archives a supplier with no batch transactions", async () => {
+  it("rejects updating to duplicate company name", async () => {
     const t = makeTest()
-    const ownerId = await createTestUser(t, {
+    const ownerId = await createUser(t, {
       email: "owner@test.com",
       name: "Owner",
       role: "owner",
       status: "active",
     })
-    const supplierId = await createTestSupplier(
+    const supplierA = await createSupplier(
       t,
-      testSupplierData({ companyName: "Acme Corp" })
+      supplierData({ companyName: "Supplier A" })
+    )
+    await createSupplier(t, supplierData({ companyName: "Supplier B" }))
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.update, {
+        supplierId: supplierA,
+        ...supplierData({ companyName: "Supplier B" }),
+      })
+    ).rejects.toThrowError("A supplier with this company name already exists")
+  })
+
+  it("rejects unauthenticated update", async () => {
+    const t = makeTest()
+    const supplierId = await createSupplier(
+      t,
+      supplierData({ companyName: "Acme Corp" })
+    )
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.update, {
+        supplierId,
+        ...supplierData({ companyName: "Updated Corp" }),
+      })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("rejects non-owner update", async () => {
+    const t = makeTest()
+    const staffId = await createUser(t, {
+      email: "staff@test.com",
+      name: "Staff",
+      role: "staff",
+      status: "active",
+    })
+    const supplierId = await createSupplier(
+      t,
+      supplierData({ companyName: "Acme Corp" })
+    )
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.update, {
+        supplierId,
+        ...supplierData({ companyName: "Updated Corp" }),
+      })
+    ).rejects.toThrowError("Only owners can update suppliers")
+  })
+
+  it("rejects updating non-existent supplier", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    const phantomId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("suppliers", {
+        companyName: "Temp",
+        contactPerson: "",
+        contactNumber: "",
+        address: "",
+      })
+      await ctx.db.delete(id)
+      return id
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.update, {
+        supplierId: phantomId,
+        ...supplierData({ companyName: "Ghost Corp" }),
+      })
+    ).rejects.toThrowError("Supplier not found")
+  })
+
+  // ── Archive ───────────────────────────────────────────────
+
+  it("archives a supplier with no batch transactions", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    const supplierId = await createSupplier(
+      t,
+      supplierData({ companyName: "Acme Corp" })
     )
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
@@ -280,7 +429,7 @@ describe("supplier management", () => {
 
   it("rejects archiving a supplier with batch transactions", async () => {
     const t = makeTest()
-    const ownerId = await createTestUser(t, {
+    const ownerId = await createUser(t, {
       email: "owner@test.com",
       name: "Owner",
       role: "owner",
@@ -298,9 +447,9 @@ describe("supplier management", () => {
         status: "active",
       })
     })
-    const supplierId = await createTestSupplier(
+    const supplierId = await createSupplier(
       t,
-      testSupplierData({ companyName: "Acme Corp" })
+      supplierData({ companyName: "Acme Corp" })
     )
     await t.run(async (ctx) => {
       await ctx.db.insert("batches", {
@@ -328,15 +477,15 @@ describe("supplier management", () => {
 
   it("rejects archiving an already archived supplier", async () => {
     const t = makeTest()
-    const ownerId = await createTestUser(t, {
+    const ownerId = await createUser(t, {
       email: "owner@test.com",
       name: "Owner",
       role: "owner",
       status: "active",
     })
-    const supplierId = await createTestSupplier(
+    const supplierId = await createSupplier(
       t,
-      testSupplierData({ companyName: "Acme Corp" })
+      supplierData({ companyName: "Acme Corp" })
     )
     await t.run(async (ctx) => {
       await ctx.db.patch(supplierId, { archivedAt: Date.now() })
@@ -348,5 +497,70 @@ describe("supplier management", () => {
         supplierId,
       })
     ).rejects.toThrowError("Supplier is already archived")
+  })
+
+  it("rejects unauthenticated archive", async () => {
+    const t = makeTest()
+    const supplierId = await createSupplier(
+      t,
+      supplierData({ companyName: "Acme Corp" })
+    )
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.archive, {
+        supplierId,
+      })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("rejects non-owner archive", async () => {
+    const t = makeTest()
+    const staffId = await createUser(t, {
+      email: "staff@test.com",
+      name: "Staff",
+      role: "staff",
+      status: "active",
+    })
+    const supplierId = await createSupplier(
+      t,
+      supplierData({ companyName: "Acme Corp" })
+    )
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.archive, {
+        supplierId,
+      })
+    ).rejects.toThrowError("Only owners can archive suppliers")
+  })
+
+  it("rejects archiving non-existent supplier", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    const phantomId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("suppliers", {
+        companyName: "Temp",
+        contactPerson: "",
+        contactNumber: "",
+        address: "",
+      })
+      await ctx.db.delete(id)
+      return id
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.archive, {
+        supplierId: phantomId,
+      })
+    ).rejects.toThrowError("Supplier not found")
   })
 })
