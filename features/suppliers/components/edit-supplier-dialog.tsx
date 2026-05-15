@@ -1,6 +1,6 @@
 "use client"
 
-import { SubmitEvent, useState } from "react"
+import { ReactNode, SubmitEvent, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -19,11 +19,21 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useCreateSupplier } from "../hooks/use-create-supplier"
-import { type SupplierFieldErrors, validateSupplier } from "../validation"
+import { useUpdateSupplier } from "../hooks/use-update-supplier"
+import {
+  type Supplier,
+  type SupplierFieldErrors,
+  validateSupplier,
+} from "../validation"
 
-export default function AddSupplierDialog() {
-  const create = useCreateSupplier()
+export default function EditSupplierDialog({
+  supplier,
+  children,
+}: {
+  supplier: Supplier
+  children: ReactNode
+}) {
+  const update = useUpdateSupplier()
   const [open, setOpen] = useState(false)
   const [errors, setErrors] = useState<SupplierFieldErrors>({})
 
@@ -45,7 +55,7 @@ export default function AddSupplierDialog() {
     }
 
     setOpen(false)
-    await create.submit(result.data)
+    await update.submit(supplier._id, result.data)
   }
 
   const clearFieldError = (field: keyof SupplierFieldErrors) => {
@@ -59,15 +69,11 @@ export default function AddSupplierDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Add Supplier</Button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add supplier</DialogTitle>
-          <DialogDescription>
-            Register a new supplier in the system.
-          </DialogDescription>
+          <DialogTitle>Edit supplier</DialogTitle>
+          <DialogDescription>Update supplier information.</DialogDescription>
         </DialogHeader>
 
         <form
@@ -77,12 +83,13 @@ export default function AddSupplierDialog() {
         >
           <FieldGroup>
             <Field data-invalid={!!errors.companyName}>
-              <FieldLabel htmlFor="companyName">Company Name</FieldLabel>
+              <FieldLabel htmlFor="edit-companyName">Company Name</FieldLabel>
               <FieldContent>
                 <Input
-                  id="companyName"
+                  id="edit-companyName"
                   name="companyName"
                   placeholder="Company name"
+                  defaultValue={supplier.companyName}
                   aria-invalid={!!errors.companyName}
                   onInput={() => clearFieldError("companyName")}
                 />
@@ -93,12 +100,15 @@ export default function AddSupplierDialog() {
             </Field>
 
             <Field data-invalid={!!errors.contactPerson}>
-              <FieldLabel htmlFor="contactPerson">Contact Person</FieldLabel>
+              <FieldLabel htmlFor="edit-contactPerson">
+                Contact Person
+              </FieldLabel>
               <FieldContent>
                 <Input
-                  id="contactPerson"
+                  id="edit-contactPerson"
                   name="contactPerson"
                   placeholder="Full name"
+                  defaultValue={supplier.contactPerson ?? ""}
                   aria-invalid={!!errors.contactPerson}
                   onInput={() => clearFieldError("contactPerson")}
                 />
@@ -109,12 +119,15 @@ export default function AddSupplierDialog() {
             </Field>
 
             <Field data-invalid={!!errors.contactNumber}>
-              <FieldLabel htmlFor="contactNumber">Contact Number</FieldLabel>
+              <FieldLabel htmlFor="edit-contactNumber">
+                Contact Number
+              </FieldLabel>
               <FieldContent>
                 <Input
-                  id="contactNumber"
+                  id="edit-contactNumber"
                   name="contactNumber"
                   placeholder="Phone number"
+                  defaultValue={supplier.contactNumber ?? ""}
                   aria-invalid={!!errors.contactNumber}
                   onInput={() => clearFieldError("contactNumber")}
                 />
@@ -125,13 +138,14 @@ export default function AddSupplierDialog() {
             </Field>
 
             <Field data-invalid={!!errors.address}>
-              <FieldLabel htmlFor="address">Address</FieldLabel>
+              <FieldLabel htmlFor="edit-address">Address</FieldLabel>
               <FieldContent>
                 <Textarea
-                  id="address"
+                  id="edit-address"
                   name="address"
                   rows={3}
                   placeholder="Street address"
+                  defaultValue={supplier.address ?? ""}
                   aria-invalid={!!errors.address}
                   onInput={() => clearFieldError("address")}
                 />
@@ -150,7 +164,7 @@ export default function AddSupplierDialog() {
             >
               Cancel
             </Button>
-            <Button type="submit">Create supplier</Button>
+            <Button type="submit">Save changes</Button>
           </div>
         </form>
       </DialogContent>
