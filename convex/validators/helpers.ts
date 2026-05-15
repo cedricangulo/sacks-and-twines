@@ -9,8 +9,14 @@ const normalizeText = (value: unknown) => {
   return clean
 }
 
-export const normalizedString = (min: number, max: number, message: string) =>
-  z.preprocess(normalizeText, z.string().min(min, message).max(max, message))
+export const normalizedString = (min: number, max: number, message?: string) =>
+  z.preprocess(
+    normalizeText,
+    z
+      .string()
+      .min(min, message ?? `Must be at least ${min} characters`)
+      .max(max, message ?? `Must be at most ${max} characters`)
+  )
 
 export const contactNumberSchema = z
   .string()
@@ -32,19 +38,3 @@ export const contactNumberSchema = z
       })
     }
   })
-
-export function formatZodErrors(error: z.ZodError) {
-  const errors: Record<string, string> = {}
-
-  for (const issue of error.issues) {
-    const key = issue.path[0]
-    if (key) {
-      const fieldName = String(key)
-      if (!errors[fieldName]) {
-        errors[fieldName] = issue.message
-      }
-    }
-  }
-
-  return errors
-}

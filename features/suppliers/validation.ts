@@ -6,12 +6,14 @@ import {
   normalizedString,
 } from "@/lib/validation"
 
-export const SupplierSchema = z.object({
+export const createSupplierArgs = {
   companyName: normalizedString(2, 255, "Enter a valid company name."),
   contactPerson: normalizedString(2, 255, "Enter a valid contact person name."),
   contactNumber: contactNumberSchema,
   address: normalizedString(10, 500, "Enter a valid address."),
-})
+}
+
+export const SupplierSchema = z.object(createSupplierArgs)
 
 export type SupplierFormData = z.infer<typeof SupplierSchema>
 

@@ -20,6 +20,9 @@ importers:
       '@convex-dev/migrations':
         specifier: ^0.3.4
         version: 0.3.4(convex@1.38.0(react@19.2.6))
+      '@convex-dev/rate-limiter':
+        specifier: ^0.3.2
+        version: 0.3.2(convex@1.38.0(react@19.2.6))(react@19.2.6)
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -358,6 +361,15 @@ packages:
     resolution: {integrity: sha512-fCUkc4hDzkZTgxicjV1WN4QfUdDDPPrMtvC7VgSLTGssg1B8pm+XlPC6NbZ2Aes38Xf5iiodX+y8VnU96narKQ==}
     peerDependencies:
       convex: ^1.24.8
+
+  '@convex-dev/rate-limiter@0.3.2':
+    resolution: {integrity: sha512-+oBPsBfFbzdxiF/9XaaTQmVnvDlvEfg/c69/v8LxTbw4VLuiflIKlfnPQL8OS0azXQQ11hcPWHmU8ytFmHKDXA==}
+    peerDependencies:
+      convex: ^1.24.8
+      react: ^18.2.0 || ^19.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
 
   '@dotenvx/dotenvx@1.65.0':
     resolution: {integrity: sha512-v4FA/Lw3pTEloLxBqTOaYDX6MNo0Jo7lGBsPZhwnJBqRJp0AzQg1ZZNxrFsh6HVC6QWeWrfIKLn0y2eyIXaVDg==}
@@ -3843,6 +3855,12 @@ snapshots:
   '@convex-dev/migrations@0.3.4(convex@1.38.0(react@19.2.6))':
     dependencies:
       convex: 1.38.0(react@19.2.6)
+
+  '@convex-dev/rate-limiter@0.3.2(convex@1.38.0(react@19.2.6))(react@19.2.6)':
+    dependencies:
+      convex: 1.38.0(react@19.2.6)
+    optionalDependencies:
+      react: 19.2.6
 
   '@dotenvx/dotenvx@1.65.0':
     dependencies:
