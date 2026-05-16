@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, SubmitEvent, useState } from "react"
+import { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -19,71 +19,29 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useUpdateSupplier } from "../hooks/use-update-supplier"
-import {
-  type Supplier,
-  type SupplierFieldErrors,
-  validateSupplier,
-} from "../validation"
+import { useEditSupplierForm } from "../hooks/use-edit-supplier-form"
+import { type Supplier } from "../validation"
 
 export default function EditSupplierDialog({
   supplier,
+  open: openProp,
+  onOpenChange,
   children,
 }: {
   supplier: Supplier
-  children: ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  children?: ReactNode
 }) {
-  const update = useUpdateSupplier()
-  const [open, setOpen] = useState(false)
-  const [errors, setErrors] = useState<SupplierFieldErrors>({})
-  const [dirty, setDirty] = useState(false)
-
-  const initial = {
-    companyName: supplier.companyName,
-    contactPerson: supplier.contactPerson ?? "",
-    contactNumber: supplier.contactNumber ?? "",
-    address: supplier.address ?? "",
-  }
-
-  const [formValues, setFormValues] = useState(initial)
-
-  const handleChange = (field: keyof typeof initial, value: string) => {
-    setFormValues((prev) => {
-      const next = { ...prev, [field]: value }
-      setDirty(
-        next.companyName !== initial.companyName ||
-          next.contactPerson !== initial.contactPerson ||
-          next.contactNumber !== initial.contactNumber ||
-          next.address !== initial.address
-      )
-      return next
-    })
-    clearFieldError(field)
-  }
-
-  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setErrors({})
-
-    const result = validateSupplier(formValues)
-
-    if (!result.success) {
-      setErrors(result.errors)
-      return
-    }
-
-    setOpen(false)
-    await update.submit(supplier._id, result.data)
-  }
-
-  const clearFieldError = (field: keyof SupplierFieldErrors) => {
-    setErrors((prev) => {
-      if (!prev[field]) return prev
-      const next = { ...prev }
-      delete next[field]
-      return next
-    })
-  }
+  const {
+    open,
+    setOpen,
+    formValues,
+    handleChange,
+    errors,
+    dirty,
+    handleSubmit,
+  } = useEditSupplierForm({ supplier, open: openProp, onOpenChange })
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -102,7 +60,7 @@ export default function EditSupplierDialog({
                 <Input
                   id="edit-companyName"
                   name="companyName"
-                  placeholder="Company name"
+                  placeholder="e.g. Acme Corp"
                   value={formValues.companyName}
                   aria-invalid={!!errors.companyName}
                   onInput={(e) =>
@@ -123,7 +81,7 @@ export default function EditSupplierDialog({
                 <Input
                   id="edit-contactPerson"
                   name="contactPerson"
-                  placeholder="Full name"
+                  placeholder="e.g. Juan Dela Cruz"
                   value={formValues.contactPerson}
                   aria-invalid={!!errors.contactPerson}
                   onInput={(e) =>
@@ -144,7 +102,7 @@ export default function EditSupplierDialog({
                 <Input
                   id="edit-contactNumber"
                   name="contactNumber"
-                  placeholder="Phone number"
+                  placeholder="e.g. 0917-123-4567"
                   value={formValues.contactNumber}
                   aria-invalid={!!errors.contactNumber}
                   onInput={(e) =>
@@ -164,7 +122,7 @@ export default function EditSupplierDialog({
                   id="edit-address"
                   name="address"
                   rows={3}
-                  placeholder="Street address"
+                  placeholder="e.g. 123 Rizal St., Brgy. San Jose"
                   value={formValues.address}
                   aria-invalid={!!errors.address}
                   onInput={(e) =>

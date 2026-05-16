@@ -11,6 +11,7 @@ import {
 import { useMemo, useState } from "react"
 import SupplierTable, { type Supplier } from "./supplier-table"
 import SupplierTableActions from "./supplier-table-actions"
+import { Badge } from "@/components/ui/badge"
 
 type SupplierTableContainerProps = {
   suppliers: Supplier[]
@@ -46,6 +47,21 @@ export default function SupplierTableContainer({
         id: "contactNumber",
         header: "Contact Number",
         cell: (info) => info.getValue() || "—",
+      }),
+      columnHelper.accessor((row) => row.address ?? "", {
+        id: "address",
+        header: "Address",
+        cell: (info) => info.getValue() || "—",
+      }),
+      columnHelper.accessor((row) => row.archivedAt ?? "", {
+        id: "archivedAt",
+        header: "Status",
+        cell: (info) =>
+          info.getValue() ? (
+            <Badge variant="destructive">Archived</Badge>
+          ) : (
+            <Badge variant="secondary">Active</Badge>
+          ),
         enableGlobalFilter: false,
       }),
       columnHelper.display({

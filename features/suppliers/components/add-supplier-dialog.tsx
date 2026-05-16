@@ -1,6 +1,5 @@
 "use client"
 
-import { SubmitEvent, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -19,43 +18,17 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useCreateSupplier } from "../hooks/use-create-supplier"
-import { type SupplierFieldErrors, validateSupplier } from "../validation"
+import { useAddSupplierForm } from "../hooks/use-add-supplier-form"
 
 export default function AddSupplierDialog() {
-  const create = useCreateSupplier()
-  const [open, setOpen] = useState(false)
-  const [errors, setErrors] = useState<SupplierFieldErrors>({})
-
-  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setErrors({})
-
-    const formData = new FormData(event.currentTarget)
-    const result = validateSupplier({
-      companyName: formData.get("companyName"),
-      contactPerson: formData.get("contactPerson"),
-      contactNumber: formData.get("contactNumber"),
-      address: formData.get("address"),
-    })
-
-    if (!result.success) {
-      setErrors(result.errors)
-      return
-    }
-
-    setOpen(false)
-    await create.submit(result.data)
-  }
-
-  const clearFieldError = (field: keyof SupplierFieldErrors) => {
-    setErrors((prev) => {
-      if (!prev[field]) return prev
-      const next = { ...prev }
-      delete next[field]
-      return next
-    })
-  }
+  const {
+    open,
+    setOpen,
+    formValues,
+    handleChange,
+    errors,
+    handleSubmit,
+  } = useAddSupplierForm()
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -70,11 +43,7 @@ export default function AddSupplierDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          key={String(open)}
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-6"
-        >
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <FieldGroup>
             <Field data-invalid={!!errors.companyName}>
               <FieldLabel htmlFor="companyName">Company Name</FieldLabel>
@@ -82,9 +51,12 @@ export default function AddSupplierDialog() {
                 <Input
                   id="companyName"
                   name="companyName"
-                  placeholder="Company name"
+                  placeholder="e.g. Acme Corp"
+                  value={formValues.companyName}
                   aria-invalid={!!errors.companyName}
-                  onInput={() => clearFieldError("companyName")}
+                  onInput={(e) =>
+                    handleChange("companyName", e.currentTarget.value)
+                  }
                 />
               </FieldContent>
               {errors.companyName ? (
@@ -98,9 +70,12 @@ export default function AddSupplierDialog() {
                 <Input
                   id="contactPerson"
                   name="contactPerson"
-                  placeholder="Full name"
+                  placeholder="e.g. Juan Dela Cruz"
+                  value={formValues.contactPerson}
                   aria-invalid={!!errors.contactPerson}
-                  onInput={() => clearFieldError("contactPerson")}
+                  onInput={(e) =>
+                    handleChange("contactPerson", e.currentTarget.value)
+                  }
                 />
               </FieldContent>
               {errors.contactPerson ? (
@@ -114,9 +89,12 @@ export default function AddSupplierDialog() {
                 <Input
                   id="contactNumber"
                   name="contactNumber"
-                  placeholder="Phone number"
+                  placeholder="e.g. 0917-123-4567"
+                  value={formValues.contactNumber}
                   aria-invalid={!!errors.contactNumber}
-                  onInput={() => clearFieldError("contactNumber")}
+                  onInput={(e) =>
+                    handleChange("contactNumber", e.currentTarget.value)
+                  }
                 />
               </FieldContent>
               {errors.contactNumber ? (
@@ -131,9 +109,12 @@ export default function AddSupplierDialog() {
                   id="address"
                   name="address"
                   rows={3}
-                  placeholder="Street address"
+                  placeholder="e.g. 123 Rizal St., Brgy. San Jose"
+                  value={formValues.address}
                   aria-invalid={!!errors.address}
-                  onInput={() => clearFieldError("address")}
+                  onInput={(e) =>
+                    handleChange("address", e.currentTarget.value)
+                  }
                 />
               </FieldContent>
               {errors.address ? (
