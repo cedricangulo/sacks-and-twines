@@ -19,8 +19,16 @@ export function useArchiveSupplier() {
             title: "Supplier archived",
             description: `${companyName} has been archived.`,
           },
-          error: (err) =>
-            sileoRateLimitError(err, "Failed to archive supplier"),
+          error: (err) => {
+            if (err instanceof Error && err.message.includes("batch records")) {
+              return {
+                title: "Cannot archive",
+                description:
+                  "This supplier has existing batch records. Reassign or delete batches before archiving.",
+              }
+            }
+            return sileoRateLimitError(err, "Failed to archive supplier")
+          },
         }
       )
       .catch(() => {})

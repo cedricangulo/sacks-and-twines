@@ -29,7 +29,7 @@ export default function StaffTable({ table }: StaffTableProps) {
   const rows = table.getRowModel().rows
 
   return (
-    <div className="rounded-xl border">
+    <div className="border rounded-xl">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -39,7 +39,7 @@ export default function StaffTable({ table }: StaffTableProps) {
                   {header.isPlaceholder ? null : header.column.getCanSort() ? (
                     <button
                       type="button"
-                      className="inline-flex items-end gap-2"
+                      className="inline-flex items-center gap-1"
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       {flexRender(

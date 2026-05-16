@@ -29,6 +29,7 @@ export interface Supplier {
   contactNumber?: string
   address?: string
   archivedAt?: number
+  batchCount?: number
 }
 
 export function validateSupplier(values: unknown) {

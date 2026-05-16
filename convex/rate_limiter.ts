@@ -73,12 +73,12 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     capacity: 240,
   },
 
-  // ── Future: Batches ─────────────────────────────────────────
-  /** Placeholder — adjust when batch CRUD ships */
+  // ── Batches ────────────────────────────────────────────────
+  /** Stock-in / batch creation per user */
   createBatch: { kind: "token bucket", period: MINUTE, rate: 30, capacity: 60 },
-  /** Placeholder */
+  /** Batch update per user */
   updateBatch: { kind: "token bucket", period: MINUTE, rate: 30, capacity: 60 },
-  /** Placeholder */
+  /** Batch void per user */
   voidBatch: { kind: "token bucket", period: MINUTE, rate: 15, capacity: 30 },
 
   // ── Future: Dispatches ──────────────────────────────────────

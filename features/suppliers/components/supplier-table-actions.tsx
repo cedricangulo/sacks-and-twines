@@ -45,7 +45,16 @@ export default function SupplierTableActions({
       {!isArchived ? (
         <AlertDialog open={open} onOpenChange={setOpen}>
           <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={(supplier.batchCount ?? 0) > 0}
+              title={
+                (supplier.batchCount ?? 0) > 0
+                  ? "Has existing batch records — reassign or delete batches first"
+                  : undefined
+              }
+            >
               <ArchiveIcon size={14} />
             </Button>
           </AlertDialogTrigger>

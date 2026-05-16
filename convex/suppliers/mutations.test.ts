@@ -471,7 +471,7 @@ describe("supplier mutations", () => {
         supplierId,
       })
     ).rejects.toThrowError(
-      "Cannot archive supplier with existing batch transactions"
+      "This supplier has existing batch records and cannot be archived."
     )
   })
 

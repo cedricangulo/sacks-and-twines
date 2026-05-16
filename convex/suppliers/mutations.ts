@@ -128,7 +128,7 @@ export const archive = zMutation({
       .collect()
     if (batches.length > 0) {
       throw new Error(
-        "Cannot archive supplier with existing batch transactions"
+        "This supplier has existing batch records and cannot be archived."
       )
     }
 

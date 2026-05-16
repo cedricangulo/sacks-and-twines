@@ -30,7 +30,7 @@ export default function SupplierTable({ table }: SupplierTableProps) {
                   {header.isPlaceholder ? null : header.column.getCanSort() ? (
                     <button
                       type="button"
-                      className="inline-flex items-end gap-2"
+                      className="inline-flex items-center gap-1"
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       {flexRender(
