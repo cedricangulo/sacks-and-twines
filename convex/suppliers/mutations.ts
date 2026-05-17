@@ -5,6 +5,7 @@ import { zMutation } from "../server"
 import {
   archiveSupplierArgs,
   createSupplierArgs,
+  unarchiveSupplierArgs,
   updateSupplierArgs,
 } from "../validators/suppliers"
 
@@ -138,6 +139,37 @@ export const archive = zMutation({
       userId: callerId,
       action: "supplier_archive",
       description: `Archived supplier ${existing.companyName}`,
+      userAgent,
+    })
+
+    return true
+  },
+})
+
+export const unarchive = zMutation({
+  args: unarchiveSupplierArgs,
+  handler: async (ctx, { supplierId, userAgent }) => {
+    const callerId = await getAuthUserId(ctx)
+    if (callerId === null) throw new Error("Unauthorized")
+
+    const caller = await ctx.db.get(callerId)
+    if (!caller || caller.role !== "owner")
+      throw new Error("Only owners can unarchive suppliers")
+
+    await perUserLimit(ctx, "archiveSupplier", callerId)
+    await globalLimit(ctx, "globalMutations")
+
+    const existing = await ctx.db.get(supplierId)
+    if (!existing) throw new Error("Supplier not found")
+    if (existing.archivedAt === undefined)
+      throw new Error("Supplier is not archived")
+
+    await ctx.db.patch(supplierId, { archivedAt: undefined })
+
+    await ctx.db.insert("auditLogs", {
+      userId: callerId,
+      action: "supplier_unarchive",
+      description: `Unarchived supplier ${existing.companyName}`,
       userAgent,
     })
 

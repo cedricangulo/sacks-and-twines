@@ -23,3 +23,8 @@ export const archiveSupplierArgs = {
   supplierId: zid("suppliers"),
   ...auditMeta,
 }
+
+export const unarchiveSupplierArgs = {
+  supplierId: zid("suppliers"),
+  ...auditMeta,
+}

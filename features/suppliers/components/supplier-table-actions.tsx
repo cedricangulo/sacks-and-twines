@@ -4,6 +4,7 @@ import {
   ArchiveIcon,
   EllipsisVerticalIcon,
   PencilIcon,
+  RotateCcwIcon,
   TriangleAlertIcon,
 } from "lucide-react"
 import { useState } from "react"
@@ -25,6 +26,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { useArchiveSupplier } from "../hooks/use-archive-supplier"
+import { useUnarchiveSupplier } from "../hooks/use-unarchive-supplier"
 import { type Supplier } from "../validation"
 import EditSupplierDialog from "./edit-supplier-dialog"
 
@@ -34,8 +36,10 @@ export default function SupplierTableActions({
   supplier: Supplier
 }) {
   const archive = useArchiveSupplier()
+  const unarchive = useUnarchiveSupplier()
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [alertOpen, setAlertOpen] = useState(false)
+  const [unarchiveAlertOpen, setUnarchiveAlertOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
 
   const isArchived = supplier.archivedAt !== undefined
@@ -43,6 +47,11 @@ export default function SupplierTableActions({
   const handleArchive = async () => {
     setAlertOpen(false)
     await archive.submit(supplier._id, supplier.companyName)
+  }
+
+  const handleUnarchive = async () => {
+    setUnarchiveAlertOpen(false)
+    await unarchive.submit(supplier._id, supplier.companyName)
   }
 
   return (
@@ -67,7 +76,19 @@ export default function SupplierTableActions({
               Edit
             </Button>
 
-            {!isArchived ? (
+            {isArchived ? (
+              <Button
+                className="justify-start w-full gap-2"
+                onClick={() => {
+                  setPopoverOpen(false)
+                  setUnarchiveAlertOpen(true)
+                }}
+                variant="ghost"
+              >
+                <RotateCcwIcon />
+                Unarchive
+              </Button>
+            ) : (
               <Button
                 className="justify-start w-full gap-2 text-destructive hover:text-destructive"
                 disabled={(supplier.batchCount ?? 0) > 0}
@@ -85,7 +106,7 @@ export default function SupplierTableActions({
                 <ArchiveIcon />
                 Archive
               </Button>
-            ) : null}
+            )}
           </div>
         </PopoverContent>
       </Popover>
@@ -114,6 +135,31 @@ export default function SupplierTableActions({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={handleArchive}>
               Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Unarchive Supplier Alert Dialog */}
+      <AlertDialog
+        open={unarchiveAlertOpen}
+        onOpenChange={setUnarchiveAlertOpen}
+      >
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-primary/10 text-primary">
+              <RotateCcwIcon />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Unarchive supplier</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will restore <strong>{supplier.companyName}</strong> to
+              active use.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnarchive}>
+              Unarchive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

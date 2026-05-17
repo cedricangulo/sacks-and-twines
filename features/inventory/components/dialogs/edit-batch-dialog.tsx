@@ -1,9 +1,9 @@
 "use client"
 
+import { useQuery } from "convex-helpers/react/cache"
 import { Loader2Icon, LockIcon } from "lucide-react"
 import type { ReactNode } from "react"
 import { SubmitEvent, useEffect, useState } from "react"
-import { useQuery } from "convex-helpers/react/cache"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -52,10 +52,12 @@ export default function EditBatchDialog({
   const [dirty, setDirty] = useState(false)
 
   const supplierOptions =
-    suppliers?.map((s: { _id: unknown; companyName: string }) => ({
-      id: String(s._id),
-      name: s.companyName,
-    })) ?? []
+    suppliers
+      ?.filter((s: { archivedAt?: number }) => !s.archivedAt)
+      .map((s: { _id: unknown; companyName: string }) => ({
+        id: String(s._id),
+        name: s.companyName,
+      })) ?? []
 
   const initial = detail
     ? {
@@ -123,13 +125,8 @@ export default function EditBatchDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={setOpen}
-    >
-      {children ? (
-        <DialogTrigger asChild>{children}</DialogTrigger>
-      ) : null}
+    <Dialog open={open} onOpenChange={setOpen}>
+      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit batch</DialogTitle>
