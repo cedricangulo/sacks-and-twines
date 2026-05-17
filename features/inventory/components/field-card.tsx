@@ -1,7 +1,7 @@
 "use client"
 
-import { memo } from "react"
 import { PencilIcon } from "lucide-react"
+import { memo } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -20,8 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import SupplierCombobox from "./supplier-combobox"
 import type { StockInFieldErrors } from "../validation"
+import SupplierCombobox from "./supplier-combobox"
 
 interface FieldCardProps {
   mode: "existing" | "new"
@@ -112,14 +112,11 @@ const FieldCard = memo(function FieldCard({
       <FieldGroup className="grid grid-cols-2">
         {renderField("category", "Category", (disabled) => (
           <Select
-            value={fields.category || undefined}
+            value={fields.category}
             onValueChange={onCategoryChange}
             disabled={disabled}
           >
-            <SelectTrigger
-              className="w-full"
-              aria-invalid={!!errors.category}
-            >
+            <SelectTrigger className="w-full" aria-invalid={!!errors.category}>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
@@ -133,17 +130,14 @@ const FieldCard = memo(function FieldCard({
 
         {renderField("baseUom", "Unit / Measurement", (disabled) => (
           <Select
-            value={fields.baseUom || undefined}
+            value={fields.baseUom}
             onValueChange={(v) => {
               onFieldChange("baseUom", v)
               clearFieldError("baseUom")
             }}
             disabled={disabled}
           >
-            <SelectTrigger
-              className="w-full"
-              aria-invalid={!!errors.baseUom}
-            >
+            <SelectTrigger className="w-full" aria-invalid={!!errors.baseUom}>
               <SelectValue placeholder="Select unit" />
             </SelectTrigger>
             <SelectContent>
@@ -157,25 +151,21 @@ const FieldCard = memo(function FieldCard({
       </FieldGroup>
 
       <FieldGroup className="grid grid-cols-2">
-        {renderField(
-          "weightPerUnit",
-          "Weight per Unit (kg)",
-          (disabled) => (
-            <Input
-              value={fields.weightPerUnit}
-              onInput={(e) => {
-                onFieldChange("weightPerUnit", e.currentTarget.value)
-                clearFieldError("weightPerUnit")
-              }}
-              type="number"
-              step="0.0001"
-              min="0"
-              placeholder="Optional"
-              disabled={disabled}
-              aria-invalid={!!errors.weightPerUnit}
-            />
-          )
-        )}
+        {renderField("weightPerUnit", "Weight per Unit (kg)", (disabled) => (
+          <Input
+            value={fields.weightPerUnit}
+            onInput={(e) => {
+              onFieldChange("weightPerUnit", e.currentTarget.value)
+              clearFieldError("weightPerUnit")
+            }}
+            type="number"
+            step="0.0001"
+            min="0"
+            placeholder="Optional"
+            disabled={disabled}
+            aria-invalid={!!errors.weightPerUnit}
+          />
+        ))}
 
         {renderField(
           "supplierId",
@@ -196,34 +186,28 @@ const FieldCard = memo(function FieldCard({
       </FieldGroup>
 
       <Field data-invalid={!!errors.lowStockThreshold}>
-        {renderField(
-          "lowStockThreshold",
-          "Low Stock Threshold",
-          (disabled) => (
-            <Input
-              value={fields.lowStockThreshold}
-              onInput={(e) => {
-                onFieldChange("lowStockThreshold", e.currentTarget.value)
-                clearFieldError("lowStockThreshold")
-              }}
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0"
-              disabled={disabled}
-              aria-invalid={!!errors.lowStockThreshold}
-            />
-          )
-        )}
+        {renderField("lowStockThreshold", "Low Stock Threshold", (disabled) => (
+          <Input
+            value={fields.lowStockThreshold}
+            onInput={(e) => {
+              onFieldChange("lowStockThreshold", e.currentTarget.value)
+              clearFieldError("lowStockThreshold")
+            }}
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0"
+            disabled={disabled}
+            aria-invalid={!!errors.lowStockThreshold}
+          />
+        ))}
       </Field>
 
       <Separator />
 
       <FieldGroup className="grid grid-cols-2">
         <Field data-invalid={!!errors.quantityReceived}>
-          <FieldLabel htmlFor="quantityReceived">
-            Quantity Received
-          </FieldLabel>
+          <FieldLabel htmlFor="quantityReceived">Quantity Received</FieldLabel>
           <FieldContent>
             <Input
               id="quantityReceived"

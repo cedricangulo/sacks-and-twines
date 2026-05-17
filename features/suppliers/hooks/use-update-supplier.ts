@@ -23,7 +23,15 @@ export function useUpdateSupplier() {
             title: "Supplier updated",
             description: `${data.companyName} has been updated.`,
           },
-          error: (err) => sileoRateLimitError(err, "Failed to update supplier"),
+          error: (err) => {
+            if (err instanceof Error && err.message.includes("company name already exists")) {
+              return {
+                title: "Duplicate supplier",
+                description: `"${data.companyName}" is already registered.`,
+              }
+            }
+            return sileoRateLimitError(err, "Failed to update supplier")
+          },
         }
       )
       .catch(() => {})

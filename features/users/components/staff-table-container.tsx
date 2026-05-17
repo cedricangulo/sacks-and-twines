@@ -50,7 +50,7 @@ export default function StaffTableContainer({
         cell: ({ row }) => (
           <Badge
             variant={
-              row.original.status === "active" ? "default" : "destructive"
+              row.original.status === "active" ? "success" : "destructive"
             }
           >
             {row.original.status === "active" ? "Active" : "Deactivated"}
@@ -84,6 +84,8 @@ export default function StaffTableContainer({
     globalFilterFn: "includesString",
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    enableSortingRemoval: false,
+    isMultiSortEvent: () => false,
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row._id,
   })

@@ -17,7 +17,15 @@ export function useCreateSupplier() {
           title: "Supplier created",
           description: `${data.companyName} has been added to your suppliers.`,
         },
-        error: (err) => sileoRateLimitError(err, "Failed to create supplier"),
+        error: (err) => {
+          if (err instanceof Error && err.message.includes("company name already exists")) {
+            return {
+              title: "Duplicate supplier",
+              description: `"${data.companyName}" is already registered.`,
+            }
+          }
+          return sileoRateLimitError(err, "Failed to create supplier")
+        },
       })
       .catch(() => {})
   }

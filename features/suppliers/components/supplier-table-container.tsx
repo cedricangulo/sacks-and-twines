@@ -9,9 +9,9 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { useMemo, useState } from "react"
+import { Badge } from "@/components/ui/badge"
 import SupplierTable, { type Supplier } from "./supplier-table"
 import SupplierTableActions from "./supplier-table-actions"
-import { Badge } from "@/components/ui/badge"
 
 type SupplierTableContainerProps = {
   suppliers: Supplier[]
@@ -58,9 +58,9 @@ export default function SupplierTableContainer({
         header: "Status",
         cell: (info) =>
           info.getValue() ? (
-            <Badge variant="destructive">Archived</Badge>
+            <Badge variant="warning">Archived</Badge>
           ) : (
-            <Badge variant="secondary">Active</Badge>
+            <Badge variant="success">Active</Badge>
           ),
         enableGlobalFilter: false,
       }),
@@ -83,6 +83,8 @@ export default function SupplierTableContainer({
     globalFilterFn: "includesString",
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    enableSortingRemoval: false,
+    isMultiSortEvent: () => false,
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row._id,
   })

@@ -21,14 +21,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { useAddSupplierForm } from "../hooks/use-add-supplier-form"
 
 export default function AddSupplierDialog() {
-  const {
-    open,
-    setOpen,
-    formValues,
-    handleChange,
-    errors,
-    handleSubmit,
-  } = useAddSupplierForm()
+  const { open, setOpen, formValues, handleChange, errors, handleSubmit } =
+    useAddSupplierForm()
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

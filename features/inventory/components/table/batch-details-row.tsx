@@ -55,29 +55,39 @@ export default function BatchDetailsRow({
     () => [
       columnHelper.accessor("batchCode", {
         header: "Batch Code",
-        cell: (info) => (
-          <span className="font-mono text-sm">{info.getValue()}</span>
-        ),
+        cell: (info) => <span className="font-mono">{info.getValue()}</span>,
         sortingFn: "alphanumeric",
       }),
       columnHelper.accessor("quantityReceived", {
         header: "Qty Received",
-        cell: (info) => info.getValue().toLocaleString(),
+        cell: (info) => (
+          <span className="font-mono tabular-nums">{info.getValue()}</span>
+        ),
         sortingFn: "basic",
       }),
       columnHelper.accessor("quantityRemaining", {
         header: "Qty Remaining",
-        cell: (info) => info.getValue().toLocaleString(),
+        cell: (info) => (
+          <span className="font-mono tabular-nums">{info.getValue()}</span>
+        ),
         sortingFn: "basic",
       }),
       columnHelper.accessor("unitCost", {
         header: "Unit Cost",
-        cell: (info) => formatCurrency(info.getValue()),
+        cell: (info) => (
+          <span className="font-mono tabular-nums">
+            {formatCurrency(info.getValue())}
+          </span>
+        ),
         sortingFn: "basic",
       }),
       columnHelper.accessor("totalProcurementCost", {
         header: "Total Cost",
-        cell: (info) => formatCurrency(info.getValue()),
+        cell: (info) => (
+          <span className="font-mono tabular-nums">
+            {formatCurrency(info.getValue())}
+          </span>
+        ),
         sortingFn: "basic",
       }),
       columnHelper.accessor("status", {
@@ -88,13 +98,17 @@ export default function BatchDetailsRow({
             <Badge
               variant={
                 status === "active"
-                  ? "default"
+                  ? "success"
                   : status === "depleted"
                     ? "secondary"
                     : "destructive"
               }
             >
-              {status}
+              {status === "active"
+                ? "Active"
+                : status === "depleted"
+                  ? "Depleted"
+                  : "Voided"}
             </Badge>
           )
         },
@@ -124,6 +138,8 @@ export default function BatchDetailsRow({
     state: { sorting },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
+    enableSortingRemoval: false,
+    isMultiSortEvent: () => false,
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row._id,
   })
@@ -140,63 +156,61 @@ export default function BatchDetailsRow({
   const rows = table.getRowModel().rows
 
   return (
-    <div className="px-4 py-3">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1"
-                      onClick={header.column.getToggleSortingHandler()}
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                      {header.column.getIsSorted() === "asc" ? (
-                        <ArrowUp size={14} />
-                      ) : header.column.getIsSorted() === "desc" ? (
-                        <ArrowDown size={14} />
-                      ) : null}
-                    </button>
-                  ) : (
-                    flexRender(
+    <Table>
+      <TableHeader className="border-b">
+        {table.getHeaderGroups().map((headerGroup) => (
+          <TableRow key={headerGroup.id}>
+            {headerGroup.headers.map((header) => (
+              <TableHead key={header.id} className="text-muted-foreground">
+                {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1"
+                    onClick={header.column.getToggleSortingHandler()}
+                  >
+                    {flexRender(
                       header.column.columnDef.header,
                       header.getContext()
-                    )
-                  )}
-                </TableHead>
+                    )}
+                    {header.column.getIsSorted() === "asc" ? (
+                      <ArrowUp size={14} aria-hidden="true" />
+                    ) : header.column.getIsSorted() === "desc" ? (
+                      <ArrowDown size={14} aria-hidden="true" />
+                    ) : null}
+                  </button>
+                ) : (
+                  flexRender(
+                    header.column.columnDef.header,
+                    header.getContext()
+                  )
+                )}
+              </TableHead>
+            ))}
+          </TableRow>
+        ))}
+      </TableHeader>
+      <TableBody>
+        {rows.length ? (
+          rows.map((row) => (
+            <TableRow key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
               ))}
             </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {rows.length ? (
-            rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={table.getAllLeafColumns().length}
-                className="h-16 text-center text-muted-foreground"
-              >
-                No batches found for this product.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell
+              colSpan={table.getAllLeafColumns().length}
+              className="h-16 text-center text-muted-foreground"
+            >
+              No batches found for this product.
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
   )
 }

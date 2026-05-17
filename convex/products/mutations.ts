@@ -94,10 +94,7 @@ export const update = zMutation({
       .query("products")
       .filter((q) => q.eq(q.field("name"), name))
       .first()
-    if (
-      duplicate !== null &&
-      duplicate._id.toString() !== productId.toString()
-    )
+    if (duplicate !== null && duplicate._id.toString() !== productId.toString())
       throw new Error("A product with this name already exists")
 
     await ctx.db.patch(productId, {

@@ -59,13 +59,8 @@ export default function VoidBatchDialog({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={setOpen}
-    >
-      {children ? (
-        <DialogTrigger asChild>{children}</DialogTrigger>
-      ) : null}
+    <Dialog open={open} onOpenChange={setOpen}>
+      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Void batch</DialogTitle>
@@ -95,9 +90,7 @@ export default function VoidBatchDialog({
               </h3>
               <dl className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <dt className="text-sm text-muted-foreground">
-                    Batch code
-                  </dt>
+                  <dt className="text-sm text-muted-foreground">Batch code</dt>
                   <dd className="font-mono text-sm font-medium text-foreground">
                     {detail.batchCode}
                   </dd>

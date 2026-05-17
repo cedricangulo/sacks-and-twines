@@ -35,7 +35,12 @@ describe("batch queries", () => {
 
   async function createUser(
     t: ReturnType<typeof convexTest>,
-    user: { email: string; name: string; role: "owner" | "staff"; status: "active" | "deactivated" }
+    user: {
+      email: string
+      name: string
+      role: "owner" | "staff"
+      status: "active" | "deactivated"
+    }
   ) {
     return await t.run(async (ctx) => {
       return await ctx.db.insert("users", user)
@@ -58,7 +63,10 @@ describe("batch queries", () => {
     })
   }
 
-  async function createSupplier(t: ReturnType<typeof convexTest>, name: string) {
+  async function createSupplier(
+    t: ReturnType<typeof convexTest>,
+    name: string
+  ) {
     return await t.run(async (ctx) => {
       return await ctx.db.insert("suppliers", {
         companyName: name,
@@ -84,7 +92,9 @@ describe("batch queries", () => {
   ) {
     return await t.run(async (ctx) => {
       return await ctx.db.insert("batches", {
-        batchCode: overrides.batchCode ?? `BAT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+        batchCode:
+          overrides.batchCode ??
+          `BAT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
         productId: overrides.productId,
         supplierId: overrides.supplierId,
         userId: overrides.userId,
@@ -138,13 +148,27 @@ describe("batch queries", () => {
     const productId = await createProduct(t, "Test Product")
     const supplierId = await createSupplier(t, "Test Supplier")
 
-    await createBatch(t, { productId, supplierId, userId: ownerId, batchCode: "BAT-001" })
-    await createBatch(t, { productId, supplierId, userId: ownerId, batchCode: "BAT-002" })
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BAT-001",
+    })
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BAT-002",
+    })
 
-    const result = await t.query(api.batches.queries.listByProduct, { productId })
+    const result = await t.query(api.batches.queries.listByProduct, {
+      productId,
+    })
 
     expect(result).toHaveLength(2)
-    expect(result.map((b: { batchCode: string }) => b.batchCode).sort()).toEqual(["BAT-001", "BAT-002"])
+    expect(
+      result.map((b: { batchCode: string }) => b.batchCode).sort()
+    ).toEqual(["BAT-001", "BAT-002"])
   })
 
   it("returns empty list for product with no batches", async () => {
@@ -159,7 +183,9 @@ describe("batch queries", () => {
 
     const productId = await createProduct(t, "Lonely Product")
 
-    const result = await t.query(api.batches.queries.listByProduct, { productId })
+    const result = await t.query(api.batches.queries.listByProduct, {
+      productId,
+    })
 
     expect(result).toHaveLength(0)
   })
@@ -181,7 +207,9 @@ describe("batch queries", () => {
     await createBatch(t, { productId, supplierId, userId: ownerId })
     await createBatch(t, { productId, supplierId, userId: ownerId })
 
-    const count = await t.query(api.batches.queries.getCountByProduct, { productId })
+    const count = await t.query(api.batches.queries.getCountByProduct, {
+      productId,
+    })
 
     expect(count).toBe(3)
   })
@@ -253,7 +281,9 @@ describe("batch queries", () => {
 
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const result = await t.query(api.batches.queries.getById, { batchId: phantomId })
+    const result = await t.query(api.batches.queries.getById, {
+      batchId: phantomId,
+    })
 
     expect(result).toBeNull()
   })
