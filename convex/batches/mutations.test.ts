@@ -67,7 +67,10 @@ describe("batch mutations", () => {
     })
   }
 
-  async function createSupplier(t: ReturnType<typeof convexTest>, name: string) {
+  async function createSupplier(
+    t: ReturnType<typeof convexTest>,
+    name: string
+  ) {
     return await t.run(async (ctx) => {
       return await ctx.db.insert("suppliers", {
         companyName: name,
@@ -80,7 +83,12 @@ describe("batch mutations", () => {
 
   async function insertDispatchItem(
     t: ReturnType<typeof convexTest>,
-    overrides: { batchId: unknown; productId: unknown; dispatchQuantity: number; userId: unknown }
+    overrides: {
+      batchId: unknown
+      productId: unknown
+      dispatchQuantity: number
+      userId: unknown
+    }
   ) {
     return await t.run(async (ctx) => {
       const dispatchId = await ctx.db.insert("dispatches", {
@@ -523,9 +531,7 @@ describe("batch mutations", () => {
         category: "sacks",
         baseUom: "piece",
       })
-    ).rejects.toThrowError(
-      "Cannot change quantity or cost"
-    )
+    ).rejects.toThrowError("Cannot change quantity or cost")
   })
 
   it("rejects update for voided batch", async () => {
@@ -658,7 +664,9 @@ describe("batch mutations", () => {
 
     await expect(
       t.mutation(api.batches.mutations.voidBatch, { batchId })
-    ).rejects.toThrowError("Cannot void a batch that has been used in dispatches")
+    ).rejects.toThrowError(
+      "Cannot void a batch that has been used in dispatches"
+    )
   })
 
   it("rejects voiding a non-active batch", async () => {
@@ -749,5 +757,136 @@ describe("batch mutations", () => {
         .collect()
     })
     expect(adjustments[0].status).toBe("voided")
+  })
+
+  // ── Image Upload ──────────────────────────────────────────
+
+  it("generateUploadUrl returns a URL string", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const url = await t.mutation(api.batches.mutations.generateUploadUrl, {})
+
+    expect(typeof url).toBe("string")
+    expect(url).toContain("http")
+  })
+
+  it("rejects generateUploadUrl for non-owner role", async () => {
+    const t = makeTest()
+    const staffId = await createUser(t, {
+      email: "staff@test.com",
+      name: "Staff",
+      role: "staff",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => staffId)
+
+    await expect(
+      t.mutation(api.batches.mutations.generateUploadUrl, {})
+    ).rejects.toThrowError("Only owners can upload files")
+  })
+
+  it("sets imagePath on new product when stockIn includes imageStorageId", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const supplierId = await createSupplier(t, "Supplier")
+
+    const storageId = "test-storage-id-12345"
+
+    const result = await t.mutation(api.batches.mutations.stockIn, {
+      mode: "new",
+      name: "Product With Image",
+      category: "sacks",
+      baseUom: "piece",
+      supplierId,
+      quantityReceived: 100,
+      totalProcurementCost: 50000,
+      imageStorageId: storageId,
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(result.productId)
+    })
+
+    expect(product?.imagePath).toBe(storageId)
+  })
+
+  it("patches imagePath on existing product when stockIn includes imageStorageId", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await createProduct(t, "Existing Product")
+    const supplierId = await createSupplier(t, "Supplier")
+
+    const storageId = "test-storage-id-67890"
+
+    await t.mutation(api.batches.mutations.stockIn, {
+      mode: "existing",
+      productId,
+      supplierId,
+      quantityReceived: 50,
+      totalProcurementCost: 25000,
+      imageStorageId: storageId,
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+
+    expect(product?.imagePath).toBe(storageId)
+  })
+
+  it("leaves imagePath untouched when stockIn has no imageStorageId", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await createProduct(t, "No Image Product")
+    const supplierId = await createSupplier(t, "Supplier")
+
+    const existingProduct = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+    const originalImagePath = (existingProduct as Record<string, unknown>).imagePath
+
+    await t.mutation(api.batches.mutations.stockIn, {
+      mode: "existing",
+      productId,
+      supplierId,
+      quantityReceived: 30,
+      totalProcurementCost: 15000,
+    })
+
+    const updatedProduct = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+
+    expect((updatedProduct as Record<string, unknown>).imagePath).toBe(
+      originalImagePath
+    )
   })
 })

@@ -9,10 +9,35 @@ export const list = query({
     if (userId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(userId)
-    if (!caller || caller.role !== "owner")
-      throw new Error("Unauthorized")
+    if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    return await ctx.db.query("products").collect()
+    const products = await ctx.db.query("products").collect()
+
+    return await Promise.all(
+      products.map(async (product) => {
+        const lastBatch = await ctx.db
+          .query("batches")
+          .withIndex("by_product", (q) => q.eq("productId", product._id))
+          .order("desc")
+          .first()
+
+        let imageUrl: string | undefined
+        if (product.imagePath) {
+          try {
+            const url = await ctx.storage.getUrl(product.imagePath)
+            imageUrl = url ?? undefined
+          } catch {
+            imageUrl = undefined
+          }
+        }
+
+        return {
+          ...product,
+          lastSupplierId: lastBatch?.supplierId ?? undefined,
+          imageUrl,
+        }
+      })
+    )
   },
 })
 

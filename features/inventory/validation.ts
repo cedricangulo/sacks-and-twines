@@ -15,6 +15,8 @@ export interface Product {
   lowStockThreshold: number
   status: "active" | "archived"
   imagePath?: string
+  imageUrl?: string
+  lastSupplierId?: Id<"suppliers">
 }
 
 export interface Batch {
@@ -57,6 +59,7 @@ const StockInSchema = z.object({
   quantityReceived: positiveNumber,
   totalProcurementCost: positiveNumber,
   lowStockThreshold: z.optional(z.number().min(0)),
+  imageStorageId: z.optional(z.string()),
 })
 
 export type StockInFormData = z.infer<typeof StockInSchema>
@@ -83,12 +86,8 @@ const BatchUpdateSchema = z.object({
   supplierId: z.string().min(1, "Supplier is required"),
   quantityReceived: positiveNumber,
   totalProcurementCost: positiveNumber,
-  category: z.optional(
-    z.union([z.literal("sacks"), z.literal("twines")])
-  ),
-  baseUom: z.optional(
-    z.union([z.literal("piece"), z.literal("roll")])
-  ),
+  category: z.optional(z.union([z.literal("sacks"), z.literal("twines")])),
+  baseUom: z.optional(z.union([z.literal("piece"), z.literal("roll")])),
   weightPerUnit: z.optional(z.number().min(0)),
   lowStockThreshold: z.optional(z.number().min(0)),
 })

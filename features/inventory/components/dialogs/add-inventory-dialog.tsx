@@ -17,6 +17,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import UploadDropzone from "@/components/ui/upload-dropzone"
 import { useInventoryDialog } from "../../hooks/use-inventory-dialog"
 import FieldCard from "../field-card"
 import ProductCombobox from "../product-combobox"
@@ -33,6 +34,8 @@ export default function AddInventoryDialog() {
     locked,
     fields,
     supplierOptions,
+    imageState,
+    handleSelectImage,
     handleOpen,
     handleSelectProduct,
     handleAddNew,
@@ -82,7 +85,7 @@ export default function AddInventoryDialog() {
               ) : (
                 <div className="flex flex-col gap-4">
                   <div
-                    className="flex items-center justify-between gap-2 rounded-2xl border border-primary/20 bg-accent px-4 py-3 text-sm text-accent-foreground"
+                    className="flex items-center justify-between gap-2 px-4 py-3 text-sm border rounded-2xl border-primary/20 bg-accent text-accent-foreground"
                     role="alert"
                   >
                     <div className="flex items-center gap-2">
@@ -113,6 +116,18 @@ export default function AddInventoryDialog() {
                   </Field>
                 </div>
               )}
+
+              <Field>
+                <FieldLabel>Item Image</FieldLabel>
+                <FieldContent>
+                  <UploadDropzone
+                    className="w-full"
+                    preview={imageState.preview}
+                    error={imageState.error}
+                    onSelect={handleSelectImage}
+                  />
+                </FieldContent>
+              </Field>
             </div>
 
             {/* Right column: field card */}

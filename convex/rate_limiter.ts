@@ -80,6 +80,13 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   updateBatch: { kind: "token bucket", period: MINUTE, rate: 30, capacity: 60 },
   /** Batch void per user */
   voidBatch: { kind: "token bucket", period: MINUTE, rate: 15, capacity: 30 },
+  /** File upload URL generation per user */
+  generateUploadUrl: {
+    kind: "token bucket",
+    period: MINUTE,
+    rate: 20,
+    capacity: 40,
+  },
 
   // ── Future: Dispatches ──────────────────────────────────────
   /** Placeholder — adjust when dispatch CRUD ships */

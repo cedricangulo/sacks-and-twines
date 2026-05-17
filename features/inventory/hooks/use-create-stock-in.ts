@@ -17,18 +17,14 @@ export function useCreateStockIn() {
 
   const submit = async (data: StockInFormData) => {
     return await sileo
-      .promise(
-        stockIn({ ...data, userAgent: navigator.userAgent }),
-        {
-          loading: { title: "Adding inventory..." },
-          success: (result: StockInResult) => ({
-            title: "Stock added",
-            description: `Batch ${result.batchCode} recorded with ${data.quantityReceived} units.`,
-          }),
-          error: (err) =>
-            sileoRateLimitError(err, "Failed to add inventory"),
-        }
-      )
+      .promise(stockIn({ ...data, userAgent: navigator.userAgent }), {
+        loading: { title: "Adding inventory..." },
+        success: (result: StockInResult) => ({
+          title: "Stock added",
+          description: `Batch ${result.batchCode} recorded with ${data.quantityReceived} units.`,
+        }),
+        error: (err) => sileoRateLimitError(err, "Failed to add inventory"),
+      })
       .catch(() => {})
   }
 

@@ -1,12 +1,13 @@
 "use client"
 
 import { useQuery } from "convex-helpers/react/cache"
-import { useMemo, useState } from "react"
 import type { SubmitEvent } from "react"
+import { useMemo, useState } from "react"
 import { api } from "@/convex/_generated/api"
-import { useCreateStockIn } from "./use-create-stock-in"
-import { useProducts } from "./use-products"
 import { type StockInFieldErrors, validateStockIn } from "../validation"
+import { useCreateStockIn } from "./use-create-stock-in"
+import { useImageUpload } from "./use-image-upload"
+import { useProducts } from "./use-products"
 
 function generateDraftCode(prefix: string) {
   const now = new Date()
@@ -53,6 +54,7 @@ export function useInventoryDialog() {
   const products = useProducts()
   const suppliers = useQuery(api.suppliers.queries.list, {})
   const create = useCreateStockIn()
+  const image = useImageUpload()
 
   const [open, setOpen] = useState(false)
   const [errors, setErrors] = useState<StockInFieldErrors>({})
@@ -72,10 +74,12 @@ export function useInventoryDialog() {
 
   const supplierOptions = useMemo(
     () =>
-      suppliers?.map((s: { _id: unknown; companyName: string }) => ({
-        id: String(s._id),
-        name: s.companyName,
-      })) ?? [],
+      suppliers
+        ?.filter((s: { archivedAt?: number }) => !s.archivedAt)
+        .map((s: { _id: unknown; companyName: string }) => ({
+          id: String(s._id),
+          name: s.companyName,
+        })) ?? [],
     [suppliers]
   )
 
@@ -97,6 +101,7 @@ export function useInventoryDialog() {
       setLocked(INITIAL_LOCKED_STATE)
       resetControlledFields()
       refreshDraftCodes()
+      image.reset()
     }
   }
 
@@ -109,7 +114,7 @@ export function useInventoryDialog() {
         category: product.category,
         baseUom: product.baseUom,
         weightPerUnit: String(product.weightPerUnit ?? ""),
-        supplierId: "",
+        supplierId: product.lastSupplierId ?? "",
         lowStockThreshold: String(product.lowStockThreshold ?? ""),
       })
     }
@@ -176,7 +181,14 @@ export function useInventoryDialog() {
     event.preventDefault()
     setErrors({})
 
-    const formData = new FormData(event.currentTarget)
+    const form = event.currentTarget
+
+    let imageStorageId: string | null = null
+    if (image.state.file) {
+      imageStorageId = await image.upload()
+    }
+
+    const formData = new FormData(form)
 
     const formName = String(formData.get("name") ?? "")
 
@@ -210,6 +222,7 @@ export function useInventoryDialog() {
             ? Number(fields.lowStockThreshold)
             : undefined
           : undefined,
+      imageStorageId: imageStorageId ?? undefined,
     }
 
     const result = validateStockIn(payload)
@@ -235,6 +248,8 @@ export function useInventoryDialog() {
     locked,
     fields,
     supplierOptions,
+    imageState: image.state,
+    handleSelectImage: image.selectFile,
     handleOpen,
     handleSelectProduct,
     handleAddNew,

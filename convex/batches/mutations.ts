@@ -3,6 +3,23 @@ import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { stockInArgs, updateBatchArgs, voidBatchArgs } from "./validators"
 
+export const generateUploadUrl = zMutation({
+  args: {},
+  handler: async (ctx) => {
+    const callerId = await getAuthUserId(ctx)
+    if (callerId === null) throw new Error("Unauthorized")
+
+    const caller = await ctx.db.get(callerId)
+    if (!caller || caller.role !== "owner")
+      throw new Error("Only owners can upload files")
+
+    await perUserLimit(ctx, "generateUploadUrl", callerId)
+    await globalLimit(ctx, "globalMutations")
+
+    return await ctx.storage.generateUploadUrl()
+  },
+})
+
 export const stockIn = zMutation({
   args: stockInArgs,
   handler: async (
@@ -18,6 +35,7 @@ export const stockIn = zMutation({
       quantityReceived,
       totalProcurementCost,
       lowStockThreshold,
+      imageStorageId,
       userAgent,
     }
   ) => {
@@ -43,7 +61,9 @@ export const stockIn = zMutation({
         throw new Error("Cannot stock into an archived product")
     } else {
       if (!name || !category || !baseUom)
-        throw new Error("Name, category, and base UOM are required for new products")
+        throw new Error(
+          "Name, category, and base UOM are required for new products"
+        )
 
       const duplicate = await ctx.db
         .query("products")
@@ -63,7 +83,9 @@ export const stockIn = zMutation({
           .unique()
         if (existing === null) break
         if (i === 19)
-          throw new Error("Failed to generate unique SKU code after 20 attempts")
+          throw new Error(
+            "Failed to generate unique SKU code after 20 attempts"
+          )
       }
 
       resolvedProductId = await ctx.db.insert("products", {
@@ -76,6 +98,7 @@ export const stockIn = zMutation({
         totalAssetValue: 0,
         lowStockThreshold: lowStockThreshold ?? 0,
         status: "active",
+        imagePath: imageStorageId,
       })
     }
 
@@ -91,7 +114,9 @@ export const stockIn = zMutation({
         .first()
       if (existing === null) break
       if (i === 19)
-        throw new Error("Failed to generate unique batch code after 20 attempts")
+        throw new Error(
+          "Failed to generate unique batch code after 20 attempts"
+        )
     }
 
     await ctx.db.insert("batches", {
@@ -108,18 +133,23 @@ export const stockIn = zMutation({
 
     const product = await ctx.db.get(resolvedProductId)
     if (product) {
-      await ctx.db.patch(resolvedProductId, {
+      const patch: Record<string, unknown> = {
         currentQuantity: product.currentQuantity + quantityReceived,
         totalAssetValue: product.totalAssetValue + totalProcurementCost,
-      })
+      }
+      if (imageStorageId) {
+        patch.imagePath = imageStorageId
+      }
+      await ctx.db.patch(resolvedProductId, patch)
     }
 
     await ctx.db.insert("auditLogs", {
       userId: callerId,
       action: "stock_in",
-      description: mode === "existing"
-        ? `Stocked in ${quantityReceived} units (${batchCode}) into existing product`
-        : `Created product ${name} and stocked in ${quantityReceived} units (${batchCode})`,
+      description:
+        mode === "existing"
+          ? `Stocked in ${quantityReceived} units (${batchCode}) into existing product`
+          : `Created product ${name} and stocked in ${quantityReceived} units (${batchCode})`,
       userAgent,
     })
 
@@ -170,7 +200,8 @@ export const update = zMutation({
         .collect(),
     ])
 
-    const hasHistory = dispatchItems.length > 0 ||
+    const hasHistory =
+      dispatchItems.length > 0 ||
       adjustments.some((a) => a.status === "applied")
 
     if (hasHistory) {
@@ -207,15 +238,11 @@ export const update = zMutation({
           ...(category !== undefined
             ? {
                 category,
-                weightPerUnit:
-                  weightPerUnit ??
-                  (category === "sacks" ? 0 : 20),
+                weightPerUnit: weightPerUnit ?? (category === "sacks" ? 0 : 20),
               }
             : {}),
           ...(baseUom !== undefined ? { baseUom } : {}),
-          ...(lowStockThreshold !== undefined
-            ? { lowStockThreshold }
-            : {}),
+          ...(lowStockThreshold !== undefined ? { lowStockThreshold } : {}),
         })
       }
     }
@@ -262,8 +289,14 @@ export const voidBatch = zMutation({
     const product = await ctx.db.get(batch.productId)
     if (product) {
       await ctx.db.patch(batch.productId, {
-        currentQuantity: Math.max(0, product.currentQuantity - batch.quantityRemaining),
-        totalAssetValue: Math.max(0, product.totalAssetValue - batch.totalProcurementCost),
+        currentQuantity: Math.max(
+          0,
+          product.currentQuantity - batch.quantityRemaining
+        ),
+        totalAssetValue: Math.max(
+          0,
+          product.totalAssetValue - batch.totalProcurementCost
+        ),
       })
     }
 
@@ -295,5 +328,3 @@ export const voidBatch = zMutation({
     return { voidedAdjustments: voidedCount }
   },
 })
-
-

@@ -1,5 +1,6 @@
 "use client"
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   createColumnHelper,
   flexRender,
@@ -63,14 +64,16 @@ export default function InventoryTable({
         header: "Product Name",
         cell: (info) => (
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center text-xs font-medium rounded-lg size-8 bg-muted text-muted-foreground shrink-0">
-              {info
-                .getValue()
-                .split(" ")
-                .map((w: string) => w[0])
-                .slice(0, 2)
-                .join("")}
-            </div>
+            <Avatar className="rounded border">
+              <AvatarImage src={info.row.original.imageUrl ?? ""} />
+              <AvatarFallback>
+                {info
+                  .getValue()
+                  .split(" ")
+                  .map((w: string) => w[0])
+                  .join("")}
+              </AvatarFallback>
+            </Avatar>
             <span className="font-medium">{info.getValue()}</span>
           </div>
         ),
@@ -79,9 +82,7 @@ export default function InventoryTable({
       columnHelper.accessor("skuCode", {
         header: "SKU",
         cell: (info) => (
-          <span className="font-mono text-sm text-muted-foreground">
-            {info.getValue()}
-          </span>
+          <span className="font-mono">{info.getValue()}</span>
         ),
         sortingFn: "alphanumeric",
       }),
@@ -102,7 +103,7 @@ export default function InventoryTable({
       columnHelper.accessor("currentQuantity", {
         header: "Stock",
         cell: (info) => (
-          <span className="tabular-nums">
+          <span className="font-mono tabular-nums">
             {info.getValue().toLocaleString()}
           </span>
         ),
@@ -111,7 +112,7 @@ export default function InventoryTable({
       columnHelper.accessor("totalAssetValue", {
         header: "Asset Value",
         cell: (info) => (
-          <span className="tabular-nums">
+          <span className="font-mono tabular-nums">
             {formatCurrency(info.getValue())}
           </span>
         ),
@@ -121,23 +122,22 @@ export default function InventoryTable({
         header: "Status",
         cell: ({ row }) => {
           const p = row.original
+          const noStock = p.status === "active" && p.currentQuantity === 0
           const isLowStock =
             p.status === "active" && p.currentQuantity <= p.lowStockThreshold
           return (
             <div className="flex items-center gap-2">
               <Badge
-                variant={p.status === "active" ? "default" : "secondary"}
+                variant={p.status === "active" ? "success" : "secondary"}
                 className="capitalize"
               >
                 {p.status}
               </Badge>
-              {isLowStock ? (
-                <Badge
-                  variant="destructive"
-                  className="text-[10px] px-1.5 py-0"
-                >
-                  Low
-                </Badge>
+              {isLowStock && !noStock ? (
+                <Badge variant="warning">Low</Badge>
+              ) : null}
+              {noStock ? (
+                <Badge variant="destructive">Out of Stock</Badge>
               ) : null}
             </div>
           )
@@ -156,6 +156,8 @@ export default function InventoryTable({
     globalFilterFn: "includesString",
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    enableSortingRemoval: false,
+    isMultiSortEvent: () => false,
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row._id,
   })
@@ -168,88 +170,75 @@ export default function InventoryTable({
   }
 
   return (
-    <div className="border rounded-xl">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1"
-                      onClick={header.column.getToggleSortingHandler()}
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                      {header.column.getIsSorted() === "asc" ? (
-                        <ArrowUp size={14} className="text-muted-foreground" />
-                      ) : header.column.getIsSorted() === "desc" ? (
-                        <ArrowDown
-                          size={14}
-                          className="text-muted-foreground"
-                        />
-                      ) : null}
-                    </button>
-                  ) : (
-                    flexRender(
+    <Table>
+      <TableHeader>
+        {table.getHeaderGroups().map((headerGroup) => (
+          <TableRow key={headerGroup.id}>
+            {headerGroup.headers.map((header) => (
+              <TableHead key={header.id} className="text-muted-foreground">
+                {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1"
+                    onClick={header.column.getToggleSortingHandler()}
+                  >
+                    {flexRender(
                       header.column.columnDef.header,
                       header.getContext()
-                    )
-                  )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {rows.length ? (
-            rows.map((row) => (
-              <Fragment key={row.id}>
-                <InventoryTableRow
-                  row={row}
-                  isExpanded={expandedProductId === row.original._id}
-                  onToggle={() => toggleExpand(row.original._id)}
-                />
-                {expandedProductId === row.original._id && (
-                  <TableRow
-                    key={`${row.id}-batches`}
-                    className="hover:bg-transparent"
-                  >
-                    <TableCell
-                      colSpan={totalColumns}
-                      className="p-0 border-b-0"
-                    >
-                      <div
-                        className={cn(
-                          "border-t border-border overflow-hidden transition-all",
-                          "bg-muted/10"
-                        )}
-                      >
-                        <BatchDetailsRow productId={row.original._id} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    )}
+                    {header.column.getIsSorted() === "asc" ? (
+                      <ArrowUp size={14} aria-hidden="true" />
+                    ) : header.column.getIsSorted() === "desc" ? (
+                      <ArrowDown size={14} aria-hidden="true" />
+                    ) : null}
+                  </button>
+                ) : (
+                  flexRender(
+                    header.column.columnDef.header,
+                    header.getContext()
+                  )
                 )}
-              </Fragment>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={totalColumns}
-                className="h-48 text-center text-muted-foreground"
-              >
-                {search
-                  ? "No products match your search."
-                  : "No products yet. Add your first inventory to get started."}
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+              </TableHead>
+            ))}
+          </TableRow>
+        ))}
+      </TableHeader>
+      <TableBody>
+        {rows.length ? (
+          rows.map((row) => (
+            <Fragment key={row.id}>
+              <InventoryTableRow
+                row={row}
+                isExpanded={expandedProductId === row.original._id}
+                onToggle={() => toggleExpand(row.original._id)}
+              />
+              {expandedProductId === row.original._id ? (
+                <TableRow
+                  key={`${row.id}-batches`}
+                  className="hover:bg-transparent"
+                >
+                  <TableCell colSpan={totalColumns} className="p-4">
+                    <div className="overflow-hidden transition-all">
+                      <BatchDetailsRow productId={row.original._id} />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : null}
+            </Fragment>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell
+              colSpan={totalColumns}
+              className="h-48 text-center text-muted-foreground"
+            >
+              {search
+                ? "No products match your search."
+                : "No products yet. Add your first inventory to get started."}
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
   )
 }
