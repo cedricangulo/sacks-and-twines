@@ -17,5 +17,6 @@ export const createProductArgs = {
 
 export const updateProductArgs = {
   productId: zid("products"),
+  imageStorageId: z.optional(z.union([z.string(), z.null()])),
   ...createProductArgs,
 }

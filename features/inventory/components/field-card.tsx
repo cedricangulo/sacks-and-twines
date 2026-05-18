@@ -20,8 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import SupplierCombobox from "@/features/suppliers/components/supplier-combobox"
 import type { StockInFieldErrors } from "../validation"
-import SupplierCombobox from "./supplier-combobox"
 
 interface FieldCardState {
   fields: {

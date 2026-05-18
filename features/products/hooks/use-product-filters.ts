@@ -1,16 +1,38 @@
 "use client"
 
+import {
+  debounce,
+  parseAsString,
+  parseAsStringEnum,
+  useQueryState,
+  useQueryStates,
+} from "nuqs"
 import { useMemo } from "react"
-import { debounce, parseAsString, parseAsStringEnum, useQueryState, useQueryStates } from "nuqs"
 import type { DispatchReadyProduct } from "@/features/products/validation"
 
+const DEFAULT_STOCK = "in_stock"
+
 const categoryParsers = {
-  category: parseAsStringEnum(["all", "sacks", "twines"] as const).withDefault("all"),
-  stock: parseAsStringEnum(["all", "in_stock", "low_stock", "out_of_stock"] as const).withDefault("all"),
-  sort: parseAsStringEnum(["name_asc", "name_desc", "stock_desc", "stock_asc"] as const).withDefault("name_asc"),
+  category: parseAsStringEnum(["all", "sacks", "twines"] as const).withDefault(
+    "all"
+  ),
+  stock: parseAsStringEnum([
+    "all",
+    "in_stock",
+    "low_stock",
+    "out_of_stock",
+  ] as const).withDefault(DEFAULT_STOCK),
+  sort: parseAsStringEnum([
+    "name_asc",
+    "name_desc",
+    "stock_desc",
+    "stock_asc",
+  ] as const).withDefault("name_asc"),
 }
 
-export function useProductFilters(products: DispatchReadyProduct[] | undefined) {
+export function useProductFilters(
+  products: DispatchReadyProduct[] | undefined
+) {
   const [search, setSearch] = useQueryState(
     "search",
     parseAsString.withDefault("").withOptions({
@@ -26,7 +48,10 @@ export function useProductFilters(products: DispatchReadyProduct[] | undefined) 
   })
 
   const hasActiveFilters =
-    search !== "" || filters.category !== "all" || filters.stock !== "all" || filters.sort !== "name_asc"
+    search !== "" ||
+    filters.category !== "all" ||
+    filters.stock !== DEFAULT_STOCK ||
+    filters.sort !== "name_asc"
 
   const filtered = useMemo(() => {
     if (!products) return undefined
@@ -53,11 +78,10 @@ export function useProductFilters(products: DispatchReadyProduct[] | undefined) 
       result = result.filter((p) => {
         switch (filters.stock) {
           case "in_stock":
-            return p.currentQuantity > p.lowStockThreshold
+            return p.currentQuantity > 0
           case "low_stock":
             return (
-              p.currentQuantity > 0 &&
-              p.currentQuantity <= p.lowStockThreshold
+              p.currentQuantity > 0 && p.currentQuantity <= p.lowStockThreshold
             )
           case "out_of_stock":
             return p.currentQuantity === 0
@@ -88,7 +112,7 @@ export function useProductFilters(products: DispatchReadyProduct[] | undefined) 
 
   const clearFilters = () => {
     setSearch("")
-    setFilters({ category: "all", stock: "all", sort: "name_asc" })
+    setFilters({ category: "all", stock: DEFAULT_STOCK, sort: "name_asc" })
   }
 
   return {

@@ -63,19 +63,17 @@ export default function ProductsPage() {
         </div>
       ) : (
         <>
-          {filtered.filter((p) => p.availableBatches.length > 0).length > 0 ? (
+          {filtered.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {filtered
-                .filter((p) => p.availableBatches.length > 0)
-                .map((product) => (
-                  <ProductCard key={product._id} product={product} />
-                ))}
+              {filtered.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
             </div>
           ) : hasActiveFilters || search ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">
-                  <SearchX size={16} />
+                  <SearchX />
                 </EmptyMedia>
                 <EmptyTitle>No products found</EmptyTitle>
                 <EmptyDescription>
@@ -87,11 +85,11 @@ export default function ProductsPage() {
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">
-                  <Package size={16} />
+                  <Package />
                 </EmptyMedia>
-                <EmptyTitle>No products to dispatch</EmptyTitle>
+                <EmptyTitle>No products available</EmptyTitle>
                 <EmptyDescription>
-                  All products may be out of stock or have no available batches.
+                  No products match the current filters.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>

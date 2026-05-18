@@ -30,11 +30,13 @@ const formatCurrency = (value: number) =>
     currency: "PHP",
   }).format(value)
 
-const formatDate = (timestamp: number) =>
+const formatDateTime = (timestamp: number) =>
   new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   }).format(new Date(timestamp))
 
 const columnHelper = createColumnHelper<Batch>()
@@ -114,10 +116,14 @@ export default function BatchDetailsRow({
         },
         sortingFn: "alphanumeric",
       }),
-      columnHelper.accessor("_creationTime", {
+      columnHelper.accessor((row) => row.createdAt ?? row._creationTime, {
         id: "createdAt",
         header: "Created",
-        cell: (info) => formatDate(info.getValue()),
+        cell: (info) => (
+          <span className="text-muted-foreground">
+            {formatDateTime(info.getValue())}
+          </span>
+        ),
         enableGlobalFilter: false,
         sortingFn: "basic",
       }),

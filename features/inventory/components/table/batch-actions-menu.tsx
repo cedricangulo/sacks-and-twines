@@ -8,6 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import AdjustStockDialog from "@/features/stock-adjustments/components/dialogs/adjust-stock-dialog"
 import type { Batch } from "../../validation"
 import EditBatchDialog from "../dialogs/edit-batch-dialog"
 import VoidBatchDialog from "../dialogs/void-batch-dialog"
@@ -16,6 +17,7 @@ export default function BatchActionsMenu({ batch }: { batch: Batch }) {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [voidOpen, setVoidOpen] = useState(false)
+  const [adjustOpen, setAdjustOpen] = useState(false)
   const isActive = batch.status === "active"
 
   return (
@@ -49,6 +51,32 @@ export default function BatchActionsMenu({ batch }: { batch: Batch }) {
             <Button
               variant="ghost"
               size="sm"
+              className="justify-start w-full gap-2"
+              onClick={() => {
+                setPopoverOpen(false)
+                setAdjustOpen(true)
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="shrink-0"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Adjust
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
               className="justify-start w-full gap-2 text-destructive hover:text-destructive"
               onClick={() => {
                 setPopoverOpen(false)
@@ -72,6 +100,15 @@ export default function BatchActionsMenu({ batch }: { batch: Batch }) {
         batchId={batch._id}
         open={voidOpen}
         onOpenChange={setVoidOpen}
+      />
+
+      <AdjustStockDialog
+        batchId={batch._id}
+        batchQuantity={batch.quantityRemaining}
+        productId={batch.productId}
+        batchCode={batch.batchCode}
+        open={adjustOpen}
+        onOpenChange={setAdjustOpen}
       />
     </>
   )

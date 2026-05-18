@@ -307,6 +307,170 @@ describe("product mutations", () => {
     ).rejects.toThrowError("A product with this name already exists")
   })
 
+  it("rejects category change when product has existing batches", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-LOCK",
+        name: "Locked Product",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 100,
+        totalAssetValue: 50000,
+        lowStockThreshold: 10,
+        status: "active",
+      })
+    })
+
+    const supplierId = await t.run(async (ctx) => {
+      return await ctx.db.insert("suppliers", {
+        companyName: "Test Supplier",
+        contactPerson: "Contact",
+        contactNumber: "09171234567",
+        address: "Address",
+      })
+    })
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("batches", {
+        productId,
+        supplierId,
+        userId: ownerId,
+        batchCode: "BAT-LOCK",
+        totalProcurementCost: 10000,
+        unitCost: 100,
+        quantityReceived: 100,
+        quantityRemaining: 100,
+        status: "active",
+      })
+    })
+
+    await expect(
+      t.mutation(api.products.mutations.update, {
+        productId,
+        name: "Locked Product",
+        category: "twines",
+        baseUom: "piece",
+      })
+    ).rejects.toThrowError(
+      "Category cannot be changed because this product already has stock records"
+    )
+  })
+
+  it("rejects baseUom change when product has existing batches", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-LOCK2",
+        name: "Locked Product 2",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 50,
+        totalAssetValue: 25000,
+        lowStockThreshold: 5,
+        status: "active",
+      })
+    })
+
+    const supplierId = await t.run(async (ctx) => {
+      return await ctx.db.insert("suppliers", {
+        companyName: "Test Supplier 2",
+        contactPerson: "Contact",
+        contactNumber: "09171234567",
+        address: "Address",
+      })
+    })
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("batches", {
+        productId,
+        supplierId,
+        userId: ownerId,
+        batchCode: "BAT-LOCK2",
+        totalProcurementCost: 5000,
+        unitCost: 100,
+        quantityReceived: 50,
+        quantityRemaining: 50,
+        status: "active",
+      })
+    })
+
+    await expect(
+      t.mutation(api.products.mutations.update, {
+        productId,
+        name: "Locked Product 2",
+        category: "sacks",
+        baseUom: "roll",
+      })
+    ).rejects.toThrowError(
+      "Base unit cannot be changed because this product already has stock records"
+    )
+  })
+
+  it("allows category and baseUom change when product has no batches", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-FREE",
+        name: "Free Product",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+      })
+    })
+
+    await t.mutation(api.products.mutations.update, {
+      productId,
+      name: "Changed Product",
+      category: "twines",
+      baseUom: "roll",
+      weightPerUnit: 20,
+      lowStockThreshold: 5,
+    })
+
+    const updated = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+
+    expect(updated).toMatchObject({
+      name: "Changed Product",
+      category: "twines",
+      baseUom: "roll",
+      weightPerUnit: 20,
+      lowStockThreshold: 5,
+    })
+  })
+
   // ── Edge cases ────────────────────────────────────────────
 
   it("create sets default weightPerUnit = 0 for sacks", async () => {

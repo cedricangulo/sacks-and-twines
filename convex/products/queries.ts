@@ -52,7 +52,7 @@ export const listDispatchReady = query({
 
     const products = await ctx.db
       .query("products")
-      .filter((q) => q.eq(q.field("status"), "active"))
+      .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect()
 
     return await Promise.all(
@@ -93,6 +93,7 @@ export const listDispatchReady = query({
             quantityRemaining: b.quantityRemaining,
             unitCost: b.unitCost,
             _creationTime: b._creationTime,
+            createdAt: b.createdAt,
           })),
         }
       })
@@ -107,5 +108,40 @@ export const getById = query({
     if (userId === null) throw new Error("Unauthorized")
 
     return await ctx.db.get(productId)
+  },
+})
+
+export const getEditDetail = query({
+  args: { productId: v.id("products") },
+  handler: async (ctx, { productId }) => {
+    const userId = await getAuthUserId(ctx)
+    if (userId === null) throw new Error("Unauthorized")
+
+    const caller = await ctx.db.get(userId)
+    if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
+
+    const product = await ctx.db.get(productId)
+    if (!product) return null
+
+    const batches = await ctx.db
+      .query("batches")
+      .withIndex("by_product", (q) => q.eq("productId", productId))
+      .collect()
+
+    let imageUrl: string | undefined
+    if (product.imagePath) {
+      try {
+        const url = await ctx.storage.getUrl(product.imagePath)
+        imageUrl = url ?? undefined
+      } catch {
+        imageUrl = undefined
+      }
+    }
+
+    return {
+      ...product,
+      imageUrl,
+      batchCount: batches.length,
+    }
   },
 })

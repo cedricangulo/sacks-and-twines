@@ -4,10 +4,10 @@ import { useQuery } from "convex-helpers/react/cache"
 import type { SubmitEvent } from "react"
 import { useMemo, useState } from "react"
 import { api } from "@/convex/_generated/api"
+import { useProducts } from "@/features/products/hooks/use-products"
+import { useImageUpload } from "@/lib/hooks/use-image-upload"
 import { type StockInFieldErrors, validateStockIn } from "../validation"
 import { useCreateStockIn } from "./use-create-stock-in"
-import { useImageUpload } from "./use-image-upload"
-import { useProducts } from "./use-products"
 
 function generateDraftCode(prefix: string) {
   const now = new Date()

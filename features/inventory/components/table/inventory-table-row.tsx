@@ -40,6 +40,17 @@ export default function InventoryTableRow({
             </TableCell>
           )
         }
+        if (cell.column.id === "actions") {
+          return (
+            <TableCell
+              key={cell.id}
+              className="w-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </TableCell>
+          )
+        }
         return (
           <TableCell key={cell.id}>
             {flexRender(cell.column.columnDef.cell, cell.getContext())}

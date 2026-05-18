@@ -28,16 +28,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { cn, getInitials } from "@/lib/utils"
 import type { Product } from "../../validation"
 import BatchDetailsRow from "./batch-details-row"
 import InventoryTableRow from "./inventory-table-row"
+import ProductTableActions from "./product-table-actions"
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("en-PH", {
     style: "currency",
     currency: "PHP",
   }).format(value)
+
+const formatDateTime = (timestamp: number) =>
+  new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(timestamp))
 
 const columnHelper = createColumnHelper<Product>()
 
@@ -71,7 +86,7 @@ export default function InventoryTable({
         header: "Product Name",
         cell: (info) => (
           <div className="flex items-center gap-2">
-            <Avatar className="rounded border">
+            <Avatar className="border rounded">
               <AvatarImage src={info.row.original.imageUrl ?? ""} />
               <AvatarFallback>{getInitials(info.getValue())}</AvatarFallback>
             </Avatar>
@@ -117,6 +132,17 @@ export default function InventoryTable({
         ),
         sortingFn: "basic",
       }),
+      columnHelper.accessor((row) => row._creationTime, {
+        id: "createdAt",
+        header: "Created",
+        cell: (info) => (
+          <span className="text-muted-foreground">
+            {formatDateTime(info.getValue())}
+          </span>
+        ),
+        enableGlobalFilter: false,
+        sortingFn: "basic",
+      }),
       columnHelper.accessor("status", {
         header: "Status",
         cell: ({ row }) => {
@@ -126,15 +152,31 @@ export default function InventoryTable({
             p.status === "active" && p.currentQuantity <= p.lowStockThreshold
           return (
             <div className="flex items-center gap-2">
-              <Badge
-                variant={p.status === "active" ? "success" : "secondary"}
-                className="capitalize"
-              >
-                {p.status}
-              </Badge>
+              {/* Active Status */}
+              {p.status === "active" ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="rounded-full size-2 bg-emerald-500 animate-pulse" />
+                  </TooltipTrigger>
+                  <TooltipContent>Product is active</TooltipContent>
+                </Tooltip>
+              ) : p.status === "archived" ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="rounded-full size-2 bg-gray-500 animate-pulse" />
+                  </TooltipTrigger>
+                  <TooltipContent>Product is archived</TooltipContent>
+                </Tooltip>
+              ) : null}
+              {/* Good Stock Health */}
+              {!isLowStock && !noStock ? (
+                <Badge variant="success">Good</Badge>
+              ) : null}
+              {/* Low Stock */}
               {isLowStock && !noStock ? (
                 <Badge variant="warning">Low</Badge>
               ) : null}
+              {/* Out of Stock */}
               {noStock ? (
                 <Badge variant="destructive">Out of Stock</Badge>
               ) : null}
@@ -142,6 +184,13 @@ export default function InventoryTable({
           )
         },
         sortingFn: "alphanumeric",
+      }),
+      columnHelper.display({
+        id: "actions",
+        header: "",
+        cell: ({ row }) => <ProductTableActions productId={row.original._id} />,
+        enableSorting: false,
+        enableGlobalFilter: false,
       }),
     ],
     []

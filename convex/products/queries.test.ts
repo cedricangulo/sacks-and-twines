@@ -597,6 +597,146 @@ describe("product queries", () => {
     expect(result).toEqual([])
   })
 
+  // ── getEditDetail ─────────────────────────────────────────
+
+  it("getEditDetail rejects unauthenticated", async () => {
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+    const phantomId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("products", {
+        skuCode: "TEMP",
+        name: "Temp",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+      })
+      await ctx.db.delete(id)
+      return id
+    })
+
+    await expect(
+      t.query(api.products.queries.getEditDetail, { productId: phantomId })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("getEditDetail rejects non-owners", async () => {
+    const t = makeTest()
+    const staffId = await createUser(t, {
+      email: "staff@test.com",
+      name: "Staff",
+      role: "staff",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
+
+    const productId = await createProduct(t, { name: "Staff Test" })
+
+    await expect(
+      t.query(api.products.queries.getEditDetail, { productId })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("getEditDetail returns product with batchCount = 0 when no batches", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const productId = await createProduct(t, { name: "No Batch Product" })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+    const result = await t.query(api.products.queries.getEditDetail, {
+      productId,
+    })
+
+    expect(result).toMatchObject({
+      name: "No Batch Product",
+      batchCount: 0,
+    })
+  })
+
+  it("getEditDetail returns batchCount > 0 when product has batches", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const productId = await createProduct(t, { name: "Has Batches" })
+
+    const supplierId = await t.run(async (ctx) => {
+      return await ctx.db.insert("suppliers", {
+        companyName: "Supplier",
+        contactPerson: "Contact",
+        contactNumber: "09171234567",
+        address: "Address",
+      })
+    })
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("batches", {
+        productId,
+        supplierId,
+        userId: ownerId,
+        batchCode: "BAT-COUNT",
+        totalProcurementCost: 10000,
+        unitCost: 100,
+        quantityReceived: 100,
+        quantityRemaining: 100,
+        status: "active",
+      })
+    })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+    const result = await t.query(api.products.queries.getEditDetail, {
+      productId,
+    })
+
+    expect(result?.batchCount).toBe(1)
+  })
+
+  it("getEditDetail returns null for non-existent product", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const phantomId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("products", {
+        skuCode: "TEMP",
+        name: "Temp",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+      })
+      await ctx.db.delete(id)
+      return id
+    })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+    const result = await t.query(api.products.queries.getEditDetail, {
+      productId: phantomId,
+    })
+
+    expect(result).toBeNull()
+  })
+
   it("listDispatchReady resolves imageUrl when imagePath exists", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {

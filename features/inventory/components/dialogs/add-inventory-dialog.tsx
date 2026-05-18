@@ -18,9 +18,9 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import UploadDropzone from "@/components/ui/upload-dropzone"
+import ProductCombobox from "@/features/products/components/product-combobox"
 import { useInventoryDialog } from "../../hooks/use-inventory-dialog"
 import FieldCard from "../field-card"
-import ProductCombobox from "../product-combobox"
 
 export default function AddInventoryDialog() {
   const {

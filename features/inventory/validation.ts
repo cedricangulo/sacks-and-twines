@@ -22,6 +22,7 @@ export interface Product {
 export interface Batch {
   _id: Id<"batches">
   _creationTime: number
+  createdAt?: number
   productId: Id<"products">
   supplierId: Id<"suppliers">
   userId: Id<"users">

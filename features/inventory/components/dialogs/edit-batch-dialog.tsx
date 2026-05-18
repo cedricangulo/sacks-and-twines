@@ -20,8 +20,8 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import type { Id } from "@/convex/_generated/dataModel"
+import SupplierCombobox from "@/features/suppliers/components/supplier-combobox"
 import { useEditBatchForm } from "../../hooks/use-edit-batch-form"
-import SupplierCombobox from "../supplier-combobox"
 
 export default function EditBatchDialog({
   batchId,

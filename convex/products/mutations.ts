@@ -21,7 +21,7 @@ export const create = zMutation({
 
     const existing = await ctx.db
       .query("products")
-      .filter((q) => q.eq(q.field("name"), name))
+      .withIndex("by_name", (q) => q.eq("name", name))
       .first()
     if (existing !== null)
       throw new Error("A product with this name already exists")
@@ -74,6 +74,7 @@ export const update = zMutation({
       baseUom,
       weightPerUnit,
       lowStockThreshold,
+      imageStorageId,
       userAgent,
     }
   ) => {
@@ -92,18 +93,40 @@ export const update = zMutation({
 
     const duplicate = await ctx.db
       .query("products")
-      .filter((q) => q.eq(q.field("name"), name))
+      .withIndex("by_name", (q) => q.eq("name", name))
       .first()
     if (duplicate !== null && duplicate._id.toString() !== productId.toString())
       throw new Error("A product with this name already exists")
 
-    await ctx.db.patch(productId, {
+    const batches = await ctx.db
+      .query("batches")
+      .withIndex("by_product", (q) => q.eq("productId", productId))
+      .collect()
+
+    if (batches.length > 0) {
+      if (category !== existing.category)
+        throw new Error(
+          "Category cannot be changed because this product already has stock records"
+        )
+      if (baseUom !== existing.baseUom)
+        throw new Error(
+          "Base unit cannot be changed because this product already has stock records"
+        )
+    }
+
+    const patch: Record<string, unknown> = {
       name,
       category,
       baseUom,
       weightPerUnit: weightPerUnit ?? (category === "sacks" ? 0 : 20),
       lowStockThreshold: lowStockThreshold ?? 0,
-    })
+    }
+
+    if (imageStorageId !== undefined) {
+      patch.imagePath = imageStorageId
+    }
+
+    await ctx.db.patch(productId, patch)
 
     await ctx.db.insert("auditLogs", {
       userId: callerId,
