@@ -67,7 +67,7 @@ export const stockIn = zMutation({
 
       const duplicate = await ctx.db
         .query("products")
-        .filter((q) => q.eq(q.field("name"), name))
+        .withIndex("by_name", (q) => q.eq("name", name))
         .first()
       if (duplicate !== null)
         throw new Error("A product with this name already exists")
@@ -110,7 +110,7 @@ export const stockIn = zMutation({
       batchCode = `BAT-${bDate}-${random}`
       const existing = await ctx.db
         .query("batches")
-        .filter((q) => q.eq(q.field("batchCode"), batchCode))
+        .withIndex("by_batchCode", (q) => q.eq("batchCode", batchCode))
         .first()
       if (existing === null) break
       if (i === 19)
@@ -192,11 +192,11 @@ export const update = zMutation({
     const [dispatchItems, adjustments] = await Promise.all([
       ctx.db
         .query("dispatchItems")
-        .filter((q) => q.eq(q.field("batchId"), batchId))
+        .withIndex("by_batch", (q) => q.eq("batchId", batchId))
         .collect(),
       ctx.db
         .query("stockAdjustments")
-        .filter((q) => q.eq(q.field("batchId"), batchId))
+        .withIndex("by_batch", (q) => q.eq("batchId", batchId))
         .collect(),
     ])
 
@@ -278,7 +278,7 @@ export const voidBatch = zMutation({
 
     const dispatchItems = await ctx.db
       .query("dispatchItems")
-      .filter((q) => q.eq(q.field("batchId"), batchId))
+      .withIndex("by_batch", (q) => q.eq("batchId", batchId))
       .collect()
     if (dispatchItems.length > 0) {
       throw new Error("Cannot void a batch that has been used in dispatches")
@@ -302,7 +302,7 @@ export const voidBatch = zMutation({
 
     const adjustments = await ctx.db
       .query("stockAdjustments")
-      .filter((q) => q.eq(q.field("batchId"), batchId))
+      .withIndex("by_batch", (q) => q.eq("batchId", batchId))
       .collect()
     let voidedCount = 0
     for (const adj of adjustments) {

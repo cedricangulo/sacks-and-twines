@@ -125,7 +125,7 @@ export const archive = zMutation({
 
     const batches = await ctx.db
       .query("batches")
-      .filter((q) => q.eq(q.field("supplierId"), supplierId))
+      .withIndex("by_supplier", (q) => q.eq("supplierId", supplierId))
       .collect()
     if (batches.length > 0) {
       throw new Error(

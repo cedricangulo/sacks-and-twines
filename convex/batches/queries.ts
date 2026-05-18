@@ -33,11 +33,11 @@ export const getById = query({
     const [dispatchItems, adjustments] = await Promise.all([
       ctx.db
         .query("dispatchItems")
-        .filter((q) => q.eq(q.field("batchId"), batchId))
+        .withIndex("by_batch", (q) => q.eq("batchId", batchId))
         .collect(),
       ctx.db
         .query("stockAdjustments")
-        .filter((q) => q.eq(q.field("batchId"), batchId))
+        .withIndex("by_batch", (q) => q.eq("batchId", batchId))
         .collect(),
     ])
 

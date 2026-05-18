@@ -14,7 +14,7 @@ export const list = query({
       suppliers.map(async (supplier) => {
         const batches = await ctx.db
           .query("batches")
-          .filter((q) => q.eq(q.field("supplierId"), supplier._id))
+          .withIndex("by_supplier", (q) => q.eq("supplierId", supplier._id))
           .collect()
         return { ...supplier, batchCount: batches.length }
       })

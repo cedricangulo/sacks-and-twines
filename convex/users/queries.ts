@@ -25,8 +25,18 @@ export const list = query({
 
     return await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("role"), "staff"))
+      .withIndex("by_role", (q) => q.eq("role", "staff"))
       .collect()
+  },
+})
+
+export const getByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .first()
   },
 })
 
@@ -35,7 +45,7 @@ export const getOwnerByEmail = internalQuery({
   handler: async (ctx, { email }) => {
     return await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("email"), email))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .first()
   },
 })

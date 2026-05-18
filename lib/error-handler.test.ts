@@ -277,9 +277,7 @@ describe("handleConvexError", () => {
   // ── Product creation ──────────────────────────────────────
   it("maps 'Name, category, and base UOM are required for new products' message", () => {
     const result = handleConvexError(
-      new Error(
-        "Name, category, and base UOM are required for new products"
-      ),
+      new Error("Name, category, and base UOM are required for new products"),
       "Failed to add inventory"
     )
     expect(result).toEqual({
@@ -309,8 +307,7 @@ describe("handleConvexError", () => {
     )
     expect(result).toEqual({
       title: "Code generation failed",
-      description:
-        "Failed to generate a unique batch code. Please try again.",
+      description: "Failed to generate a unique batch code. Please try again.",
     })
   })
 

@@ -190,8 +190,7 @@ const errorPatterns: ErrorPattern[] = [
     match: "batch code after",
     result: {
       title: "Code generation failed",
-      description:
-        "Failed to generate a unique batch code. Please try again.",
+      description: "Failed to generate a unique batch code. Please try again.",
     },
   },
 
@@ -236,10 +235,7 @@ function findMatch(message: string): ErrorResult | null {
   return null
 }
 
-export function handleConvexError(
-  err: unknown,
-  context: string
-): ErrorResult {
+export function handleConvexError(err: unknown, context: string): ErrorResult {
   if (isRateLimitError(err)) {
     return {
       title: "Too many requests",
