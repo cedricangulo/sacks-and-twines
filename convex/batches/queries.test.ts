@@ -287,4 +287,215 @@ describe("batch queries", () => {
 
     expect(result).toBeNull()
   })
+
+  // ── listForDispatch ────────────────────────────────────────
+
+  it("listForDispatch rejects unauthenticated", async () => {
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+    const phantomId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("products", {
+        skuCode: "PHANTOM",
+        name: "Phantom",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+      })
+      await ctx.db.delete(id)
+      return id
+    })
+
+    await expect(
+      t.query(api.batches.queries.listForDispatch, {
+        productId: phantomId,
+      })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("listForDispatch returns active batches in FIFO order", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const productId = await createProduct(t, "FIFO Product")
+    const supplierId = await createSupplier(t, "Supplier")
+
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BAT-OLD",
+      quantityReceived: 50,
+      quantityRemaining: 30,
+    })
+
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BAT-NEW",
+      quantityReceived: 100,
+      quantityRemaining: 80,
+    })
+
+    const result = await t.query(api.batches.queries.listForDispatch, {
+      productId,
+    })
+
+    expect(result).toHaveLength(2)
+    expect(result[0].batchCode).toBe("BAT-OLD")
+    expect(result[1].batchCode).toBe("BAT-NEW")
+  })
+
+  it("listForDispatch excludes depleted batches", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const productId = await createProduct(t, "Depleted Filter")
+    const supplierId = await createSupplier(t, "Supplier")
+
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BAT-ACTIVE",
+      quantityRemaining: 50,
+    })
+
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BAT-DEPLETED",
+      quantityRemaining: 0,
+      status: "depleted",
+    })
+
+    const result = await t.query(api.batches.queries.listForDispatch, {
+      productId,
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].batchCode).toBe("BAT-ACTIVE")
+  })
+
+  it("listForDispatch excludes voided batches", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const productId = await createProduct(t, "Voided Filter")
+    const supplierId = await createSupplier(t, "Supplier")
+
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BAT-ACTIVE",
+      quantityRemaining: 50,
+    })
+
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BAT-VOIDED",
+      quantityRemaining: 100,
+      status: "voided",
+    })
+
+    const result = await t.query(api.batches.queries.listForDispatch, {
+      productId,
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].batchCode).toBe("BAT-ACTIVE")
+  })
+
+  it("listForDispatch excludes batches with quantityRemaining = 0", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const productId = await createProduct(t, "Empty Filter")
+    const supplierId = await createSupplier(t, "Supplier")
+
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BAT-WITH-STOCK",
+      quantityRemaining: 30,
+    })
+
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BAT-EMPTY",
+      quantityRemaining: 0,
+    })
+
+    const result = await t.query(api.batches.queries.listForDispatch, {
+      productId,
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].batchCode).toBe("BAT-WITH-STOCK")
+  })
+
+  it("listForDispatch returns empty array when no valid batches exist", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const productId = await createProduct(t, "Empty Product")
+    const supplierId = await createSupplier(t, "Supplier")
+
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BAT-VOIDED",
+      quantityRemaining: 100,
+      status: "voided",
+    })
+
+    const result = await t.query(api.batches.queries.listForDispatch, {
+      productId,
+    })
+
+    expect(result).toHaveLength(0)
+  })
 })

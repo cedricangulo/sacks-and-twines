@@ -135,14 +135,13 @@ export default function AddInventoryDialog() {
               mode={mode}
               draftSku={draftSku}
               draftBatch={draftBatch}
-              fields={fields}
-              locked={locked}
-              errors={errors}
-              supplierOptions={supplierOptions}
-              onFieldChange={setField}
-              onUnlock={unlockField}
-              onCategoryChange={handleCategoryChange}
-              clearFieldError={clearFieldError}
+              formState={{ fields, locked, errors, supplierOptions }}
+              formActions={{
+                onFieldChange: setField,
+                onUnlock: unlockField,
+                onCategoryChange: handleCategoryChange,
+                clearFieldError,
+              }}
             />
           </FieldGroup>
 

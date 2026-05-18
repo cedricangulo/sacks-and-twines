@@ -12,6 +12,8 @@ import type * as auth from "../auth.js";
 import type * as batches_mutations from "../batches/mutations.js";
 import type * as batches_queries from "../batches/queries.js";
 import type * as batches_validators from "../batches/validators.js";
+import type * as dispatches_mutations from "../dispatches/mutations.js";
+import type * as dispatches_validators from "../dispatches/validators.js";
 import type * as http from "../http.js";
 import type * as init from "../init.js";
 import type * as migrations from "../migrations.js";
@@ -39,6 +41,8 @@ declare const fullApi: ApiFromModules<{
   "batches/mutations": typeof batches_mutations;
   "batches/queries": typeof batches_queries;
   "batches/validators": typeof batches_validators;
+  "dispatches/mutations": typeof dispatches_mutations;
+  "dispatches/validators": typeof dispatches_validators;
   http: typeof http;
   init: typeof init;
   migrations: typeof migrations;

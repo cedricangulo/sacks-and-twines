@@ -4,7 +4,7 @@ import { useMutation } from "convex/react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { sileoRateLimitError } from "@/lib/rate-limit-error"
+import { handleConvexError } from "@/lib/error-handler"
 
 export function useVoidBatch() {
   const voidBatch = useMutation(api.batches.mutations.voidBatch)
@@ -19,7 +19,7 @@ export function useVoidBatch() {
             ? `Batch voided. Reason: ${reason}`
             : "Batch has been voided.",
         },
-        error: (err) => sileoRateLimitError(err, "Failed to void batch"),
+        error: (err) => handleConvexError(err, "Failed to void batch"),
       })
       .catch(() => {})
   }

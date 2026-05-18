@@ -4,7 +4,7 @@ import { useMutation } from "convex/react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { sileoRateLimitError } from "@/lib/rate-limit-error"
+import { handleConvexError } from "@/lib/error-handler"
 
 export function useArchiveSupplier() {
   const archiveSupplier = useMutation(api.suppliers.mutations.archive)
@@ -19,16 +19,7 @@ export function useArchiveSupplier() {
             title: "Supplier archived",
             description: `${companyName} has been archived.`,
           },
-          error: (err) => {
-            if (err instanceof Error && err.message.includes("batch records")) {
-              return {
-                title: "Cannot archive",
-                description:
-                  "This supplier has existing batch records. Reassign or delete batches before archiving.",
-              }
-            }
-            return sileoRateLimitError(err, "Failed to archive supplier")
-          },
+          error: (err) => handleConvexError(err, "Failed to archive supplier"),
         }
       )
       .catch(() => {})

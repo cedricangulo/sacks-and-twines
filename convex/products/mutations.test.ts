@@ -306,4 +306,204 @@ describe("product mutations", () => {
       })
     ).rejects.toThrowError("A product with this name already exists")
   })
+
+  // ── Edge cases ────────────────────────────────────────────
+
+  it("create sets default weightPerUnit = 0 for sacks", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.mutation(api.products.mutations.create, {
+      name: "Sack Product",
+      category: "sacks",
+      baseUom: "piece",
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+    expect(product?.weightPerUnit).toBe(0)
+  })
+
+  it("create sets default weightPerUnit = 20 for twines", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.mutation(api.products.mutations.create, {
+      name: "Twine Product",
+      category: "twines",
+      baseUom: "roll",
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+    expect(product?.weightPerUnit).toBe(20)
+  })
+
+  it("create sets default lowStockThreshold = 0", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.mutation(api.products.mutations.create, {
+      name: "Default Threshold",
+      category: "sacks",
+      baseUom: "piece",
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+    expect(product?.lowStockThreshold).toBe(0)
+  })
+
+  it("create generates a unique SKU matching the expected pattern", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.mutation(api.products.mutations.create, {
+      name: "SKU Pattern Check",
+      category: "sacks",
+      baseUom: "piece",
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+    expect(product?.skuCode).toMatch(/^SKU-\d{8}-\d{4}$/)
+    expect(product?.currentQuantity).toBe(0)
+    expect(product?.totalAssetValue).toBe(0)
+    expect(product?.status).toBe("active")
+  })
+
+  it("update rejects update for non-existent product", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const phantomId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("products", {
+        skuCode: "TEMP",
+        name: "Temp",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+      })
+      await ctx.db.delete(id)
+      return id
+    })
+
+    await expect(
+      t.mutation(api.products.mutations.update, {
+        productId: phantomId,
+        name: "Ghost",
+        category: "sacks",
+        baseUom: "piece",
+      })
+    ).rejects.toThrowError("Product not found")
+  })
+
+  it("create creates an audit log entry", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    await t.mutation(api.products.mutations.create, {
+      name: "Audited Product",
+      category: "sacks",
+      baseUom: "piece",
+    })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "product_create"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    expect(logs[0].action).toBe("product_create")
+    expect(logs[0].description).toContain("Audited Product")
+  })
+
+  it("update creates an audit log entry", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-AUDIT",
+        name: "Before Update",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+      })
+    })
+
+    await t.mutation(api.products.mutations.update, {
+      productId,
+      name: "After Update",
+      category: "sacks",
+      baseUom: "piece",
+    })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "product_update"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    expect(logs[0].action).toBe("product_update")
+    expect(logs[0].description).toContain("After Update")
+  })
 })

@@ -4,7 +4,7 @@ import { useMutation } from "convex/react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { sileoRateLimitError } from "@/lib/rate-limit-error"
+import { handleConvexError } from "@/lib/error-handler"
 import type { SupplierFormData } from "../validation"
 
 export function useUpdateSupplier() {
@@ -23,15 +23,7 @@ export function useUpdateSupplier() {
             title: "Supplier updated",
             description: `${data.companyName} has been updated.`,
           },
-          error: (err) => {
-            if (err instanceof Error && err.message.includes("company name already exists")) {
-              return {
-                title: "Duplicate supplier",
-                description: `"${data.companyName}" is already registered.`,
-              }
-            }
-            return sileoRateLimitError(err, "Failed to update supplier")
-          },
+          error: (err) => handleConvexError(err, "Failed to update supplier"),
         }
       )
       .catch(() => {})

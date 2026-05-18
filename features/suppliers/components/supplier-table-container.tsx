@@ -8,8 +8,16 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
+import { Building2, SearchX } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import SupplierTable, { type Supplier } from "./supplier-table"
 import SupplierTableActions from "./supplier-table-actions"
 
@@ -88,6 +96,28 @@ export default function SupplierTableContainer({
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row._id,
   })
+
+  const rows = table.getRowModel().rows
+
+  if (rows.length === 0) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            {search ? <SearchX size={16} /> : <Building2 size={16} />}
+          </EmptyMedia>
+          <EmptyTitle>
+            {search ? "No suppliers match your search" : "No suppliers yet"}
+          </EmptyTitle>
+          <EmptyDescription>
+            {search
+              ? "Try adjusting your search terms."
+              : "Add your first supplier to get started."}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
 
   return <SupplierTable table={table} />
 }

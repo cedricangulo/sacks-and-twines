@@ -76,3 +76,21 @@ export const getCountByProduct = query({
     return batches.length
   },
 })
+
+export const listForDispatch = query({
+  args: { productId: v.id("products") },
+  handler: async (ctx, { productId }) => {
+    const userId = await getAuthUserId(ctx)
+    if (userId === null) throw new Error("Unauthorized")
+
+    const batches = await ctx.db
+      .query("batches")
+      .withIndex("by_product", (q) => q.eq("productId", productId))
+      .order("asc")
+      .collect()
+
+    return batches.filter(
+      (b) => b.status === "active" && b.quantityRemaining > 0
+    )
+  },
+})

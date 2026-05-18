@@ -1,6 +1,5 @@
 "use client"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   createColumnHelper,
   flexRender,
@@ -10,9 +9,17 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp } from "lucide-react"
+import { ArrowDown, ArrowUp, PackageOpen, SearchX } from "lucide-react"
 import { Fragment, useMemo, useState } from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import {
   Table,
   TableBody,
@@ -21,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { cn } from "@/lib/utils"
+import { cn, getInitials } from "@/lib/utils"
 import type { Product } from "../../validation"
 import BatchDetailsRow from "./batch-details-row"
 import InventoryTableRow from "./inventory-table-row"
@@ -66,13 +73,7 @@ export default function InventoryTable({
           <div className="flex items-center gap-2">
             <Avatar className="rounded border">
               <AvatarImage src={info.row.original.imageUrl ?? ""} />
-              <AvatarFallback>
-                {info
-                  .getValue()
-                  .split(" ")
-                  .map((w: string) => w[0])
-                  .join("")}
-              </AvatarFallback>
+              <AvatarFallback>{getInitials(info.getValue())}</AvatarFallback>
             </Avatar>
             <span className="font-medium">{info.getValue()}</span>
           </div>
@@ -81,9 +82,7 @@ export default function InventoryTable({
       }),
       columnHelper.accessor("skuCode", {
         header: "SKU",
-        cell: (info) => (
-          <span className="font-mono">{info.getValue()}</span>
-        ),
+        cell: (info) => <span className="font-mono">{info.getValue()}</span>,
         sortingFn: "alphanumeric",
       }),
       columnHelper.accessor("category", {
@@ -169,6 +168,26 @@ export default function InventoryTable({
     setExpandedProductId((prev) => (prev === productId ? null : productId))
   }
 
+  if (rows.length === 0) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            {search ? <SearchX size={16} /> : <PackageOpen size={16} />}
+          </EmptyMedia>
+          <EmptyTitle>
+            {search ? "No products match your search" : "No products yet"}
+          </EmptyTitle>
+          <EmptyDescription>
+            {search
+              ? "Try adjusting your search terms."
+              : "Add your first inventory to get started."}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
+
   return (
     <Table>
       <TableHeader>
@@ -204,40 +223,27 @@ export default function InventoryTable({
         ))}
       </TableHeader>
       <TableBody>
-        {rows.length ? (
-          rows.map((row) => (
-            <Fragment key={row.id}>
-              <InventoryTableRow
-                row={row}
-                isExpanded={expandedProductId === row.original._id}
-                onToggle={() => toggleExpand(row.original._id)}
-              />
-              {expandedProductId === row.original._id ? (
-                <TableRow
-                  key={`${row.id}-batches`}
-                  className="hover:bg-transparent"
-                >
-                  <TableCell colSpan={totalColumns} className="p-4">
-                    <div className="overflow-hidden transition-all">
-                      <BatchDetailsRow productId={row.original._id} />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </Fragment>
-          ))
-        ) : (
-          <TableRow>
-            <TableCell
-              colSpan={totalColumns}
-              className="h-48 text-center text-muted-foreground"
-            >
-              {search
-                ? "No products match your search."
-                : "No products yet. Add your first inventory to get started."}
-            </TableCell>
-          </TableRow>
-        )}
+        {rows.map((row) => (
+          <Fragment key={row.id}>
+            <InventoryTableRow
+              row={row}
+              isExpanded={expandedProductId === row.original._id}
+              onToggle={() => toggleExpand(row.original._id)}
+            />
+            {expandedProductId === row.original._id ? (
+              <TableRow
+                key={`${row.id}-batches`}
+                className="hover:bg-transparent"
+              >
+                <TableCell colSpan={totalColumns} className="p-4">
+                  <div className="overflow-hidden transition-all">
+                    <BatchDetailsRow productId={row.original._id} />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : null}
+          </Fragment>
+        ))}
       </TableBody>
     </Table>
   )

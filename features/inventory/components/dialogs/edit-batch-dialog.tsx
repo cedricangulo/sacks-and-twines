@@ -1,9 +1,7 @@
 "use client"
 
-import { useQuery } from "convex-helpers/react/cache"
 import { Loader2Icon, LockIcon } from "lucide-react"
 import type { ReactNode } from "react"
-import { SubmitEvent, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -21,20 +19,14 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { useBatchDetail } from "../../hooks/use-batch-detail"
-import { useUpdateBatch } from "../../hooks/use-update-batch"
-import {
-  type BatchUpdateFieldErrors,
-  validateBatchUpdate,
-} from "../../validation"
+import { useEditBatchForm } from "../../hooks/use-edit-batch-form"
 import SupplierCombobox from "../supplier-combobox"
 
 export default function EditBatchDialog({
   batchId,
   children,
-  open: openProp,
+  open,
   onOpenChange,
 }: {
   batchId: Id<"batches">
@@ -42,90 +34,21 @@ export default function EditBatchDialog({
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
-  const detail = useBatchDetail(batchId)
-  const suppliers = useQuery(api.suppliers.queries.list, {})
-  const update = useUpdateBatch()
-  const [internalOpen, setInternalOpen] = useState(false)
-  const open = openProp ?? internalOpen
-  const setOpen = onOpenChange ?? setInternalOpen
-  const [errors, setErrors] = useState<BatchUpdateFieldErrors>({})
-  const [dirty, setDirty] = useState(false)
-
-  const supplierOptions =
-    suppliers
-      ?.filter((s: { archivedAt?: number }) => !s.archivedAt)
-      .map((s: { _id: unknown; companyName: string }) => ({
-        id: String(s._id),
-        name: s.companyName,
-      })) ?? []
-
-  const initial = detail
-    ? {
-        supplierId: detail.supplierId ?? "",
-        quantityReceived: detail.quantityReceived,
-        totalProcurementCost: detail.totalProcurementCost,
-      }
-    : null
-
-  const [formValues, setFormValues] = useState(initial)
-
-  // Sync form values when dialog opens or detail loads
-  // (useEffect needed because onOpenChange doesn't fire on prop-driven open)
-  useEffect(() => {
-    if (open && detail) {
-      setFormValues(initial)
-      setDirty(false)
-      setErrors({})
-    }
-  }, [open, detail])
-
-  const canEditQuantities = detail?.canEditQuantities ?? true
-
-  const handleChange = (
-    field: keyof NonNullable<typeof initial>,
-    value: string | number | undefined
-  ) => {
-    setFormValues((prev) => {
-      if (!prev || !initial) return prev
-      const next = { ...prev, [field]: value }
-      setDirty(
-        next.supplierId !== initial.supplierId ||
-          next.quantityReceived !== initial.quantityReceived ||
-          next.totalProcurementCost !== initial.totalProcurementCost
-      )
-      return next
-    })
-    clearFieldError(field)
-  }
-
-  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setErrors({})
-
-    if (!formValues) return
-
-    const result = validateBatchUpdate(formValues)
-
-    if (!result.success) {
-      setErrors(result.errors)
-      return
-    }
-
-    setOpen(false)
-    await update.submit(batchId, detail!.productId, result.data)
-  }
-
-  const clearFieldError = (field: keyof BatchUpdateFieldErrors) => {
-    setErrors((prev) => {
-      if (!prev[field]) return prev
-      const next = { ...prev }
-      delete next[field]
-      return next
-    })
-  }
+  const {
+    detail,
+    open: dialogOpen,
+    setOpen,
+    formValues,
+    supplierOptions,
+    errors,
+    dirty,
+    canEditQuantities,
+    handleChange,
+    handleSubmit,
+  } = useEditBatchForm({ batchId, open, onOpenChange })
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={dialogOpen} onOpenChange={setOpen}>
       {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
       <DialogContent>
         <DialogHeader>

@@ -4,7 +4,7 @@ import { useMutation } from "convex/react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { sileoRateLimitError } from "@/lib/rate-limit-error"
+import { handleConvexError } from "@/lib/error-handler"
 import type { StockInFormData } from "../validation"
 
 type StockInResult = {
@@ -23,7 +23,7 @@ export function useCreateStockIn() {
           title: "Stock added",
           description: `Batch ${result.batchCode} recorded with ${data.quantityReceived} units.`,
         }),
-        error: (err) => sileoRateLimitError(err, "Failed to add inventory"),
+        error: (err) => handleConvexError(err, "Failed to add inventory"),
       })
       .catch(() => {})
   }

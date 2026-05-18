@@ -4,7 +4,7 @@ import { useMutation } from "convex/react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { sileoRateLimitError } from "@/lib/rate-limit-error"
+import { handleConvexError } from "@/lib/error-handler"
 
 export function useDeactivateStaff() {
   const deactivateUser = useMutation(api.users.mutations.deactivate)
@@ -17,7 +17,7 @@ export function useDeactivateStaff() {
           title: "Staff deactivated",
           description: `${displayName} has been deactivated.`,
         },
-        error: (err) => sileoRateLimitError(err, "Failed to deactivate staff"),
+        error: (err) => handleConvexError(err, "Failed to deactivate staff"),
       })
       .catch(() => {})
   }

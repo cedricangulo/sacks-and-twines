@@ -23,10 +23,7 @@ import { Separator } from "@/components/ui/separator"
 import type { StockInFieldErrors } from "../validation"
 import SupplierCombobox from "./supplier-combobox"
 
-interface FieldCardProps {
-  mode: "existing" | "new"
-  draftSku: string
-  draftBatch: string
+interface FieldCardState {
   fields: {
     category: string
     baseUom: string
@@ -37,24 +34,29 @@ interface FieldCardProps {
   locked: Record<string, boolean>
   errors: StockInFieldErrors
   supplierOptions: Array<{ id: string; name: string }>
+}
+
+interface FieldCardActions {
   onFieldChange: (field: string, value: string) => void
   onUnlock: (field: string) => void
   onCategoryChange: (value: string) => void
   clearFieldError: (field: keyof StockInFieldErrors) => void
 }
 
+interface FieldCardProps {
+  mode: "existing" | "new"
+  draftSku: string
+  draftBatch: string
+  formState: FieldCardState
+  formActions: FieldCardActions
+}
+
 const FieldCard = memo(function FieldCard({
   mode,
   draftSku,
   draftBatch,
-  fields,
-  locked,
-  errors,
-  supplierOptions,
-  onFieldChange,
-  onUnlock,
-  onCategoryChange,
-  clearFieldError,
+  formState: { fields, locked, errors, supplierOptions },
+  formActions: { onFieldChange, onUnlock, onCategoryChange, clearFieldError },
 }: FieldCardProps) {
   const renderField = (
     field: string,

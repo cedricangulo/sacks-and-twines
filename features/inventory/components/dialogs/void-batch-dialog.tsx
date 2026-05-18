@@ -2,7 +2,6 @@
 
 import { Loader2Icon, TriangleAlertIcon } from "lucide-react"
 import type { ReactNode } from "react"
-import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -18,11 +17,10 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
 import type { Id } from "@/convex/_generated/dataModel"
-import { useBatchDetail } from "../../hooks/use-batch-detail"
-import { useVoidBatch } from "../../hooks/use-void-batch"
+import { useVoidBatchDialog } from "../../hooks/use-void-batch-dialog"
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("en-PH", {
@@ -33,7 +31,7 @@ const formatCurrency = (value: number) =>
 export default function VoidBatchDialog({
   batchId,
   children,
-  open: openProp,
+  open,
   onOpenChange,
 }: {
   batchId: Id<"batches">
@@ -41,25 +39,17 @@ export default function VoidBatchDialog({
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
-  const detail = useBatchDetail(batchId)
-  const voidBatch = useVoidBatch()
-  const [internalOpen, setInternalOpen] = useState(false)
-  const open = openProp ?? internalOpen
-  const setOpen = onOpenChange ?? setInternalOpen
-  const [reason, setReason] = useState("")
-
-  // Reset reason when dialog opens (useEffect needed because onOpenChange doesn't fire on prop-driven open)
-  useEffect(() => {
-    if (open) setReason("")
-  }, [open])
-
-  const handleVoid = async () => {
-    setOpen(false)
-    await voidBatch.submit(batchId, reason || undefined)
-  }
+  const {
+    detail,
+    open: dialogOpen,
+    setOpen,
+    reason,
+    setReason,
+    handleVoid,
+  } = useVoidBatchDialog({ batchId, open, onOpenChange })
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={dialogOpen} onOpenChange={setOpen}>
       {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
@@ -174,10 +164,9 @@ export default function VoidBatchDialog({
                   </span>
                 </div>
                 <FieldContent>
-                  <textarea
+                  <Textarea
                     id="void-reason"
                     rows={3}
-                    className="flex w-full resize-none rounded-3xl border border-input bg-input/50 px-3 py-2 text-sm transition-[color,box-shadow,background-color] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="e.g., Damaged goods, wrong delivery"
                     value={reason}
                     onChange={(e) => setReason(e.currentTarget.value)}

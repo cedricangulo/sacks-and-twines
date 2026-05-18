@@ -4,7 +4,7 @@ import { useMutation } from "convex/react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { sileoRateLimitError } from "@/lib/rate-limit-error"
+import { handleConvexError } from "@/lib/error-handler"
 
 export function useUnarchiveSupplier() {
   const unarchiveSupplier = useMutation(api.suppliers.mutations.unarchive)
@@ -19,9 +19,8 @@ export function useUnarchiveSupplier() {
             title: "Supplier restored",
             description: `${companyName} has been restored to active use.`,
           },
-          error: (err) => {
-            return sileoRateLimitError(err, "Failed to unarchive supplier")
-          },
+          error: (err) =>
+            handleConvexError(err, "Failed to unarchive supplier"),
         }
       )
       .catch(() => {})

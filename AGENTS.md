@@ -13,7 +13,7 @@ Before any Next.js work, find and read the relevant doc in `node_modules/next/di
 - **Auth:** `@convex-dev/auth` with Password provider
 - **Styling:** Tailwind CSS v4 (CSS-first config in `globals.css` via `@theme inline {}` — no `tailwind.config.js`)
 - **UI:** shadcn/ui (Radix-Luma style), lucide-react, `@base-ui/react`, `radix-ui`
-- **Forms/validation:** zod 4, `useActionState`
+- **Forms/validation:** zod 4
 - **Linting/formatting:** Biome 2.4 (replaces ESLint + Prettier entirely)
 - **Package manager:** pnpm
 - **Testing:** Vitest + `convex-test` (in-memory Convex backend)
@@ -25,8 +25,10 @@ Before any Next.js work, find and read the relevant doc in `node_modules/next/di
 | Dev (Next.js)    | `pnpm dev`                         |
 | Dev (Convex)     | `pnpm convex:dev`                  |
 | Test (once)      | `pnpm test`                        |
+| Test (verbose)   | `pnpm test:verbose`                |
 | Test (watch)     | `pnpm test:watch`                  |
 | Lint + format    | `pnpm check` (biome check --write) |
+| Lint + unsafe    | `pnpm check:unsafe`                |
 | Lint only        | `pnpm lint`                        |
 | Typecheck        | `pnpm typecheck` (tsc --noEmit)    |
 | Deploy Convex    | `pnpm convex:deploy`               |

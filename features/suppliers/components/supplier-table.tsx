@@ -54,26 +54,15 @@ export default function SupplierTable({ table }: SupplierTableProps) {
         ))}
       </TableHeader>
       <TableBody>
-        {rows.length ? (
-          rows.map((row) => (
-            <TableRow key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))
-        ) : (
-          <TableRow>
-            <TableCell
-              colSpan={table.getAllLeafColumns().length}
-              className="h-24 text-center text-muted-foreground"
-            >
-              No suppliers found.
-            </TableCell>
+        {rows.map((row) => (
+          <TableRow key={row.id}>
+            {row.getVisibleCells().map((cell) => (
+              <TableCell key={cell.id}>
+                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+              </TableCell>
+            ))}
           </TableRow>
-        )}
+        ))}
       </TableBody>
     </Table>
   )

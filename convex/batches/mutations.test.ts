@@ -871,7 +871,8 @@ describe("batch mutations", () => {
     const existingProduct = await t.run(async (ctx) => {
       return await ctx.db.get(productId)
     })
-    const originalImagePath = (existingProduct as Record<string, unknown>).imagePath
+    const originalImagePath = (existingProduct as Record<string, unknown>)
+      .imagePath
 
     await t.mutation(api.batches.mutations.stockIn, {
       mode: "existing",

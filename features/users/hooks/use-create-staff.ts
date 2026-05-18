@@ -3,7 +3,7 @@
 import { useMutation } from "convex/react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
-import { sileoRateLimitError } from "@/lib/rate-limit-error"
+import { handleConvexError } from "@/lib/error-handler"
 
 export type CreateStaffData = {
   name: string
@@ -22,15 +22,7 @@ export function useCreateStaff() {
           title: "Staff created",
           description: `${data.email} has been added as staff.`,
         },
-        error: (err) => {
-          if (err instanceof Error && err.message.includes("email already exists")) {
-            return {
-              title: "Duplicate email",
-              description: `"${data.email}" is already in use.`,
-            }
-          }
-          return sileoRateLimitError(err, "Failed to create staff")
-        },
+        error: (err) => handleConvexError(err, "Failed to create staff"),
       })
       .catch(() => {})
   }

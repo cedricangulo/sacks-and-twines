@@ -8,8 +8,16 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
+import { SearchX, Users } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { formatDate } from "../helpers/format-date"
 import StaffTable, { type StaffUser } from "./staff-table"
 import StaffTableActions from "./staff-table-actions"
@@ -89,6 +97,28 @@ export default function StaffTableContainer({
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row._id,
   })
+
+  const rows = table.getRowModel().rows
+
+  if (rows.length === 0) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            {search ? <SearchX size={16} /> : <Users size={16} />}
+          </EmptyMedia>
+          <EmptyTitle>
+            {search ? "No staff match your search" : "No staff yet"}
+          </EmptyTitle>
+          <EmptyDescription>
+            {search
+              ? "Try adjusting your search terms."
+              : "Create your first staff account to get started."}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
 
   return <StaffTable table={table} />
 }

@@ -2,11 +2,11 @@
 
 import { useConvexAuth } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
-import { debounce, parseAsString, useQueryState } from "nuqs"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
 import StaffTableContainer from "@/features/users/components/staff-table-container"
+import { useSearchFilter } from "@/lib/hooks/use-search-filter"
 
 export default function UsersPage() {
   const { isAuthenticated } = useConvexAuth()
@@ -15,17 +15,10 @@ export default function UsersPage() {
     isAuthenticated ? {} : "skip"
   )
   const staff = useQuery(api.users.queries.list, isAuthenticated ? {} : "skip")
-  const [search, setSearch] = useQueryState(
-    "search",
-    parseAsString.withDefault("").withOptions({
-      history: "replace",
-      shallow: false,
-      limitUrlUpdates: debounce(300),
-    })
-  )
+  const [search, setSearch] = useSearchFilter()
 
   return (
-    <div className="space-y-6">
+    <>
       <Input
         placeholder="Search staff..."
         value={search}
@@ -41,6 +34,6 @@ export default function UsersPage() {
       ) : (
         <StaffTableContainer staff={staff} search={search} />
       )}
-    </div>
+    </>
   )
 }
