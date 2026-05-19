@@ -172,15 +172,14 @@ function FieldSeparator({
   )
 }
 
-function FieldError({
-  className,
+function FieldErrorContent({
   children,
   errors,
-  ...props
-}: React.ComponentProps<"div"> & {
+}: {
+  children?: React.ReactNode
   errors?: Array<{ message?: string } | undefined>
 }) {
-  const content = useMemo(() => {
+  return useMemo(() => {
     if (children) {
       return children
     }
@@ -200,14 +199,23 @@ function FieldError({
     return (
       <ul className="ml-4 flex list-disc flex-col gap-1">
         {uniqueErrors.map(
-          (error, index) =>
-            error?.message && <li key={index}>{error.message}</li>
+          (error) =>
+            error?.message && <li key={error.message}>{error.message}</li>
         )}
       </ul>
     )
   }, [children, errors])
+}
 
-  if (!content) {
+function FieldError({
+  className,
+  children,
+  errors,
+  ...props
+}: React.ComponentProps<"div"> & {
+  errors?: Array<{ message?: string } | undefined>
+}) {
+  if (!children && !errors?.length) {
     return null
   }
 
@@ -218,7 +226,7 @@ function FieldError({
       className={cn("text-sm font-normal text-destructive", className)}
       {...props}
     >
-      {content}
+      <FieldErrorContent errors={errors}>{children}</FieldErrorContent>
     </div>
   )
 }

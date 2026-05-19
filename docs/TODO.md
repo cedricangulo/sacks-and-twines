@@ -57,21 +57,23 @@
 
 ### Dispatch History
 
-- [ ] `convex/dispatches/queries.ts` — list dispatches with items
-- [ ] `features/dispatch-history/`
-- [ ] `app/(dashboard)/dispatch-history/page.tsx`
+- [X] `convex/dispatches/queries.ts` — list dispatches with items
+- [X] `features/dispatch-history/`
+- [X] `app/(dashboard)/dispatch-history/page.tsx`
 
-### Archive / Unarchive Products
+### Archive / Unarchive Products ✅
 
 Allow owners to archive and unarchive products to hide them from dispatch and block new stock-in while preserving transaction history.
 
-- [ ] `convex/products/mutations.ts` — `archive` (set `status: "archived"`) + `unarchive` (set `status: "active"`)
-- [ ] `convex/products/mutations.test.ts` — tests for archive + unarchive
-- [ ] `convex/products/validators.ts` — `archiveProductArgs`, `unarchiveProductArgs`
-- [ ] `features/products/hooks/use-archive-product.ts` — archive + unarchive mutations with toast
-- [ ] `features/products/components/` — Archive/Unarchive action in product context menu or inventory table row
-- [ ] `features/inventory/components/table/` — "Archived" badge in product rows
-- [ ] `features/products/hooks/use-product-filters.ts` — add status filter (All / Active / Archived)
+- [X] `convex/products/mutations.ts` — `archive` (set `status: "archived"`) + `unarchive` (set `status: "active"`)
+- [X] `convex/products/mutations.test.ts` — 14 tests for archive + unarchive
+- [X] `convex/products/validators.ts` — `archiveProductArgs`, `unarchiveProductArgs`
+- [X] `convex/rate_limiter.ts` — `archiveProduct` rate limit entry
+- [X] `features/products/hooks/use-archive-product.ts` — `useArchiveProduct` + `useUnarchiveProduct` with toast
+- [X] `features/inventory/components/table/product-table-actions.tsx` — Archive/Unarchive buttons with confirmation dialogs
+- [X] `features/inventory/components/inventory-filter-bar.tsx` — status/category/stock filter bar
+- [X] `features/inventory/hooks/use-inventory-filters.ts` — nuqs URL-synced filters (status default: Active)
+- [X] `app/(dashboard)/inventory/page.tsx` — filter bar + empty states for filtered results
 
 ### Audit Logs Viewer
 

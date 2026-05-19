@@ -94,12 +94,19 @@ describe("supplier mutations", () => {
 
   it("rejects creation for non-owners", async () => {
     const t = makeTest()
-    const staffId = await createUser(t, {
-      email: "staff@test.com",
-      name: "Staff",
-      role: "staff",
-      status: "active",
-    })
+    const [staffId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "staff@test.com",
+        name: "Staff",
+        role: "staff",
+        status: "active",
+      }),
+      createSupplier(
+        t,
+        supplierData({ companyName: "Acme Corp" })
+      ),
+    ])
+
     authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
 
     await expect(
@@ -174,12 +181,24 @@ describe("supplier mutations", () => {
 
   it("creates a supplier and writes an audit log", async () => {
     const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
+    const [ownerId, phantomId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      t.run(async (ctx) => {
+        const id = await ctx.db.insert("suppliers", {
+          companyName: "Temp",
+          contactPerson: "",
+          contactNumber: "",
+          address: "",
+        })
+        await ctx.db.delete(id)
+        return id
+      }),
+    ])
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     const result = await t.mutation(api.suppliers.mutations.create, {
@@ -241,21 +260,23 @@ describe("supplier mutations", () => {
 
   it("updates a supplier and writes an audit log", async () => {
     const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    const supplierId = await createSupplier(
-      t,
-      supplierData({
-        companyName: "Old Name",
-        contactPerson: "Old Contact",
-        contactNumber: "09171234567",
-        address: "Old Address Street City",
-      })
-    )
+    const [ownerId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      createSupplier(
+        t,
+        supplierData({
+          companyName: "Old Name",
+          contactPerson: "Old Contact",
+          contactNumber: "09171234567",
+          address: "Old Address Street City",
+        })
+      ),
+    ])
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     const result = await t.mutation(api.suppliers.mutations.update, {
@@ -295,17 +316,21 @@ describe("supplier mutations", () => {
 
   it("rejects updating to duplicate company name", async () => {
     const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    const supplierA = await createSupplier(
-      t,
-      supplierData({ companyName: "Supplier A" })
-    )
-    await createSupplier(t, supplierData({ companyName: "Supplier B" }))
+    const [ownerId, [supplierA]] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      Promise.all([
+        createSupplier(
+          t,
+          supplierData({ companyName: "Supplier A" })
+        ),
+        createSupplier(t, supplierData({ companyName: "Supplier B" })),
+      ]),
+    ])
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     await expect(
@@ -335,16 +360,18 @@ describe("supplier mutations", () => {
 
   it("rejects non-owner update", async () => {
     const t = makeTest()
-    const staffId = await createUser(t, {
-      email: "staff@test.com",
-      name: "Staff",
-      role: "staff",
-      status: "active",
-    })
-    const supplierId = await createSupplier(
-      t,
-      supplierData({ companyName: "Acme Corp" })
-    )
+    const [staffId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "staff@test.com",
+        name: "Staff",
+        role: "staff",
+        status: "active",
+      }),
+      createSupplier(
+        t,
+        supplierData({ companyName: "Acme Corp" })
+      ),
+    ])
 
     authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
 
@@ -358,22 +385,24 @@ describe("supplier mutations", () => {
 
   it("rejects updating non-existent supplier", async () => {
     const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    const phantomId = await t.run(async (ctx) => {
-      const id = await ctx.db.insert("suppliers", {
-        companyName: "Temp",
-        contactPerson: "",
-        contactNumber: "",
-        address: "",
-      })
-      await ctx.db.delete(id)
-      return id
-    })
+    const [ownerId, phantomId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      t.run(async (ctx) => {
+        const id = await ctx.db.insert("suppliers", {
+          companyName: "Temp",
+          contactPerson: "",
+          contactNumber: "",
+          address: "",
+        })
+        await ctx.db.delete(id)
+        return id
+      }),
+    ])
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     await expect(
@@ -388,16 +417,18 @@ describe("supplier mutations", () => {
 
   it("archives a supplier with no batch transactions", async () => {
     const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    const supplierId = await createSupplier(
-      t,
-      supplierData({ companyName: "Acme Corp" })
-    )
+    const [ownerId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      createSupplier(
+        t,
+        supplierData({ companyName: "Acme Corp" })
+      ),
+    ])
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     const result = await t.mutation(api.suppliers.mutations.archive, {
@@ -429,28 +460,30 @@ describe("supplier mutations", () => {
 
   it("rejects archiving a supplier with batch transactions", async () => {
     const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    const productId = await t.run(async (ctx) => {
-      return await ctx.db.insert("products", {
-        skuCode: "SKU001",
-        name: "Test Product",
-        category: "sacks",
-        baseUom: "piece",
-        currentQuantity: 100,
-        totalAssetValue: 1000,
-        lowStockThreshold: 10,
+    const [ownerId, productId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
         status: "active",
-      })
-    })
-    const supplierId = await createSupplier(
-      t,
-      supplierData({ companyName: "Acme Corp" })
-    )
+      }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("products", {
+          skuCode: "SKU001",
+          name: "Test Product",
+          category: "sacks",
+          baseUom: "piece",
+          currentQuantity: 100,
+          totalAssetValue: 1000,
+          lowStockThreshold: 10,
+          status: "active",
+        })
+      }),
+      createSupplier(
+        t,
+        supplierData({ companyName: "Acme Corp" })
+      ),
+    ])
     await t.run(async (ctx) => {
       await ctx.db.insert("batches", {
         productId,
@@ -477,16 +510,18 @@ describe("supplier mutations", () => {
 
   it("rejects archiving an already archived supplier", async () => {
     const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    const supplierId = await createSupplier(
-      t,
-      supplierData({ companyName: "Acme Corp" })
-    )
+    const [ownerId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      createSupplier(
+        t,
+        supplierData({ companyName: "Acme Corp" })
+      ),
+    ])
     await t.run(async (ctx) => {
       await ctx.db.patch(supplierId, { archivedAt: Date.now() })
     })
@@ -517,16 +552,18 @@ describe("supplier mutations", () => {
 
   it("rejects non-owner archive", async () => {
     const t = makeTest()
-    const staffId = await createUser(t, {
-      email: "staff@test.com",
-      name: "Staff",
-      role: "staff",
-      status: "active",
-    })
-    const supplierId = await createSupplier(
-      t,
-      supplierData({ companyName: "Acme Corp" })
-    )
+    const [staffId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "staff@test.com",
+        name: "Staff",
+        role: "staff",
+        status: "active",
+      }),
+      createSupplier(
+        t,
+        supplierData({ companyName: "Acme Corp" })
+      ),
+    ])
 
     authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
 
@@ -539,22 +576,24 @@ describe("supplier mutations", () => {
 
   it("rejects archiving non-existent supplier", async () => {
     const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    const phantomId = await t.run(async (ctx) => {
-      const id = await ctx.db.insert("suppliers", {
-        companyName: "Temp",
-        contactPerson: "",
-        contactNumber: "",
-        address: "",
-      })
-      await ctx.db.delete(id)
-      return id
-    })
+    const [ownerId, phantomId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      t.run(async (ctx) => {
+        const id = await ctx.db.insert("suppliers", {
+          companyName: "Temp",
+          contactPerson: "",
+          contactNumber: "",
+          address: "",
+        })
+        await ctx.db.delete(id)
+        return id
+      }),
+    ])
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     await expect(

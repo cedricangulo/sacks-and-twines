@@ -29,3 +29,33 @@ export const setOwnerProfile = migrations.define({
     }
   },
 })
+
+export const backfillDispatches = migrations.define({
+  table: "dispatches",
+  migrateOne: async (ctx, dispatch) => {
+    if (dispatch.userName !== undefined && dispatch.itemCount !== undefined) return
+    const [user, items] = await Promise.all([
+      ctx.db.get(dispatch.userId),
+      ctx.db
+        .query("dispatchItems")
+        .withIndex("by_dispatch", (q) => q.eq("dispatchId", dispatch._id))
+        .collect(),
+    ])
+    await ctx.db.patch(dispatch._id, {
+      userName: user?.name ?? "Unknown",
+      itemCount: items.length,
+    })
+  },
+})
+
+export const backfillSuppliers = migrations.define({
+  table: "suppliers",
+  migrateOne: async (ctx, supplier) => {
+    if (supplier.batchCount !== undefined) return
+    const batches = await ctx.db
+      .query("batches")
+      .withIndex("by_supplier", (q) => q.eq("supplierId", supplier._id))
+      .collect()
+    await ctx.db.patch(supplier._id, { batchCount: batches.length })
+  },
+})

@@ -25,12 +25,9 @@ export const getById = query({
     const batch = await ctx.db.get(batchId)
     if (!batch) return null
 
-    const [product, supplier] = await Promise.all([
+    const [product, supplier, dispatchItems, adjustments] = await Promise.all([
       ctx.db.get(batch.productId),
       ctx.db.get(batch.supplierId),
-    ])
-
-    const [dispatchItems, adjustments] = await Promise.all([
       ctx.db
         .query("dispatchItems")
         .withIndex("by_batch", (q) => q.eq("batchId", batchId))

@@ -22,8 +22,10 @@ export const create = zMutation({
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can create suppliers")
 
-    await perUserLimit(ctx, "createSupplier", callerId)
-    await globalLimit(ctx, "globalCreateSupplier")
+    await Promise.all([
+      perUserLimit(ctx, "createSupplier", callerId),
+      globalLimit(ctx, "globalCreateSupplier"),
+    ])
 
     const existing = await ctx.db
       .query("suppliers")
@@ -70,8 +72,10 @@ export const update = zMutation({
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can update suppliers")
 
-    await perUserLimit(ctx, "updateSupplier", callerId)
-    await globalLimit(ctx, "globalMutations")
+    await Promise.all([
+      perUserLimit(ctx, "updateSupplier", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
 
     const existing = await ctx.db.get(supplierId)
     if (!existing) throw new Error("Supplier not found")
@@ -115,8 +119,10 @@ export const archive = zMutation({
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can archive suppliers")
 
-    await perUserLimit(ctx, "archiveSupplier", callerId)
-    await globalLimit(ctx, "globalMutations")
+    await Promise.all([
+      perUserLimit(ctx, "archiveSupplier", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
 
     const existing = await ctx.db.get(supplierId)
     if (!existing) throw new Error("Supplier not found")
@@ -156,8 +162,10 @@ export const unarchive = zMutation({
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can unarchive suppliers")
 
-    await perUserLimit(ctx, "archiveSupplier", callerId)
-    await globalLimit(ctx, "globalMutations")
+    await Promise.all([
+      perUserLimit(ctx, "archiveSupplier", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
 
     const existing = await ctx.db.get(supplierId)
     if (!existing) throw new Error("Supplier not found")

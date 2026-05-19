@@ -1,7 +1,8 @@
 "use client"
 
 import { ImageUp, X } from "lucide-react"
-import { type DragEvent, useId, useRef, useState } from "react"
+import Image from "next/image"
+import { type DragEvent, type KeyboardEvent, useId, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -44,13 +45,22 @@ export default function UploadDropzone({
     setIsDragActive(false)
   }
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      inputRef.current?.click()
+    }
+  }
+
   if (preview) {
     return (
       <div className="relative w-full overflow-hidden border rounded-xl size-40">
-        <img
+        <Image
           src={preview}
           alt="Upload preview"
-          className="object-cover object-center w-full h-full"
+          fill
+          sizes="160px"
+          className="object-cover object-center"
         />
         <Button
           type="button"
@@ -68,8 +78,10 @@ export default function UploadDropzone({
   return (
     <div>
       <div
+        role="button"
+        tabIndex={0}
         className={cn(
-          "flex flex-col items-center justify-center size-40 border border-dashed rounded-xl cursor-pointer transition-colors",
+          "flex flex-col items-center justify-center size-40 border border-dashed rounded-xl transition-colors",
           isDragActive
             ? "border-primary bg-primary/5"
             : "border-input hover:bg-accent hover:border-muted-foreground",
@@ -79,6 +91,7 @@ export default function UploadDropzone({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onClick={() => inputRef.current?.click()}
+        onKeyDown={handleKeyDown}
       >
         <ImageUp className="mb-2 size-6 text-muted-foreground" />
         <p className="px-2 text-xs text-center text-muted-foreground">

@@ -30,6 +30,17 @@ export const list = query({
   },
 })
 
+export const listNames = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (userId === null) throw new Error("Unauthorized")
+
+    const users = await ctx.db.query("users").collect()
+    return users.map((u) => ({ _id: u._id, name: u.name }))
+  },
+})
+
 export const getByEmail = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {

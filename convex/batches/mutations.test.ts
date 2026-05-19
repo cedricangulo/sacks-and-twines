@@ -143,8 +143,10 @@ describe("batch mutations", () => {
   it("rejects unauthenticated stockIn", async () => {
     const t = makeTest()
     authMocks.getAuthUserId.mockResolvedValueOnce(null)
-    const productId = await createPhantomProductId(t)
-    const supplierId = await createPhantomSupplierId(t)
+    const [productId, supplierId] = await Promise.all([
+      createPhantomProductId(t),
+      createPhantomSupplierId(t),
+    ])
 
     await expect(
       t.mutation(api.batches.mutations.stockIn, {
@@ -166,8 +168,10 @@ describe("batch mutations", () => {
       status: "active",
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
-    const productId = await createPhantomProductId(t)
-    const supplierId = await createPhantomSupplierId(t)
+    const [productId, supplierId] = await Promise.all([
+      createPhantomProductId(t),
+      createPhantomSupplierId(t),
+    ])
 
     await expect(
       t.mutation(api.batches.mutations.stockIn, {
@@ -190,8 +194,10 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await createProduct(t, "Existing Product")
-    const supplierId = await createSupplier(t, "Supplier Co")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Existing Product"),
+      createSupplier(t, "Supplier Co"),
+    ])
 
     const result = await t.mutation(api.batches.mutations.stockIn, {
       mode: "existing",
@@ -234,8 +240,10 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await createProduct(t, "Accumulating Product")
-    const supplierId = await createSupplier(t, "Supplier Co")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Accumulating Product"),
+      createSupplier(t, "Supplier Co"),
+    ])
 
     await t.mutation(api.batches.mutations.stockIn, {
       mode: "existing",
@@ -270,20 +278,22 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await t.run(async (ctx) => {
-      return await ctx.db.insert("products", {
-        skuCode: "SKU-ARCHIVED",
-        name: "Archived Product",
-        category: "sacks",
-        baseUom: "piece",
-        weightPerUnit: 0,
-        currentQuantity: 0,
-        totalAssetValue: 0,
-        lowStockThreshold: 0,
-        status: "archived",
-      })
-    })
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      t.run(async (ctx) => {
+        return await ctx.db.insert("products", {
+          skuCode: "SKU-ARCHIVED",
+          name: "Archived Product",
+          category: "sacks",
+          baseUom: "piece",
+          weightPerUnit: 0,
+          currentQuantity: 0,
+          totalAssetValue: 0,
+          lowStockThreshold: 0,
+          status: "archived",
+        })
+      }),
+      createSupplier(t, "Supplier"),
+    ])
 
     await expect(
       t.mutation(api.batches.mutations.stockIn, {
@@ -368,8 +378,10 @@ describe("batch mutations", () => {
   it("rejects unauthenticated batch update", async () => {
     const t = makeTest()
     authMocks.getAuthUserId.mockResolvedValueOnce(null)
-    const productId = await createPhantomProductId(t)
-    const supplierId = await createPhantomSupplierId(t)
+    const [productId, supplierId] = await Promise.all([
+      createPhantomProductId(t),
+      createPhantomSupplierId(t),
+    ])
     const phantomUserId = await t.run(async (ctx) => {
       const id = await ctx.db.insert("users", {
         email: "phantom@test.com",
@@ -419,8 +431,10 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await createProduct(t, "Updatable Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Updatable Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     const { productId: _, batchCode } = await t.mutation(
       api.batches.mutations.stockIn,
@@ -433,15 +447,16 @@ describe("batch mutations", () => {
       }
     )
 
-    const batches = await t.run(async (ctx) => {
-      return await ctx.db
-        .query("batches")
-        .withIndex("by_product", (q) => q.eq("productId", productId))
-        .collect()
-    })
+    const [batches, newSupplierId] = await Promise.all([
+      t.run(async (ctx) => {
+        return await ctx.db
+          .query("batches")
+          .withIndex("by_product", (q) => q.eq("productId", productId))
+          .collect()
+      }),
+      createSupplier(t, "New Supplier"),
+    ])
     const batchId = batches[0]._id
-
-    const newSupplierId = await createSupplier(t, "New Supplier")
 
     await t.mutation(api.batches.mutations.update, {
       batchId,
@@ -478,8 +493,10 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await createProduct(t, "Locked Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Locked Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await t.mutation(api.batches.mutations.stockIn, {
       mode: "existing",
@@ -544,8 +561,10 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await createProduct(t, "Voided Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Voided Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await t.mutation(api.batches.mutations.stockIn, {
       mode: "existing",
@@ -590,8 +609,10 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await createProduct(t, "Voidable Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Voidable Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await t.mutation(api.batches.mutations.stockIn, {
       mode: "existing",
@@ -636,8 +657,10 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await createProduct(t, "Dispatched Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Dispatched Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await t.mutation(api.batches.mutations.stockIn, {
       mode: "existing",
@@ -679,8 +702,10 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await createProduct(t, "Already Voided Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Already Voided Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await t.mutation(api.batches.mutations.stockIn, {
       mode: "existing",
@@ -715,8 +740,10 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await createProduct(t, "Adjustment Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Adjustment Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await t.mutation(api.batches.mutations.stockIn, {
       mode: "existing",
@@ -834,8 +861,10 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await createProduct(t, "Existing Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Existing Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     const storageId = "test-storage-id-67890"
 
@@ -865,8 +894,10 @@ describe("batch mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await createProduct(t, "No Image Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "No Image Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     const existingProduct = await t.run(async (ctx) => {
       return await ctx.db.get(productId)

@@ -145,8 +145,10 @@ describe("batch queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, "Test Product")
-    const supplierId = await createSupplier(t, "Test Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Test Product"),
+      createSupplier(t, "Test Supplier"),
+    ])
 
     await createBatch(t, {
       productId,
@@ -200,8 +202,10 @@ describe("batch queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, "Counted Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Counted Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await createBatch(t, { productId, supplierId, userId: ownerId })
     await createBatch(t, { productId, supplierId, userId: ownerId })
@@ -224,8 +228,10 @@ describe("batch queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, "Detail Product")
-    const supplierId = await createSupplier(t, "Detail Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Detail Product"),
+      createSupplier(t, "Detail Supplier"),
+    ])
 
     const batchId = await createBatch(t, {
       productId,
@@ -260,8 +266,10 @@ describe("batch queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, "Phantom Product")
-    const supplierId = await createSupplier(t, "Phantom Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Phantom Product"),
+      createSupplier(t, "Phantom Supplier"),
+    ])
 
     const phantomId = await t.run(async (ctx) => {
       const id = await ctx.db.insert("batches", {
@@ -327,8 +335,10 @@ describe("batch queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, "FIFO Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "FIFO Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await createBatch(t, {
       productId,
@@ -367,8 +377,10 @@ describe("batch queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, "Depleted Filter")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Depleted Filter"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await createBatch(t, {
       productId,
@@ -405,8 +417,10 @@ describe("batch queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, "Voided Filter")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Voided Filter"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await createBatch(t, {
       productId,
@@ -443,8 +457,10 @@ describe("batch queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, "Empty Filter")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Empty Filter"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await createBatch(t, {
       productId,
@@ -480,8 +496,10 @@ describe("batch queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, "Empty Product")
-    const supplierId = await createSupplier(t, "Supplier")
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Empty Product"),
+      createSupplier(t, "Supplier"),
+    ])
 
     await createBatch(t, {
       productId,

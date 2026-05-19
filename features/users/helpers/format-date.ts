@@ -1,6 +1,8 @@
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+})
+
 export const formatDate = (timestamp: number) =>
-  new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(timestamp))
+  dateFormatter.format(new Date(timestamp))

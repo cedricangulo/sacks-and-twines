@@ -13,8 +13,10 @@ export const generateUploadUrl = zMutation({
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can upload files")
 
-    await perUserLimit(ctx, "generateUploadUrl", callerId)
-    await globalLimit(ctx, "globalMutations")
+    await Promise.all([
+      perUserLimit(ctx, "generateUploadUrl", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
 
     return await ctx.storage.generateUploadUrl()
   },
@@ -46,8 +48,10 @@ export const stockIn = zMutation({
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can stock in")
 
-    await perUserLimit(ctx, "createBatch", callerId)
-    await globalLimit(ctx, "globalCreateSupplier")
+    await Promise.all([
+      perUserLimit(ctx, "createBatch", callerId),
+      globalLimit(ctx, "globalCreateSupplier"),
+    ])
 
     let resolvedProductId = productId
 
@@ -102,6 +106,8 @@ export const stockIn = zMutation({
       })
     }
 
+    const product = await ctx.db.get(resolvedProductId)
+
     const unitCost = totalProcurementCost / quantityReceived
     const bDate = new Date().toISOString().slice(0, 10).replace(/-/g, "")
     let batchCode = ""
@@ -131,7 +137,14 @@ export const stockIn = zMutation({
       status: "active",
     })
 
-    const product = await ctx.db.get(resolvedProductId)
+    // Increment supplier batchCount
+    const supplierDoc = await ctx.db.get(supplierId)
+    if (supplierDoc) {
+      await ctx.db.patch(supplierId, {
+        batchCount: (supplierDoc.batchCount ?? 0) + 1,
+      })
+    }
+
     if (product) {
       const patch: Record<string, unknown> = {
         currentQuantity: product.currentQuantity + quantityReceived,
@@ -181,8 +194,10 @@ export const update = zMutation({
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can update batches")
 
-    await perUserLimit(ctx, "updateBatch", callerId)
-    await globalLimit(ctx, "globalMutations")
+    await Promise.all([
+      perUserLimit(ctx, "updateBatch", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
 
     const batch = await ctx.db.get(batchId)
     if (!batch) throw new Error("Batch not found")
@@ -215,6 +230,21 @@ export const update = zMutation({
       }
 
       await ctx.db.patch(batchId, { supplierId })
+
+      if (batch.supplierId.toString() !== supplierId.toString()) {
+        const [oldSupplierDoc, newSupplierDoc] = await Promise.all([
+          ctx.db.get(batch.supplierId),
+          ctx.db.get(supplierId),
+        ])
+        await Promise.all([
+          oldSupplierDoc?.batchCount !== undefined
+            ? ctx.db.patch(batch.supplierId, { batchCount: oldSupplierDoc.batchCount - 1 })
+            : Promise.resolve(),
+          newSupplierDoc?.batchCount !== undefined
+            ? ctx.db.patch(supplierId, { batchCount: newSupplierDoc.batchCount + 1 })
+            : Promise.resolve(),
+        ])
+      }
     } else {
       const unitCost = totalProcurementCost / quantityReceived
       const oldQty = batch.quantityReceived
@@ -245,6 +275,21 @@ export const update = zMutation({
           ...(lowStockThreshold !== undefined ? { lowStockThreshold } : {}),
         })
       }
+
+      if (batch.supplierId.toString() !== supplierId.toString()) {
+        const [oldSupplierDoc, newSupplierDoc] = await Promise.all([
+          ctx.db.get(batch.supplierId),
+          ctx.db.get(supplierId),
+        ])
+        await Promise.all([
+          oldSupplierDoc?.batchCount !== undefined
+            ? ctx.db.patch(batch.supplierId, { batchCount: oldSupplierDoc.batchCount - 1 })
+            : Promise.resolve(),
+          newSupplierDoc?.batchCount !== undefined
+            ? ctx.db.patch(supplierId, { batchCount: newSupplierDoc.batchCount + 1 })
+            : Promise.resolve(),
+        ])
+      }
     }
 
     await ctx.db.insert("auditLogs", {
@@ -268,8 +313,10 @@ export const voidBatch = zMutation({
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can void batches")
 
-    await perUserLimit(ctx, "voidBatch", callerId)
-    await globalLimit(ctx, "globalMutations")
+    await Promise.all([
+      perUserLimit(ctx, "voidBatch", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
 
     const batch = await ctx.db.get(batchId)
     if (!batch) throw new Error("Batch not found")
@@ -304,13 +351,13 @@ export const voidBatch = zMutation({
       .query("stockAdjustments")
       .withIndex("by_batch", (q) => q.eq("batchId", batchId))
       .collect()
-    let voidedCount = 0
-    for (const adj of adjustments) {
-      if (adj.status === "applied") {
-        await ctx.db.patch(adj._id, { status: "voided" })
-        voidedCount++
-      }
-    }
+    const voidedAdjustments = adjustments.filter(
+      (adj) => adj.status === "applied"
+    )
+    await Promise.all(
+      voidedAdjustments.map((adj) => ctx.db.patch(adj._id, { status: "voided" }))
+    )
+    const voidedCount = voidedAdjustments.length
 
     await ctx.db.insert("auditLogs", {
       userId: callerId,

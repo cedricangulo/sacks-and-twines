@@ -49,6 +49,13 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     rate: 15,
     capacity: 30,
   },
+  /** Product archive per user */
+  archiveProduct: {
+    kind: "token bucket",
+    period: MINUTE,
+    rate: 15,
+    capacity: 30,
+  },
 
   // ── Global safety valves (no key = global singleton) ────────
   /** Total staff creations across all users */

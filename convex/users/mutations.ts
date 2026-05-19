@@ -16,8 +16,10 @@ export const create = zMutation({
       throw new Error("Only owners can create staff users")
     }
 
-    await perUserLimit(ctx, "createUser", callerId)
-    await globalLimit(ctx, "globalCreateUser")
+    await Promise.all([
+      perUserLimit(ctx, "createUser", callerId),
+      globalLimit(ctx, "globalCreateUser"),
+    ])
 
     const existing = await ctx.db
       .query("users")
@@ -67,12 +69,14 @@ export const deactivate = zMutation({
       throw new Error("Only owners can deactivate users")
     }
 
-    await perUserLimit(ctx, "deactivateUser", callerId)
-    await globalLimit(ctx, "globalMutations")
-
     if (callerId.toString() === userId.toString()) {
       throw new Error("You cannot deactivate yourself")
     }
+
+    await Promise.all([
+      perUserLimit(ctx, "deactivateUser", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
 
     const target = await ctx.db.get(userId)
     if (!target) {

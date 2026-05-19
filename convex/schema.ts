@@ -38,6 +38,7 @@ export default defineSchema({
     contactNumber: v.string(),
     address: v.string(),
     archivedAt: v.optional(v.number()),
+    batchCount: v.optional(v.number()),
   }).index("by_company", ["companyName"]),
 
   batches: defineTable({
@@ -65,7 +66,9 @@ export default defineSchema({
     customerReference: v.optional(v.string()),
     status: v.union(v.literal("completed"), v.literal("voided")),
     createdAt: v.optional(v.number()),
-  }),
+    userName: v.optional(v.string()),
+    itemCount: v.optional(v.number()),
+  }).index("by_createdAt", ["createdAt"]),
 
   dispatchItems: defineTable({
     dispatchId: v.id("dispatches"),

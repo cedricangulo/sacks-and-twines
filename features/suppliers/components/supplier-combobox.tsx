@@ -55,6 +55,8 @@ export default function SupplierCombobox({
         type="button"
         variant="outline"
         role="combobox"
+        aria-expanded={open}
+        aria-controls="supplier-listbox"
         className="justify-between w-full"
         disabled={disabled}
         onClick={() => setOpen(!open)}
@@ -70,10 +72,13 @@ export default function SupplierCombobox({
               placeholder="Search suppliers..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              autoFocus
             />
           </div>
-          <div className="overflow-y-auto max-h-48">
+          <div
+            className="overflow-y-auto max-h-48"
+            id="supplier-listbox"
+            role="listbox"
+          >
             {filtered.length === 0 ? (
               <div className="px-3 py-4 text-sm text-center text-destructive-foreground">
                 No suppliers found.

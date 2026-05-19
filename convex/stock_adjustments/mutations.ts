@@ -16,8 +16,10 @@ export const create = zMutation({
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can adjust stock")
 
-    await perUserLimit(ctx, "createStockAdjustment", callerId)
-    await globalLimit(ctx, "globalMutations")
+    await Promise.all([
+      perUserLimit(ctx, "createStockAdjustment", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
 
     const [batch, product] = await Promise.all([
       ctx.db.get(batchId),
@@ -49,25 +51,25 @@ export const create = zMutation({
     if (newRemaining === 0) {
       patch.status = "depleted"
     }
-    await ctx.db.patch(batchId, patch)
-
-    await ctx.db.patch(productId, {
-      currentQuantity: Math.max(0, product.currentQuantity + quantityAdjusted),
-      totalAssetValue: Math.max(0, product.totalAssetValue + costDelta),
-    })
-
-    await ctx.db.insert("auditLogs", {
-      userId: callerId,
-      action: "stock_adjustment",
-      description: JSON.stringify({
-        batchCode: batch.batchCode,
-        productName: product.name,
-        quantityAdjusted,
-        reason,
-        direction,
+    await Promise.all([
+      ctx.db.patch(batchId, patch),
+      ctx.db.patch(productId, {
+        currentQuantity: Math.max(0, product.currentQuantity + quantityAdjusted),
+        totalAssetValue: Math.max(0, product.totalAssetValue + costDelta),
       }),
-      userAgent,
-    })
+      ctx.db.insert("auditLogs", {
+        userId: callerId,
+        action: "stock_adjustment",
+        description: JSON.stringify({
+          batchCode: batch.batchCode,
+          productName: product.name,
+          quantityAdjusted,
+          reason,
+          direction,
+        }),
+        userAgent,
+      }),
+    ])
 
     return true
   },

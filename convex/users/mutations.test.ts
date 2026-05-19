@@ -242,18 +242,20 @@ describe("user mutations", () => {
 
   it("deactivates staff users and writes an audit log", async () => {
     const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    const staffId = await createUser(t, {
-      email: "staff@test.com",
-      name: "Staff User",
-      role: "staff",
-      status: "active",
-    })
+    const [ownerId, staffId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      createUser(t, {
+        email: "staff@test.com",
+        name: "Staff User",
+        role: "staff",
+        status: "active",
+      }),
+    ])
 
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
@@ -288,21 +290,23 @@ describe("user mutations", () => {
 
   it("rejects deactivating non-existent user", async () => {
     const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    const phantomId = await t.run(async (ctx) => {
-      const id = await ctx.db.insert("users", {
-        email: "phantom@test.com",
-        role: "staff",
+    const [ownerId, phantomId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
         status: "active",
-      })
-      await ctx.db.delete(id)
-      return id
-    })
+      }),
+      t.run(async (ctx) => {
+        const id = await ctx.db.insert("users", {
+          email: "phantom@test.com",
+          role: "staff",
+          status: "active",
+        })
+        await ctx.db.delete(id)
+        return id
+      }),
+    ])
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     await expect(
@@ -314,18 +318,20 @@ describe("user mutations", () => {
 
   it("rejects deactivating owner user", async () => {
     const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    const otherOwnerId = await createUser(t, {
-      email: "owner2@test.com",
-      name: "Other Owner",
-      role: "owner",
-      status: "active",
-    })
+    const [ownerId, otherOwnerId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      createUser(t, {
+        email: "owner2@test.com",
+        name: "Other Owner",
+        role: "owner",
+        status: "active",
+      }),
+    ])
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     await expect(

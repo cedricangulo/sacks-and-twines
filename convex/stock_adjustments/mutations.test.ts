@@ -48,28 +48,29 @@ describe("stock adjustment mutations", () => {
   }
 
   async function seedData(t: ReturnType<typeof convexTest>, ownerId: string) {
-    const productId = await t.run(async (ctx) => {
-      return await ctx.db.insert("products", {
-        skuCode: "SKU-TEST",
-        name: "Test Product",
-        category: "sacks",
-        baseUom: "piece",
-        weightPerUnit: 0,
-        currentQuantity: 100,
-        totalAssetValue: 50000,
-        lowStockThreshold: 10,
-        status: "active",
-      })
-    })
-
-    const supplierId = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Test Supplier",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
+    const [productId, supplierId] = await Promise.all([
+      t.run(async (ctx) => {
+        return await ctx.db.insert("products", {
+          skuCode: "SKU-TEST",
+          name: "Test Product",
+          category: "sacks",
+          baseUom: "piece",
+          weightPerUnit: 0,
+          currentQuantity: 100,
+          totalAssetValue: 50000,
+          lowStockThreshold: 10,
+          status: "active",
+        })
+      }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Test Supplier",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
 
     const batchId = await t.run(async (ctx) => {
       return await ctx.db.insert("batches", {
@@ -171,28 +172,29 @@ describe("stock adjustment mutations", () => {
     const ownerId = await createOwner(t)
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await t.run(async (ctx) => {
-      return await ctx.db.insert("products", {
-        skuCode: "SKU-DEP",
-        name: "Depleted",
-        category: "sacks",
-        baseUom: "piece",
-        weightPerUnit: 0,
-        currentQuantity: 0,
-        totalAssetValue: 0,
-        lowStockThreshold: 0,
-        status: "active",
-      })
-    })
-
-    const supplierId = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Supplier",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
+    const [productId, supplierId] = await Promise.all([
+      t.run(async (ctx) => {
+        return await ctx.db.insert("products", {
+          skuCode: "SKU-DEP",
+          name: "Depleted",
+          category: "sacks",
+          baseUom: "piece",
+          weightPerUnit: 0,
+          currentQuantity: 0,
+          totalAssetValue: 0,
+          lowStockThreshold: 0,
+          status: "active",
+        })
+      }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Supplier",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
 
     const batchId = await t.run(async (ctx) => {
       return await ctx.db.insert("batches", {
@@ -224,28 +226,29 @@ describe("stock adjustment mutations", () => {
     const ownerId = await createOwner(t)
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await t.run(async (ctx) => {
-      return await ctx.db.insert("products", {
-        skuCode: "SKU-ARCH",
-        name: "Archived",
-        category: "sacks",
-        baseUom: "piece",
-        weightPerUnit: 0,
-        currentQuantity: 50,
-        totalAssetValue: 25000,
-        lowStockThreshold: 5,
-        status: "archived",
-      })
-    })
-
-    const supplierId = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Supplier",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
+    const [productId, supplierId] = await Promise.all([
+      t.run(async (ctx) => {
+        return await ctx.db.insert("products", {
+          skuCode: "SKU-ARCH",
+          name: "Archived",
+          category: "sacks",
+          baseUom: "piece",
+          weightPerUnit: 0,
+          currentQuantity: 50,
+          totalAssetValue: 25000,
+          lowStockThreshold: 5,
+          status: "archived",
+        })
+      }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Supplier",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
 
     const batchId = await t.run(async (ctx) => {
       return await ctx.db.insert("batches", {

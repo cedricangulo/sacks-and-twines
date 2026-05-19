@@ -12,6 +12,9 @@ export const list = query({
 
     return await Promise.all(
       suppliers.map(async (supplier) => {
+        if (supplier.batchCount !== undefined) {
+          return { ...supplier, batchCount: supplier.batchCount }
+        }
         const batches = await ctx.db
           .query("batches")
           .withIndex("by_supplier", (q) => q.eq("supplierId", supplier._id))
