@@ -1,14 +1,15 @@
 "use client"
 
+import type { VisibilityState } from "@tanstack/react-table"
 import {
   createColumnHelper,
   getCoreRowModel,
-  getFilteredRowModel,
   getSortedRowModel,
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
 import { Building2, SearchX } from "lucide-react"
+import type { Dispatch, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -23,14 +24,16 @@ import SupplierTableActions from "./supplier-table-actions"
 
 type SupplierTableContainerProps = {
   suppliers: Supplier[]
-  search: string
+  columnVisibility: VisibilityState
+  onColumnVisibilityChange: Dispatch<SetStateAction<VisibilityState>>
 }
 
 const columnHelper = createColumnHelper<Supplier>()
 
 export default function SupplierTableContainer({
   suppliers,
-  search,
+  columnVisibility,
+  onColumnVisibilityChange,
 }: SupplierTableContainerProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "companyName", desc: false },
@@ -44,6 +47,7 @@ export default function SupplierTableContainer({
         header: "Company Name",
         cell: (info) => info.getValue(),
         sortingFn: "alphanumeric",
+        enableHiding: false,
       }),
       columnHelper.accessor((row) => row.contactPerson ?? "", {
         id: "contactPerson",
@@ -70,14 +74,13 @@ export default function SupplierTableContainer({
           ) : (
             <Badge variant="success">Active</Badge>
           ),
-        enableGlobalFilter: false,
       }),
       columnHelper.display({
         id: "actions",
         header: "",
         cell: ({ row }) => <SupplierTableActions supplier={row.original} />,
         enableSorting: false,
-        enableGlobalFilter: false,
+        enableHiding: false,
       }),
     ],
     []
@@ -86,11 +89,10 @@ export default function SupplierTableContainer({
   const table = useReactTable({
     data,
     columns,
-    state: { globalFilter: search, sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
-    globalFilterFn: "includesString",
+    onColumnVisibilityChange,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     enableSortingRemoval: false,
     isMultiSortEvent: () => false,
     getSortedRowModel: getSortedRowModel(),
@@ -104,15 +106,11 @@ export default function SupplierTableContainer({
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            {search ? <SearchX size={16} /> : <Building2 size={16} />}
+            <Building2 size={16} />
           </EmptyMedia>
-          <EmptyTitle>
-            {search ? "No suppliers match your search" : "No suppliers yet"}
-          </EmptyTitle>
+          <EmptyTitle>No suppliers yet</EmptyTitle>
           <EmptyDescription>
-            {search
-              ? "Try adjusting your search terms."
-              : "Add your first supplier to get started."}
+            Add your first supplier to get started.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>

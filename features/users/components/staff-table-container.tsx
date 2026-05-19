@@ -1,14 +1,15 @@
 "use client"
 
+import type { VisibilityState } from "@tanstack/react-table"
 import {
   createColumnHelper,
   getCoreRowModel,
-  getFilteredRowModel,
   getSortedRowModel,
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
 import { SearchX, Users } from "lucide-react"
+import type { Dispatch, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -24,14 +25,16 @@ import StaffTableActions from "./staff-table-actions"
 
 type StaffTableContainerProps = {
   staff: StaffUser[]
-  search: string
+  columnVisibility: VisibilityState
+  onColumnVisibilityChange: Dispatch<SetStateAction<VisibilityState>>
 }
 
 const columnHelper = createColumnHelper<StaffUser>()
 
 export default function StaffTableContainer({
   staff,
-  search,
+  columnVisibility,
+  onColumnVisibilityChange,
 }: StaffTableContainerProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "created", desc: true },
@@ -46,6 +49,7 @@ export default function StaffTableContainer({
         header: "Name",
         cell: (info) => info.getValue() || "—",
         sortingFn: "alphanumeric",
+        enableHiding: false,
       }),
       columnHelper.accessor("email", {
         header: "Email",
@@ -70,7 +74,6 @@ export default function StaffTableContainer({
         id: "created",
         header: "Created",
         cell: ({ row }) => formatDate(row.original._creationTime),
-        enableGlobalFilter: false,
         sortingFn: "basic",
       }),
       columnHelper.display({
@@ -78,7 +81,7 @@ export default function StaffTableContainer({
         header: "",
         cell: ({ row }) => <StaffTableActions user={row.original} />,
         enableSorting: false,
-        enableGlobalFilter: false,
+        enableHiding: false,
       }),
     ],
     []
@@ -87,11 +90,10 @@ export default function StaffTableContainer({
   const table = useReactTable({
     data,
     columns,
-    state: { globalFilter: search, sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
-    globalFilterFn: "includesString",
+    onColumnVisibilityChange,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     enableSortingRemoval: false,
     isMultiSortEvent: () => false,
     getSortedRowModel: getSortedRowModel(),
@@ -105,15 +107,11 @@ export default function StaffTableContainer({
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            {search ? <SearchX size={16} /> : <Users size={16} />}
+            <Users size={16} />
           </EmptyMedia>
-          <EmptyTitle>
-            {search ? "No staff match your search" : "No staff yet"}
-          </EmptyTitle>
+          <EmptyTitle>No staff yet</EmptyTitle>
           <EmptyDescription>
-            {search
-              ? "Try adjusting your search terms."
-              : "Create your first staff account to get started."}
+            Create your first staff account to get started.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
