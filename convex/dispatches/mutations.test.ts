@@ -205,11 +205,13 @@ describe("dispatch mutations", () => {
     const userId = await createUser(t)
     authMocks.getAuthUserId.mockResolvedValueOnce(userId)
 
-    const productId = await createProduct(t, {
-      currentQuantity: 100,
-      totalAssetValue: 50000,
-    })
-    const supplierId = await createSupplier(t)
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        currentQuantity: 100,
+        totalAssetValue: 50000,
+      }),
+      createSupplier(t),
+    ])
     const batchId = await createBatch(t, {
       productId,
       supplierId,
@@ -275,11 +277,13 @@ describe("dispatch mutations", () => {
     const userId = await createUser(t)
     authMocks.getAuthUserId.mockResolvedValueOnce(userId)
 
-    const productId = await createProduct(t, {
-      currentQuantity: 50,
-      totalAssetValue: 25000,
-    })
-    const supplierId = await createSupplier(t)
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        currentQuantity: 50,
+        totalAssetValue: 25000,
+      }),
+      createSupplier(t),
+    ])
     await createBatch(t, {
       productId,
       supplierId,
@@ -304,16 +308,18 @@ describe("dispatch mutations", () => {
     const userId = await createUser(t)
     authMocks.getAuthUserId.mockResolvedValueOnce(userId)
 
-    const productA = await createProduct(t, {
-      name: "Product A",
-      currentQuantity: 100,
-      totalAssetValue: 100000,
-    })
-    const productB = await createProduct(t, {
-      name: "Product B",
-      currentQuantity: 50,
-      totalAssetValue: 25000,
-    })
+    const [productA, productB] = await Promise.all([
+      createProduct(t, {
+        name: "Product A",
+        currentQuantity: 100,
+        totalAssetValue: 100000,
+      }),
+      createProduct(t, {
+        name: "Product B",
+        currentQuantity: 50,
+        totalAssetValue: 25000,
+      }),
+    ])
     const supplierId = await createSupplier(t)
     await createBatch(t, {
       productId: productA,
@@ -364,31 +370,33 @@ describe("dispatch mutations", () => {
     const userId = await createUser(t)
     authMocks.getAuthUserId.mockResolvedValueOnce(userId)
 
-    const productId = await createProduct(t, {
-      currentQuantity: 50,
-      totalAssetValue: 40000,
-    })
-    const supplierId = await createSupplier(t)
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        currentQuantity: 50,
+        totalAssetValue: 40000,
+      }),
+      createSupplier(t),
+    ])
 
     // First batch (older): 10 units at 500 cost
-    const batch1 = await createBatch(t, {
-      productId,
-      supplierId,
-      userId,
-      quantityReceived: 10,
-      quantityRemaining: 10,
-      unitCost: 500,
-    })
-
-    // Second batch (newer): 40 units at 1000 cost
-    const batch2 = await createBatch(t, {
-      productId,
-      supplierId,
-      userId,
-      quantityReceived: 40,
-      quantityRemaining: 40,
-      unitCost: 1000,
-    })
+    const [batch1, batch2] = await Promise.all([
+      createBatch(t, {
+        productId,
+        supplierId,
+        userId,
+        quantityReceived: 10,
+        quantityRemaining: 10,
+        unitCost: 500,
+      }),
+      createBatch(t, {
+        productId,
+        supplierId,
+        userId,
+        quantityReceived: 40,
+        quantityRemaining: 40,
+        unitCost: 1000,
+      }),
+    ])
 
     // Dispatch 25 units — should take all 10 from batch1, then 15 from batch2
     const result = await t.mutation(api.dispatches.mutations.submit, {
@@ -431,15 +439,17 @@ describe("dispatch mutations", () => {
     const userId = await createUser(t)
     authMocks.getAuthUserId.mockResolvedValueOnce(userId)
 
-    const productId = await createProduct(t, {
-      name: "Test Twine",
-      category: "twines",
-      baseUom: "roll",
-      weightPerUnit: 20,
-      currentQuantity: 50,
-      totalAssetValue: 50000,
-    })
-    const supplierId = await createSupplier(t)
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        name: "Test Twine",
+        category: "twines",
+        baseUom: "roll",
+        weightPerUnit: 20,
+        currentQuantity: 50,
+        totalAssetValue: 50000,
+      }),
+      createSupplier(t),
+    ])
     await createBatch(t, {
       productId,
       supplierId,
@@ -477,14 +487,16 @@ describe("dispatch mutations", () => {
     const userId = await createUser(t)
     authMocks.getAuthUserId.mockResolvedValueOnce(userId)
 
-    const productId = await createProduct(t, {
-      name: "No Weight Twine",
-      category: "twines",
-      baseUom: "roll",
-      weightPerUnit: 0,
-      currentQuantity: 50,
-    })
-    const supplierId = await createSupplier(t)
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        name: "No Weight Twine",
+        category: "twines",
+        baseUom: "roll",
+        weightPerUnit: 0,
+        currentQuantity: 50,
+      }),
+      createSupplier(t),
+    ])
     await createBatch(t, {
       productId,
       supplierId,
@@ -506,13 +518,15 @@ describe("dispatch mutations", () => {
     const userId = await createUser(t)
     authMocks.getAuthUserId.mockResolvedValueOnce(userId)
 
-    const productId = await createProduct(t, {
-      name: "Cement",
-      category: "sacks",
-      currentQuantity: 50,
-      totalAssetValue: 25000,
-    })
-    const supplierId = await createSupplier(t)
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        name: "Cement",
+        category: "sacks",
+        currentQuantity: 50,
+        totalAssetValue: 25000,
+      }),
+      createSupplier(t),
+    ])
     await createBatch(t, {
       productId,
       supplierId,
@@ -534,15 +548,17 @@ describe("dispatch mutations", () => {
     const userId = await createUser(t)
     authMocks.getAuthUserId.mockResolvedValueOnce(userId)
 
-    const productId = await createProduct(t, {
-      name: "Test Twine",
-      category: "twines",
-      baseUom: "roll",
-      weightPerUnit: 20,
-      currentQuantity: 50,
-      totalAssetValue: 50000,
-    })
-    const supplierId = await createSupplier(t)
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        name: "Test Twine",
+        category: "twines",
+        baseUom: "roll",
+        weightPerUnit: 20,
+        currentQuantity: 50,
+        totalAssetValue: 50000,
+      }),
+      createSupplier(t),
+    ])
     await createBatch(t, {
       productId,
       supplierId,
@@ -564,11 +580,13 @@ describe("dispatch mutations", () => {
     const userId = await createUser(t)
     authMocks.getAuthUserId.mockResolvedValueOnce(userId)
 
-    const productId = await createProduct(t, {
-      currentQuantity: 10,
-      totalAssetValue: 5000,
-    })
-    const supplierId = await createSupplier(t)
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        currentQuantity: 10,
+        totalAssetValue: 5000,
+      }),
+      createSupplier(t),
+    ])
     await createBatch(t, {
       productId,
       supplierId,

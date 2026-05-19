@@ -1,0 +1,26 @@
+export const STATUS_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "completed", label: "Completed" },
+  { value: "voided", label: "Voided" },
+] as const
+
+export const DISPATCH_TABLE_COLUMNS = [
+  { id: "customerReference", label: "Customer Ref" },
+  { id: "status", label: "Status" },
+  { id: "userName", label: "User" },
+  { id: "itemCount", label: "Items" },
+  { id: "createdAt", label: "Date" },
+] as const
+
+export type DispatchColumnId = (typeof DISPATCH_TABLE_COLUMNS)[number]["id"]
+
+export const ITEMS_TABLE_COLUMNS = [
+  { id: "productName", label: "Product Name" },
+  { id: "productSku", label: "SKU Code" },
+  { id: "dispatchQuantity", label: "Qty" },
+  { id: "quantityDeducted", label: "Qty Deducted" },
+  { id: "unitCost", label: "Unit Cost" },
+  { id: "lineTotal", label: "Line Total" },
+] as const
+
+export type ItemsColumnId = (typeof ITEMS_TABLE_COLUMNS)[number]["id"]

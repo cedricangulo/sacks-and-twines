@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, type ReactNode, useContext } from "react"
+import { createContext, type ReactNode, use } from "react"
 import type { DispatchReadyProduct } from "@/features/products/validation"
 import { type QueueItem, useDispatchQueue } from "./use-dispatch-queue"
 
@@ -31,7 +31,7 @@ export function DispatchQueueProvider({ children }: { children: ReactNode }) {
 }
 
 export function useDispatchQueueContext() {
-  const ctx = useContext(DispatchQueueContext)
+  const ctx = use(DispatchQueueContext)
   if (!ctx) {
     throw new Error(
       "useDispatchQueueContext must be used within DispatchQueueProvider"

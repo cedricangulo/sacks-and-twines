@@ -91,7 +91,7 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
           {isSubmitting ? (
             <>
               <Loader2 className="animate-spin" />
-              Dispatching...
+              Dispatching&hellip;
             </>
           ) : (
             "Dispatch"

@@ -9,13 +9,19 @@ export const submit = zMutation({
     const callerId = await getAuthUserId(ctx)
     if (callerId === null) throw new Error("Unauthorized")
 
-    await perUserLimit(ctx, "createDispatch", callerId)
-    await globalLimit(ctx, "globalMutations")
+    const caller = await ctx.db.get(callerId)
+
+    await Promise.all([
+      perUserLimit(ctx, "createDispatch", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
 
     const dispatchId = await ctx.db.insert("dispatches", {
       userId: callerId,
       customerReference: customerReference ?? undefined,
       status: "completed",
+      createdAt: Date.now(),
+      userName: caller?.name ?? "Unknown",
     })
 
     let totalDispatchItems = 0
@@ -73,20 +79,21 @@ export const submit = zMutation({
           dispatchQty = deducted
         }
 
-        await ctx.db.insert("dispatchItems", {
-          dispatchId,
-          batchId: batch._id,
-          productId: item.productId,
-          dispatchUom: item.dispatchUom,
-          dispatchQuantity: dispatchQty,
-          quantityDeducted: deducted,
-          unitCost: batch.unitCost,
-        })
-
-        await ctx.db.patch(batch._id, {
-          quantityRemaining: newRemaining,
-          status: newRemaining === 0 ? "depleted" : "active",
-        })
+        await Promise.all([
+          ctx.db.insert("dispatchItems", {
+            dispatchId,
+            batchId: batch._id,
+            productId: item.productId,
+            dispatchUom: item.dispatchUom,
+            dispatchQuantity: dispatchQty,
+            quantityDeducted: deducted,
+            unitCost: batch.unitCost,
+          }),
+          ctx.db.patch(batch._id, {
+            quantityRemaining: newRemaining,
+            status: newRemaining === 0 ? "depleted" : "active",
+          }),
+        ])
 
         remaining -= deducted
         totalCostDeducted += deducted * batch.unitCost
@@ -115,6 +122,8 @@ export const submit = zMutation({
       description: `Dispatched ${items.length} product(s) across ${totalDispatchItems} batch(es)`,
       userAgent,
     })
+
+    await ctx.db.patch(dispatchId, { itemCount: totalDispatchItems })
 
     return { dispatchId, itemCount: totalDispatchItems }
   },
