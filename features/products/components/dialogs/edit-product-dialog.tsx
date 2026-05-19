@@ -65,27 +65,31 @@ export default function EditProductDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit product</DialogTitle>
-          <DialogDescription>{detail?.name ?? "Loading..."}</DialogDescription>
+          <DialogDescription>
+            {detail?.name ?? "Loading&hellip;"}
+          </DialogDescription>
         </DialogHeader>
 
         {!detail || !formValues ? (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
             <Loader2Icon size={20} className="mr-2 animate-spin" />
-            Loading product details...
+            Loading product details&hellip;
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            {hasBatches ? (
-              <div className="flex items-start gap-2 px-4 py-3 text-sm border rounded-2xl border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
-                <LockIcon size={16} className="mt-0.5 shrink-0" />
-                <p>
-                  Category and unit are locked because this product already has
-                  stock records.
-                </p>
-              </div>
-            ) : null}
-
             <Field data-invalid={!!errors.name}>
+              <Field>
+                <FieldLabel>Item Image</FieldLabel>
+                <FieldContent>
+                  <UploadDropzone
+                    className="w-full"
+                    preview={imagePreview}
+                    error={imageError}
+                    onSelect={handleImageSelect}
+                  />
+                </FieldContent>
+              </Field>
+
               <FieldLabel htmlFor="edit-product-name">Item Name</FieldLabel>
               <FieldContent>
                 <Input
@@ -181,7 +185,17 @@ export default function EditProductDialog({
               </Field>
             </FieldGroup>
 
-            <FieldGroup className="grid grid-cols-2">
+            {hasBatches ? (
+              <div className="flex items-start gap-2 px-4 py-3 text-sm border rounded-2xl border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
+                <LockIcon size={16} className="mt-0.5 shrink-0" />
+                <p>
+                  Category and unit are locked because this product already has
+                  stock records.
+                </p>
+              </div>
+            ) : null}
+
+            <FieldGroup className="grid grid-cols-2 gap-4">
               <Field data-invalid={!!errors.weightPerUnit}>
                 <div className="flex items-center justify-between gap-2">
                   <FieldLabel
@@ -192,7 +206,7 @@ export default function EditProductDialog({
                         : undefined
                     }
                   >
-                    Weight per Unit (kg)
+                    Weight per Unit
                   </FieldLabel>
                   {lockedFields.weightPerUnit ? (
                     <Button
@@ -201,7 +215,7 @@ export default function EditProductDialog({
                       type="button"
                       onClick={() => handleUnlock("weightPerUnit")}
                     >
-                      <PencilIcon className="size-3" />
+                      <PencilIcon />
                       Edit
                     </Button>
                   ) : null}
@@ -212,7 +226,7 @@ export default function EditProductDialog({
                     value={formValues.weightPerUnit ?? ""}
                     disabled={lockedFields.weightPerUnit}
                     type="number"
-                    step="0.0001"
+                    step="0.1"
                     min="0"
                     aria-invalid={!!errors.weightPerUnit}
                     onInput={(e) =>
@@ -257,18 +271,6 @@ export default function EditProductDialog({
                 ) : null}
               </Field>
             </FieldGroup>
-
-            <Field>
-              <FieldLabel>Item Image</FieldLabel>
-              <FieldContent>
-                <UploadDropzone
-                  className="w-full"
-                  preview={imagePreview}
-                  error={imageError}
-                  onSelect={handleImageSelect}
-                />
-              </FieldContent>
-            </Field>
 
             <div className="flex justify-end gap-2">
               <Button

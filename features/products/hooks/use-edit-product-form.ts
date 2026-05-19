@@ -2,7 +2,7 @@
 
 import { useConvexAuth, useMutation } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
-import { SubmitEvent, useEffect, useState } from "react"
+import { SubmitEvent, useEffect, useReducer, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import {
@@ -14,6 +14,98 @@ import { useUpdateProduct } from "./use-update-product"
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ALLOWED_TYPES = ["image/jpeg", "image/png"]
+
+type DialogState = {
+  formValues: ProductUpdateFormData | null
+  imagePreview: string | null
+  imageCleared: boolean
+  selectedFile: File | null
+  imageError: string | null
+  lockedFields: Record<string, boolean>
+  dirty: boolean
+  errors: ProductUpdateFieldErrors
+}
+
+type DialogAction =
+  | {
+      type: "open"
+      formValues: ProductUpdateFormData
+      imagePreview: string | null
+      hasBatches: boolean
+    }
+  | { type: "changeField"; field: keyof ProductUpdateFormData; value: string | number | undefined }
+  | { type: "selectImage"; file: File | null }
+  | { type: "setImageError"; imageError: string | null }
+  | { type: "setErrors"; errors: ProductUpdateFieldErrors }
+  | { type: "clearFieldError"; field: keyof ProductUpdateFieldErrors }
+  | { type: "setLockedFields"; lockedFields: Record<string, boolean> }
+  | { type: "setDirty" }
+
+const INITIAL_DIALOG_STATE: DialogState = {
+  formValues: null,
+  imagePreview: null,
+  imageCleared: false,
+  selectedFile: null,
+  imageError: null,
+  lockedFields: {},
+  dirty: false,
+  errors: {},
+}
+
+function dialogReducer(state: DialogState, action: DialogAction): DialogState {
+  switch (action.type) {
+    case "open":
+      return {
+        formValues: action.formValues,
+        imagePreview: action.imagePreview,
+        imageCleared: false,
+        selectedFile: null,
+        imageError: null,
+        lockedFields: {
+          category: action.hasBatches,
+          baseUom: action.hasBatches,
+          weightPerUnit: action.hasBatches,
+        },
+        dirty: false,
+        errors: {},
+      }
+    case "changeField": {
+      if (!state.formValues) return state
+      const next = { ...state.formValues, [action.field]: action.value }
+      const errors = { ...state.errors }
+      delete errors[action.field]
+      return { ...state, formValues: next, dirty: true, errors }
+    }
+    case "selectImage": {
+      const next = { imagePreview: null, selectedFile: null, imageCleared: false, dirty: true }
+      if (action.file) {
+        return {
+          ...state,
+          ...next,
+          imagePreview: URL.createObjectURL(action.file),
+          selectedFile: action.file,
+          imageError: null,
+        }
+      }
+      return { ...state, ...next, imageCleared: true, imageError: null }
+    }
+    case "setImageError":
+      return { ...state, imageError: action.imageError }
+    case "setErrors":
+      return { ...state, errors: action.errors }
+    case "clearFieldError": {
+      const next = { ...state.errors }
+      delete next[action.field]
+      return { ...state, errors: next }
+    }
+    case "setLockedFields":
+      return { ...state, lockedFields: action.lockedFields }
+    case "setDirty":
+      return { ...state, dirty: true }
+    default:
+      return state
+  }
+}
 
 export function useEditProductForm({
   productId,
@@ -34,96 +126,67 @@ export function useEditProductForm({
   const [internalOpen, setInternalOpen] = useState(false)
   const open = openProp ?? internalOpen
   const setOpen = onOpenChange ?? setInternalOpen
-  const [errors, setErrors] = useState<ProductUpdateFieldErrors>({})
-  const [imageError, setImageError] = useState<string | null>(null)
-  const [dirty, setDirty] = useState(false)
-  const [lockedFields, setLockedFields] = useState<Record<string, boolean>>({})
-
-  const [formValues, setFormValues] = useState<ProductUpdateFormData | null>(
-    null
-  )
-
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [imageCleared, setImageCleared] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [dialogState, dispatch] = useReducer(dialogReducer, INITIAL_DIALOG_STATE)
+  const { formValues, imagePreview, imageCleared, selectedFile, imageError, lockedFields, dirty, errors } = dialogState
 
   const hasBatches = (detail?.batchCount ?? 0) > 0
 
   useEffect(() => {
     if (open && detail) {
-      setFormValues({
-        name: detail.name,
-        category: detail.category,
-        baseUom: detail.baseUom,
-        weightPerUnit:
-          detail.weightPerUnit ?? (detail.category === "sacks" ? 0 : 20),
-        lowStockThreshold: detail.lowStockThreshold ?? 0,
+      dispatch({
+        type: "open",
+        formValues: {
+          name: detail.name,
+          category: detail.category,
+          baseUom: detail.baseUom,
+          weightPerUnit:
+            detail.weightPerUnit ?? (detail.category === "sacks" ? 0 : 20),
+          lowStockThreshold: detail.lowStockThreshold ?? 0,
+        },
+        imagePreview: detail.imageUrl ?? null,
+        hasBatches,
       })
-      setImagePreview(detail.imageUrl ?? null)
-      setImageCleared(false)
-      setSelectedFile(null)
-      setImageError(null)
-      setLockedFields({
-        category: hasBatches,
-        baseUom: hasBatches,
-        weightPerUnit: hasBatches,
-      })
-      setDirty(false)
-      setErrors({})
     }
   }, [open, detail, hasBatches])
 
   const handleImageSelect = (file: File | null) => {
-    setImageError(null)
     if (file) {
       if (!ALLOWED_TYPES.includes(file.type)) {
-        setImageError("Only JPEG and PNG files are allowed.")
+        dispatch({ type: "setImageError", imageError: "Only JPEG and PNG files are allowed." })
         return
       }
       if (file.size > MAX_FILE_SIZE) {
-        setImageError("File size must be under 5MB.")
+        dispatch({ type: "setImageError", imageError: "File size must be under 5MB." })
         return
       }
-      setImagePreview(URL.createObjectURL(file))
-      setSelectedFile(file)
-      setImageCleared(false)
-    } else {
-      if (imagePreview) URL.revokeObjectURL(imagePreview)
-      setImagePreview(null)
-      setSelectedFile(null)
-      setImageCleared(true)
+    } else if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
     }
-    setDirty(true)
+    dispatch({ type: "selectImage", file })
   }
 
   const handleChange = (
     field: keyof ProductUpdateFormData,
     value: string | number | undefined
   ) => {
-    setFormValues((prev) => {
-      if (!prev || !detail) return prev
-      const next = { ...prev, [field]: value }
-      setDirty(true)
-      return next
-    })
-    clearFieldError(field)
+    dispatch({ type: "changeField", field, value })
   }
 
   const handleUnlock = (field: string) => {
-    setLockedFields((prev) => ({ ...prev, [field]: false }))
+    dispatch({ type: "setLockedFields", lockedFields: { ...lockedFields, [field]: false } })
   }
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setErrors({})
-    setImageError(null)
+    dispatch({ type: "setErrors", errors: {} })
+    dispatch({ type: "setImageError", imageError: null })
 
     if (!formValues) return
 
     const result = validateProductUpdate(formValues)
 
     if (!result.success) {
-      setErrors(result.errors)
+      dispatch({ type: "setErrors", errors: result.errors })
       return
     }
 
@@ -140,7 +203,7 @@ export function useEditProductForm({
         const { storageId } = await uploadResult.json()
         imageStorageId = storageId as string
       } catch {
-        setImageError("Failed to upload image. Please try again.")
+        dispatch({ type: "setImageError", imageError: "Failed to upload image. Please try again." })
         return
       }
     } else if (imageCleared) {
@@ -151,15 +214,6 @@ export function useEditProductForm({
 
     setOpen(false)
     await update.submit(productId, result.data, { imageStorageId })
-  }
-
-  const clearFieldError = (field: keyof ProductUpdateFieldErrors) => {
-    setErrors((prev) => {
-      if (!prev[field]) return prev
-      const next = { ...prev }
-      delete next[field]
-      return next
-    })
   }
 
   return {

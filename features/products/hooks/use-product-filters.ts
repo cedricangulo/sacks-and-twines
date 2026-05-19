@@ -92,7 +92,7 @@ export function useProductFilters(
     }
 
     // Sort
-    result = [...result].sort((a, b) => {
+    result = result.toSorted((a, b) => {
       switch (filters.sort) {
         case "name_asc":
           return a.name.localeCompare(b.name)

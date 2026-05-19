@@ -1,3 +1,4 @@
+import { History } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import DispatchQueueSidebar from "@/features/dispatches/components/dispatch-queue-sidebar"
@@ -23,7 +24,10 @@ export default function ProductsLayout({ children }: Props) {
             <div className="flex items-center gap-2">
               <MobileQueueSheet />
               <Button variant="outline" asChild>
-                <Link href="/products/history">History</Link>
+                <Link href="/dispatch-history">
+                  <History />
+                  History
+                </Link>
               </Button>
             </div>
           </div>

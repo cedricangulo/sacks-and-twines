@@ -59,6 +59,8 @@ export default function ProductCombobox({
         type="button"
         variant="outline"
         role="combobox"
+        aria-expanded={open}
+        aria-controls="product-listbox"
         className="justify-between w-full"
         onClick={() => setOpen(!open)}
       >
@@ -75,11 +77,14 @@ export default function ProductCombobox({
               placeholder="Search existing items..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              autoFocus
             />
           </div>
 
-          <div className="overflow-auto max-h-48">
+          <div
+            className="overflow-auto max-h-48"
+            id="product-listbox"
+            role="listbox"
+          >
             {filtered.length === 0 ? (
               <div className="px-3 py-4 text-sm text-center text-destructive-foreground">
                 No items found.

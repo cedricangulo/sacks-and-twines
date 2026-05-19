@@ -64,6 +64,12 @@ export default function ProductCard({ product }: Props) {
               Low Stock
             </Badge>
           </CardAction>
+        ) : isOutOfStock ? (
+          <CardAction>
+            <Badge variant="destructive" className="w-fit">
+              Out of Stock
+            </Badge>
+          </CardAction>
         ) : null}
         <CardTitle>{product.name}</CardTitle>
         <CardDescription>

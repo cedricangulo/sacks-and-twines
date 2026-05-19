@@ -57,19 +57,15 @@ export const listDispatchReady = query({
 
     return await Promise.all(
       products.map(async (product) => {
-        const lastBatch = await ctx.db
-          .query("batches")
-          .withIndex("by_product", (q) => q.eq("productId", product._id))
-          .order("desc")
-          .first()
-
-        const availableBatches = await ctx.db
+        const batches = await ctx.db
           .query("batches")
           .withIndex("by_product", (q) => q.eq("productId", product._id))
           .order("asc")
           .collect()
 
-        const fifoBatches = availableBatches.filter(
+        const lastBatch = batches[batches.length - 1]
+
+        const fifoBatches = batches.filter(
           (b) => b.status === "active" && b.quantityRemaining > 0
         )
 

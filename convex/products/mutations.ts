@@ -1,7 +1,12 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
-import { createProductArgs, updateProductArgs } from "./validators"
+import {
+  archiveProductArgs,
+  createProductArgs,
+  unarchiveProductArgs,
+  updateProductArgs,
+} from "./validators"
 
 export const create = zMutation({
   args: createProductArgs,
@@ -16,8 +21,10 @@ export const create = zMutation({
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can create products")
 
-    await perUserLimit(ctx, "createBatch", callerId)
-    await globalLimit(ctx, "globalMutations")
+    await Promise.all([
+      perUserLimit(ctx, "createBatch", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
 
     const existing = await ctx.db
       .query("products")
@@ -85,8 +92,10 @@ export const update = zMutation({
     if (!caller || caller.role !== "owner")
       throw new Error("Only owners can update products")
 
-    await perUserLimit(ctx, "updateBatch", callerId)
-    await globalLimit(ctx, "globalMutations")
+    await Promise.all([
+      perUserLimit(ctx, "updateBatch", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
 
     const existing = await ctx.db.get(productId)
     if (!existing) throw new Error("Product not found")
@@ -132,6 +141,71 @@ export const update = zMutation({
       userId: callerId,
       action: "product_update",
       description: `Updated product ${existing.name} → ${name}`,
+      userAgent,
+    })
+
+    return true
+  },
+})
+
+export const archive = zMutation({
+  args: archiveProductArgs,
+  handler: async (ctx, { productId, userAgent }) => {
+    const callerId = await getAuthUserId(ctx)
+    if (callerId === null) throw new Error("Unauthorized")
+
+    const caller = await ctx.db.get(callerId)
+    if (!caller || caller.role !== "owner")
+      throw new Error("Only owners can archive products")
+
+    await Promise.all([
+      perUserLimit(ctx, "archiveProduct", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
+
+    const product = await ctx.db.get(productId)
+    if (!product) throw new Error("Product not found")
+    if (product.status === "archived")
+      throw new Error("Product is already archived")
+
+    await ctx.db.patch(productId, { status: "archived" })
+
+    await ctx.db.insert("auditLogs", {
+      userId: callerId,
+      action: "product_archive",
+      description: `Archived product ${product.name} (${product.skuCode})`,
+      userAgent,
+    })
+
+    return true
+  },
+})
+
+export const unarchive = zMutation({
+  args: unarchiveProductArgs,
+  handler: async (ctx, { productId, userAgent }) => {
+    const callerId = await getAuthUserId(ctx)
+    if (callerId === null) throw new Error("Unauthorized")
+
+    const caller = await ctx.db.get(callerId)
+    if (!caller || caller.role !== "owner")
+      throw new Error("Only owners can unarchive products")
+
+    await Promise.all([
+      perUserLimit(ctx, "archiveProduct", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
+
+    const product = await ctx.db.get(productId)
+    if (!product) throw new Error("Product not found")
+    if (product.status === "active") throw new Error("Product is not archived")
+
+    await ctx.db.patch(productId, { status: "active" })
+
+    await ctx.db.insert("auditLogs", {
+      userId: callerId,
+      action: "product_unarchive",
+      description: `Unarchived product ${product.name} (${product.skuCode})`,
       userAgent,
     })
 

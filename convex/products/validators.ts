@@ -20,3 +20,13 @@ export const updateProductArgs = {
   imageStorageId: z.optional(z.union([z.string(), z.null()])),
   ...createProductArgs,
 }
+
+export const archiveProductArgs = {
+  productId: zid("products"),
+  ...auditMeta,
+}
+
+export const unarchiveProductArgs = {
+  productId: zid("products"),
+  ...auditMeta,
+}

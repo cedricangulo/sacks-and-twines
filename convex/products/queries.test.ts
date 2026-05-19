@@ -285,16 +285,17 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, { name: "FIFO Product" })
-
-    const supplierId = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Supplier",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, { name: "FIFO Product" }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Supplier",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
 
     const batch1Id = await t.run(async (ctx) => {
       return await ctx.db.insert("batches", {
@@ -341,15 +342,17 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, { name: "Depleted Test" })
-    const supplierId = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Supplier",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, { name: "Depleted Test" }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Supplier",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
 
     await t.run(async (ctx) => {
       await ctx.db.insert("batches", {
@@ -392,15 +395,17 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, { name: "Voided Test" })
-    const supplierId = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Supplier",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, { name: "Voided Test" }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Supplier",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
 
     await t.run(async (ctx) => {
       await ctx.db.insert("batches", {
@@ -443,15 +448,17 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, { name: "Depleted Batch" })
-    const supplierId = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Supplier",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, { name: "Depleted Batch" }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Supplier",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
 
     await t.run(async (ctx) => {
       await ctx.db.insert("batches", {
@@ -511,23 +518,25 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, { name: "Supplier Test" })
-    const supplierA = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Supplier A",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
-    const supplierB = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Supplier B",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
+    const [productId, supplierA, supplierB] = await Promise.all([
+      createProduct(t, { name: "Supplier Test" }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Supplier A",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Supplier B",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
 
     await t.run(async (ctx) => {
       await ctx.db.insert("batches", {
@@ -671,16 +680,17 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, { name: "Has Batches" })
-
-    const supplierId = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Supplier",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, { name: "Has Batches" }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Supplier",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
 
     await t.run(async (ctx) => {
       await ctx.db.insert("batches", {

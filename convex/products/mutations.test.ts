@@ -317,28 +317,29 @@ describe("product mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await t.run(async (ctx) => {
-      return await ctx.db.insert("products", {
-        skuCode: "SKU-LOCK",
-        name: "Locked Product",
-        category: "sacks",
-        baseUom: "piece",
-        weightPerUnit: 0,
-        currentQuantity: 100,
-        totalAssetValue: 50000,
-        lowStockThreshold: 10,
-        status: "active",
-      })
-    })
-
-    const supplierId = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Test Supplier",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
+    const [productId, supplierId] = await Promise.all([
+      t.run(async (ctx) => {
+        return await ctx.db.insert("products", {
+          skuCode: "SKU-LOCK",
+          name: "Locked Product",
+          category: "sacks",
+          baseUom: "piece",
+          weightPerUnit: 0,
+          currentQuantity: 100,
+          totalAssetValue: 50000,
+          lowStockThreshold: 10,
+          status: "active",
+        })
+      }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Test Supplier",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
 
     await t.run(async (ctx) => {
       await ctx.db.insert("batches", {
@@ -376,28 +377,29 @@ describe("product mutations", () => {
     })
     authMocks.getAuthUserId.mockImplementation(async () => ownerId)
 
-    const productId = await t.run(async (ctx) => {
-      return await ctx.db.insert("products", {
-        skuCode: "SKU-LOCK2",
-        name: "Locked Product 2",
-        category: "sacks",
-        baseUom: "piece",
-        weightPerUnit: 0,
-        currentQuantity: 50,
-        totalAssetValue: 25000,
-        lowStockThreshold: 5,
-        status: "active",
-      })
-    })
-
-    const supplierId = await t.run(async (ctx) => {
-      return await ctx.db.insert("suppliers", {
-        companyName: "Test Supplier 2",
-        contactPerson: "Contact",
-        contactNumber: "09171234567",
-        address: "Address",
-      })
-    })
+    const [productId, supplierId] = await Promise.all([
+      t.run(async (ctx) => {
+        return await ctx.db.insert("products", {
+          skuCode: "SKU-LOCK2",
+          name: "Locked Product 2",
+          category: "sacks",
+          baseUom: "piece",
+          weightPerUnit: 0,
+          currentQuantity: 50,
+          totalAssetValue: 25000,
+          lowStockThreshold: 5,
+          status: "active",
+        })
+      }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Test Supplier 2",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
 
     await t.run(async (ctx) => {
       await ctx.db.insert("batches", {
@@ -626,6 +628,380 @@ describe("product mutations", () => {
     expect(logs).toHaveLength(1)
     expect(logs[0].action).toBe("product_create")
     expect(logs[0].description).toContain("Audited Product")
+  })
+
+  // ── Archive ────────────────────────────────────────────────
+
+  it("rejects unauthenticated archive", async () => {
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-ARCH",
+        name: "Archive Test",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+      })
+    })
+
+    await expect(
+      t.mutation(api.products.mutations.archive, { productId })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("rejects archive for non-owners", async () => {
+    const t = makeTest()
+    const staffId = await createUser(t, {
+      email: "staff@test.com",
+      name: "Staff",
+      role: "staff",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-ARCH2",
+        name: "Staff Archive",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+      })
+    })
+
+    await expect(
+      t.mutation(api.products.mutations.archive, { productId })
+    ).rejects.toThrowError("Only owners can archive products")
+  })
+
+  it("archives an active product", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-ARCH3",
+        name: "To Archive",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 50,
+        totalAssetValue: 25000,
+        lowStockThreshold: 5,
+        status: "active",
+      })
+    })
+
+    await t.mutation(api.products.mutations.archive, { productId })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+
+    expect(product?.status).toBe("archived")
+    expect(product?.currentQuantity).toBe(50)
+    expect(product?.totalAssetValue).toBe(25000)
+  })
+
+  it("rejects archive when product is already archived", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-ARCH4",
+        name: "Double Archive",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "archived",
+      })
+    })
+
+    await expect(
+      t.mutation(api.products.mutations.archive, { productId })
+    ).rejects.toThrowError("Product is already archived")
+  })
+
+  it("rejects archive for non-existent product", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const phantomId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("products", {
+        skuCode: "TEMP",
+        name: "Temp",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+      })
+      await ctx.db.delete(id)
+      return id
+    })
+
+    await expect(
+      t.mutation(api.products.mutations.archive, { productId: phantomId })
+    ).rejects.toThrowError("Product not found")
+  })
+
+  it("archive creates an audit log entry", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-AUDIT-ARCH",
+        name: "Audit Archive",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+      })
+    })
+
+    await t.mutation(api.products.mutations.archive, { productId })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "product_archive"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    expect(logs[0].action).toBe("product_archive")
+    expect(logs[0].description).toContain("Audit Archive")
+  })
+
+  // ── Unarchive ──────────────────────────────────────────────
+
+  it("rejects unauthenticated unarchive", async () => {
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-UARCH",
+        name: "Unarchive Test",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "archived",
+      })
+    })
+
+    await expect(
+      t.mutation(api.products.mutations.unarchive, { productId })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("rejects unarchive for non-owners", async () => {
+    const t = makeTest()
+    const staffId = await createUser(t, {
+      email: "staff@test.com",
+      name: "Staff",
+      role: "staff",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-UARCH2",
+        name: "Staff Unarchive",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "archived",
+      })
+    })
+
+    await expect(
+      t.mutation(api.products.mutations.unarchive, { productId })
+    ).rejects.toThrowError("Only owners can unarchive products")
+  })
+
+  it("unarchives an archived product", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-UARCH3",
+        name: "To Restore",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 30,
+        totalAssetValue: 15000,
+        lowStockThreshold: 5,
+        status: "archived",
+      })
+    })
+
+    await t.mutation(api.products.mutations.unarchive, { productId })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+
+    expect(product?.status).toBe("active")
+    expect(product?.currentQuantity).toBe(30)
+    expect(product?.totalAssetValue).toBe(15000)
+  })
+
+  it("rejects unarchive when product is already active", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-UARCH4",
+        name: "Already Active",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+      })
+    })
+
+    await expect(
+      t.mutation(api.products.mutations.unarchive, { productId })
+    ).rejects.toThrowError("Product is not archived")
+  })
+
+  it("rejects unarchive for non-existent product", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const phantomId = await t.run(async (ctx) => {
+      const id = await ctx.db.insert("products", {
+        skuCode: "TEMP",
+        name: "Temp",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "archived",
+      })
+      await ctx.db.delete(id)
+      return id
+    })
+
+    await expect(
+      t.mutation(api.products.mutations.unarchive, { productId: phantomId })
+    ).rejects.toThrowError("Product not found")
+  })
+
+  it("unarchive creates an audit log entry", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-AUDIT-UARCH",
+        name: "Audit Restore",
+        category: "sacks",
+        baseUom: "piece",
+        weightPerUnit: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "archived",
+      })
+    })
+
+    await t.mutation(api.products.mutations.unarchive, { productId })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "product_unarchive"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    expect(logs[0].action).toBe("product_unarchive")
+    expect(logs[0].description).toContain("Audit Restore")
   })
 
   it("update creates an audit log entry", async () => {
