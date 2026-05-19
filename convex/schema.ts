@@ -3,15 +3,18 @@ import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
 
 export default defineSchema({
-  // Tables required for Convex Auth (Beta)
   ...authTables,
 
-  // We extend the users table to include your specific roles
+  // Minimal users table: only the fields we use in the app.
+  // Make these optional to accommodate different auth flows and migrations.
   users: defineTable({
+    email: v.string(),
     name: v.optional(v.string()),
-    email: v.optional(v.string()),
     role: v.optional(v.union(v.literal("owner"), v.literal("staff"))),
-  }).index("by_email", ["email"]),
+    status: v.optional(v.union(v.literal("active"), v.literal("deactivated"))),
+  })
+    .index("by_email", ["email"])
+    .index("by_role", ["role"]),
 
   products: defineTable({
     skuCode: v.string(), // Unique identifier for stock
@@ -24,13 +27,18 @@ export default defineSchema({
     lowStockThreshold: v.number(), // Point where alert triggers
     status: v.union(v.literal("active"), v.literal("archived")),
     imagePath: v.optional(v.string()),
-  }).index("by_sku", ["skuCode"]),
+  })
+    .index("by_sku", ["skuCode"])
+    .index("by_name", ["name"])
+    .index("by_status", ["status"]),
 
   suppliers: defineTable({
     companyName: v.string(),
-    contactPerson: v.optional(v.string()),
-    contactNumber: v.optional(v.string()),
-    address: v.optional(v.string()),
+    contactPerson: v.string(),
+    contactNumber: v.string(),
+    address: v.string(),
+    archivedAt: v.optional(v.number()),
+    batchCount: v.optional(v.number()),
   }).index("by_company", ["companyName"]),
 
   batches: defineTable({
@@ -47,13 +55,20 @@ export default defineSchema({
       v.literal("depleted"),
       v.literal("voided")
     ),
-  }).index("by_product", ["productId"]),
+    createdAt: v.optional(v.number()),
+  })
+    .index("by_product", ["productId"])
+    .index("by_batchCode", ["batchCode"])
+    .index("by_supplier", ["supplierId"]),
 
   dispatches: defineTable({
     userId: v.id("users"),
     customerReference: v.optional(v.string()),
     status: v.union(v.literal("completed"), v.literal("voided")),
-  }),
+    createdAt: v.optional(v.number()),
+    userName: v.optional(v.string()),
+    itemCount: v.optional(v.number()),
+  }).index("by_createdAt", ["createdAt"]),
 
   dispatchItems: defineTable({
     dispatchId: v.id("dispatches"),
@@ -67,7 +82,10 @@ export default defineSchema({
     dispatchQuantity: v.number(),
     quantityDeducted: v.number(),
     unitCost: v.number(),
-  }).index("by_dispatch", ["dispatchId"]),
+    createdAt: v.optional(v.number()),
+  })
+    .index("by_dispatch", ["dispatchId"])
+    .index("by_batch", ["batchId"]),
 
   stockAdjustments: defineTable({
     batchId: v.id("batches"),
@@ -81,7 +99,8 @@ export default defineSchema({
       v.literal("system_reversal")
     ),
     status: v.union(v.literal("applied"), v.literal("voided")),
-  }),
+    createdAt: v.optional(v.number()),
+  }).index("by_batch", ["batchId"]),
 
   auditLogs: defineTable({
     userId: v.optional(v.id("users")),
@@ -89,5 +108,6 @@ export default defineSchema({
     description: v.string(),
     ipAddress: v.optional(v.string()),
     userAgent: v.optional(v.string()),
+    createdAt: v.optional(v.number()),
   }),
 })

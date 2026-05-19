@@ -1,0 +1,169 @@
+"use client"
+
+import {
+  ArchiveIcon,
+  EllipsisVerticalIcon,
+  PencilIcon,
+  RotateCcwIcon,
+  TriangleAlertIcon,
+} from "lucide-react"
+import { useState } from "react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { useArchiveSupplier } from "../hooks/use-archive-supplier"
+import { useUnarchiveSupplier } from "../hooks/use-unarchive-supplier"
+import { type Supplier } from "../validation"
+import EditSupplierDialog from "./edit-supplier-dialog"
+
+export default function SupplierTableActions({
+  supplier,
+}: {
+  supplier: Supplier
+}) {
+  const archive = useArchiveSupplier()
+  const unarchive = useUnarchiveSupplier()
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const [alertOpen, setAlertOpen] = useState(false)
+  const [unarchiveAlertOpen, setUnarchiveAlertOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+
+  const isArchived = supplier.archivedAt !== undefined
+
+  const handleArchive = async () => {
+    setAlertOpen(false)
+    await archive.submit(supplier._id, supplier.companyName)
+  }
+
+  const handleUnarchive = async () => {
+    setUnarchiveAlertOpen(false)
+    await unarchive.submit(supplier._id, supplier.companyName)
+  }
+
+  return (
+    <>
+      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <EllipsisVerticalIcon />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-40 p-1">
+          <div className="flex flex-col gap-0.5">
+            <Button
+              className="justify-start w-full gap-2"
+              onClick={() => {
+                setPopoverOpen(false)
+                setEditOpen(true)
+              }}
+              variant="ghost"
+            >
+              <PencilIcon />
+              Edit
+            </Button>
+
+            {isArchived ? (
+              <Button
+                className="justify-start w-full gap-2"
+                onClick={() => {
+                  setPopoverOpen(false)
+                  setUnarchiveAlertOpen(true)
+                }}
+                variant="ghost"
+              >
+                <RotateCcwIcon />
+                Unarchive
+              </Button>
+            ) : (
+              <Button
+                className="justify-start w-full gap-2 text-destructive hover:text-destructive"
+                disabled={(supplier.batchCount ?? 0) > 0}
+                title={
+                  (supplier.batchCount ?? 0) > 0
+                    ? "Has existing batch records — reassign or delete batches first"
+                    : undefined
+                }
+                onClick={() => {
+                  setPopoverOpen(false)
+                  setAlertOpen(true)
+                }}
+                variant="ghost"
+              >
+                <ArchiveIcon />
+                Archive
+              </Button>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Edit Supplier Dialog */}
+      <EditSupplierDialog
+        supplier={supplier}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
+
+      {/* Archive Supplier Alert Dialog */}
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-destructive/10 text-destructive">
+              <TriangleAlertIcon />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Archive supplier</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will archive <strong>{supplier.companyName}</strong>.
+              Archived suppliers are hidden from active use.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleArchive}>
+              Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Unarchive Supplier Alert Dialog */}
+      <AlertDialog
+        open={unarchiveAlertOpen}
+        onOpenChange={setUnarchiveAlertOpen}
+      >
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-primary/10 text-primary">
+              <RotateCcwIcon />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Unarchive supplier</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will restore <strong>{supplier.companyName}</strong> to
+              active use.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnarchive}>
+              Unarchive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}

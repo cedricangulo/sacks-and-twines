@@ -9,10 +9,11 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Spinner } from "@/components/ui/spinner"
 import { useSubmitSignIn } from "@/features/auth/hooks/submit"
 
 export default function SignInForm() {
-  const { error, submitSignIn } = useSubmitSignIn()
+  const { error, pending, submitSignIn } = useSubmitSignIn()
 
   return (
     <FieldGroup className="w-full mx-auto md:max-w-96">
@@ -52,7 +53,8 @@ export default function SignInForm() {
 
         {error ? <FieldError>{error}</FieldError> : null}
 
-        <Button type="submit" className="w-full">
+        <Button type="submit" disabled={pending} className="w-full">
+          {pending ? <Spinner data-icon="inline-start" /> : null}
           Sign In
         </Button>
       </form>

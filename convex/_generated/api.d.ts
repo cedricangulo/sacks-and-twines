@@ -9,8 +9,31 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as batches_mutations from "../batches/mutations.js";
+import type * as batches_queries from "../batches/queries.js";
+import type * as batches_validators from "../batches/validators.js";
+import type * as dispatches_mutations from "../dispatches/mutations.js";
+import type * as dispatches_queries from "../dispatches/queries.js";
+import type * as dispatches_validators from "../dispatches/validators.js";
 import type * as http from "../http.js";
-import type * as users from "../users.js";
+import type * as init from "../init.js";
+import type * as migrations from "../migrations.js";
+import type * as products_mutations from "../products/mutations.js";
+import type * as products_queries from "../products/queries.js";
+import type * as products_validators from "../products/validators.js";
+import type * as rate_limiter from "../rate_limiter.js";
+import type * as seed from "../seed.js";
+import type * as seedAction from "../seedAction.js";
+import type * as server from "../server.js";
+import type * as stock_adjustments_mutations from "../stock_adjustments/mutations.js";
+import type * as stock_adjustments_validators from "../stock_adjustments/validators.js";
+import type * as suppliers_mutations from "../suppliers/mutations.js";
+import type * as suppliers_queries from "../suppliers/queries.js";
+import type * as users_mutations from "../users/mutations.js";
+import type * as users_queries from "../users/queries.js";
+import type * as validators_helpers from "../validators/helpers.js";
+import type * as validators_suppliers from "../validators/suppliers.js";
+import type * as validators_users from "../validators/users.js";
 
 import type {
   ApiFromModules,
@@ -20,8 +43,31 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  "batches/mutations": typeof batches_mutations;
+  "batches/queries": typeof batches_queries;
+  "batches/validators": typeof batches_validators;
+  "dispatches/mutations": typeof dispatches_mutations;
+  "dispatches/queries": typeof dispatches_queries;
+  "dispatches/validators": typeof dispatches_validators;
   http: typeof http;
-  users: typeof users;
+  init: typeof init;
+  migrations: typeof migrations;
+  "products/mutations": typeof products_mutations;
+  "products/queries": typeof products_queries;
+  "products/validators": typeof products_validators;
+  rate_limiter: typeof rate_limiter;
+  seed: typeof seed;
+  seedAction: typeof seedAction;
+  server: typeof server;
+  "stock_adjustments/mutations": typeof stock_adjustments_mutations;
+  "stock_adjustments/validators": typeof stock_adjustments_validators;
+  "suppliers/mutations": typeof suppliers_mutations;
+  "suppliers/queries": typeof suppliers_queries;
+  "users/mutations": typeof users_mutations;
+  "users/queries": typeof users_queries;
+  "validators/helpers": typeof validators_helpers;
+  "validators/suppliers": typeof validators_suppliers;
+  "validators/users": typeof validators_users;
 }>;
 
 /**
@@ -50,4 +96,7 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+};

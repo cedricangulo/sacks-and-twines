@@ -23,7 +23,8 @@
       "!**/coverage/",
       "!**/pnpm-lock.yaml",
       "!**/.pnpm-store/",
-      "!**/components/ui/**"
+      "!**/components/ui/**",
+      "!convex/_generated/**"
     ]
   },
   "css": {
@@ -68,14 +69,7 @@
     },
     "includes": [
       "**",
-      "!.next/**",
-      "!out/**",
-      "!build/**",
-      "!next-env.d.ts",
-      "!.next/**",
-      "!out/**",
-      "!build/**",
-      "!next-env.d.ts",
+      "!convex/_generated/**",
       "!.next/**",
       "!out/**",
       "!build/**",
