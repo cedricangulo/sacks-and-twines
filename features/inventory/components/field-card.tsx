@@ -51,6 +51,54 @@ interface FieldCardProps {
   formActions: FieldCardActions
 }
 
+function RenderInput({
+  field,
+  label,
+  mode,
+  isLocked,
+  hideLock,
+  onUnlock,
+  hasError,
+  errorMessage,
+  children,
+}: {
+  field: string
+  label: string
+  mode: "existing" | "new"
+  isLocked: boolean
+  hideLock?: boolean
+  onUnlock: (field: string) => void
+  hasError?: boolean
+  errorMessage?: string
+  children: React.ReactNode
+}) {
+  return (
+    <Field data-invalid={!!hasError}>
+      <div className="flex items-center justify-between gap-2">
+        <FieldLabel
+          htmlFor={field}
+          className={isLocked ? "text-muted-foreground" : undefined}
+        >
+          {label}
+        </FieldLabel>
+        {isLocked && !hideLock && mode === "existing" ? (
+          <Button
+            size="xs"
+            variant="ghost"
+            type="button"
+            onClick={() => onUnlock(field)}
+          >
+            <PencilIcon className="size-3" />
+            Edit
+          </Button>
+        ) : null}
+      </div>
+      <FieldContent>{children}</FieldContent>
+      {errorMessage ? <FieldError>{errorMessage}</FieldError> : null}
+    </Field>
+  )
+}
+
 const FieldCard = memo(function FieldCard({
   mode,
   draftSku,
@@ -58,42 +106,6 @@ const FieldCard = memo(function FieldCard({
   formState: { fields, locked, errors, supplierOptions },
   formActions: { onFieldChange, onUnlock, onCategoryChange, clearFieldError },
 }: FieldCardProps) {
-  const renderField = (
-    field: string,
-    label: string,
-    renderInput: (disabled: boolean) => React.ReactNode,
-    opts?: { hideLock?: boolean }
-  ) => {
-    const isLocked = locked[field] ?? false
-    const hasError = errors[field as keyof StockInFieldErrors]
-
-    return (
-      <Field data-invalid={!!hasError}>
-        <div className="flex items-center justify-between gap-2">
-          <FieldLabel
-            htmlFor={field}
-            className={isLocked ? "text-muted-foreground" : undefined}
-          >
-            {label}
-          </FieldLabel>
-          {isLocked && !opts?.hideLock && mode === "existing" ? (
-            <Button
-              size="xs"
-              variant="ghost"
-              type="button"
-              onClick={() => onUnlock(field)}
-            >
-              <PencilIcon className="size-3" />
-              Edit
-            </Button>
-          ) : null}
-        </div>
-        <FieldContent>{renderInput(isLocked)}</FieldContent>
-        {hasError ? <FieldError>{hasError}</FieldError> : null}
-      </Field>
-    )
-  }
-
   return (
     <div className="flex flex-col gap-4 rounded-2xl border p-4">
       <FieldGroup className="grid grid-cols-2">
@@ -112,11 +124,18 @@ const FieldCard = memo(function FieldCard({
       </FieldGroup>
 
       <FieldGroup className="grid grid-cols-2">
-        {renderField("category", "Category", (disabled) => (
+        <RenderInput
+          field="category"
+          label="Category"
+          mode={mode}
+          isLocked={locked["category"] ?? false}
+          onUnlock={onUnlock}
+          hasError={!!errors.category}
+        >
           <Select
             value={fields.category}
             onValueChange={onCategoryChange}
-            disabled={disabled}
+            disabled={locked["category"] ?? false}
           >
             <SelectTrigger className="w-full" aria-invalid={!!errors.category}>
               <SelectValue placeholder="Select category" />
@@ -128,16 +147,23 @@ const FieldCard = memo(function FieldCard({
               </SelectGroup>
             </SelectContent>
           </Select>
-        ))}
+        </RenderInput>
 
-        {renderField("baseUom", "Unit / Measurement", (disabled) => (
+        <RenderInput
+          field="baseUom"
+          label="Unit / Measurement"
+          mode={mode}
+          isLocked={locked["baseUom"] ?? false}
+          onUnlock={onUnlock}
+          hasError={!!errors.baseUom}
+        >
           <Select
             value={fields.baseUom}
             onValueChange={(v) => {
               onFieldChange("baseUom", v)
               clearFieldError("baseUom")
             }}
-            disabled={disabled}
+            disabled={locked["baseUom"] ?? false}
           >
             <SelectTrigger className="w-full" aria-invalid={!!errors.baseUom}>
               <SelectValue placeholder="Select unit" />
@@ -149,11 +175,18 @@ const FieldCard = memo(function FieldCard({
               </SelectGroup>
             </SelectContent>
           </Select>
-        ))}
+        </RenderInput>
       </FieldGroup>
 
       <FieldGroup className="grid grid-cols-2">
-        {renderField("weightPerUnit", "Weight per Unit (kg)", (disabled) => (
+        <RenderInput
+          field="weightPerUnit"
+          label="Weight per Unit (kg)"
+          mode={mode}
+          isLocked={locked["weightPerUnit"] ?? false}
+          onUnlock={onUnlock}
+          hasError={!!errors.weightPerUnit}
+        >
           <Input
             value={fields.weightPerUnit}
             onInput={(e) => {
@@ -164,31 +197,41 @@ const FieldCard = memo(function FieldCard({
             step="0.0001"
             min="0"
             placeholder="Optional"
-            disabled={disabled}
+            disabled={locked["weightPerUnit"] ?? false}
             aria-invalid={!!errors.weightPerUnit}
           />
-        ))}
+        </RenderInput>
 
-        {renderField(
-          "supplierId",
-          "Supplier",
-          (disabled) => (
-            <SupplierCombobox
-              suppliers={supplierOptions}
-              value={fields.supplierId}
-              onChange={(v) => {
-                onFieldChange("supplierId", v)
-                clearFieldError("supplierId")
-              }}
-              disabled={disabled}
-            />
-          ),
-          { hideLock: mode === "new" }
-        )}
+        <RenderInput
+          field="supplierId"
+          label="Supplier"
+          mode={mode}
+          isLocked={locked["supplierId"] ?? false}
+          hideLock={mode === "new"}
+          onUnlock={onUnlock}
+          hasError={!!errors.supplierId}
+        >
+          <SupplierCombobox
+            suppliers={supplierOptions}
+            value={fields.supplierId}
+            onChange={(v) => {
+              onFieldChange("supplierId", v)
+              clearFieldError("supplierId")
+            }}
+            disabled={locked["supplierId"] ?? false}
+          />
+        </RenderInput>
       </FieldGroup>
 
       <Field data-invalid={!!errors.lowStockThreshold}>
-        {renderField("lowStockThreshold", "Low Stock Threshold", (disabled) => (
+        <RenderInput
+          field="lowStockThreshold"
+          label="Low Stock Threshold"
+          mode={mode}
+          isLocked={locked["lowStockThreshold"] ?? false}
+          onUnlock={onUnlock}
+          hasError={!!errors.lowStockThreshold}
+        >
           <Input
             value={fields.lowStockThreshold}
             onInput={(e) => {
@@ -199,10 +242,10 @@ const FieldCard = memo(function FieldCard({
             step="0.01"
             min="0"
             placeholder="0"
-            disabled={disabled}
+            disabled={locked["lowStockThreshold"] ?? false}
             aria-invalid={!!errors.lowStockThreshold}
           />
-        ))}
+        </RenderInput>
       </Field>
 
       <Separator />

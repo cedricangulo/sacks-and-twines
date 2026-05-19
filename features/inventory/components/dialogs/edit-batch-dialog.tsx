@@ -61,7 +61,7 @@ export default function EditBatchDialog({
         {!detail || !formValues ? (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
             <Loader2Icon size={20} className="mr-2 animate-spin" />
-            Loading batch details...
+            Loading batch details&hellip;
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">

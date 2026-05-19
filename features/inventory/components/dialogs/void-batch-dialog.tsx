@@ -22,11 +22,11 @@ import { Textarea } from "@/components/ui/textarea"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useVoidBatchDialog } from "../../hooks/use-void-batch-dialog"
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  }).format(value)
+const currencyFormatter = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+})
+const formatCurrency = (value: number) => currencyFormatter.format(value)
 
 export default function VoidBatchDialog({
   batchId,
@@ -69,7 +69,7 @@ export default function VoidBatchDialog({
         {!detail ? (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
             <Loader2Icon size={20} className="mr-2 animate-spin" />
-            Loading...
+            Loading&hellip;
           </div>
         ) : (
           <div className="space-y-6">

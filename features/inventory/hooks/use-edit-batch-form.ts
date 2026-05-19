@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "convex-helpers/react/cache"
-import { SubmitEvent, useEffect, useState } from "react"
+import { SubmitEvent, useEffect, useReducer, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { type BatchUpdateFieldErrors, validateBatchUpdate } from "../validation"
@@ -23,32 +23,75 @@ export function useEditBatchForm({
   const [internalOpen, setInternalOpen] = useState(false)
   const open = openProp ?? internalOpen
   const setOpen = onOpenChange ?? setInternalOpen
-  const [errors, setErrors] = useState<BatchUpdateFieldErrors>({})
-  const [dirty, setDirty] = useState(false)
-
   const supplierOptions =
-    suppliers
-      ?.filter((s: { archivedAt?: number }) => !s.archivedAt)
-      .map((s: { _id: unknown; companyName: string }) => ({
-        id: String(s._id),
-        name: s.companyName,
-      })) ?? []
+    suppliers?.reduce<Array<{ id: string; name: string }>>(
+      (acc, s: { archivedAt?: number; _id: unknown; companyName: string }) => {
+        if (!s.archivedAt) {
+          acc.push({ id: String(s._id), name: s.companyName })
+        }
+        return acc
+      },
+      []
+    ) ?? []
 
-  const [formValues, setFormValues] = useState<{
-    supplierId: string
-    quantityReceived: number
-    totalProcurementCost: number
-  } | null>(null)
+  type FormState = {
+    formValues: {
+      supplierId: string
+      quantityReceived: number
+      totalProcurementCost: number
+    } | null
+    dirty: boolean
+    errors: BatchUpdateFieldErrors
+  }
+
+  type FormAction =
+    | { type: "open"; supplierId: string; quantityReceived: number; totalProcurementCost: number }
+    | { type: "setFormValues"; formValues: FormState["formValues"] }
+    | { type: "setDirty"; dirty: boolean }
+    | { type: "setErrors"; errors: BatchUpdateFieldErrors }
+    | { type: "clearFieldError"; field: keyof BatchUpdateFieldErrors }
+
+  const [formState, dispatch] = useReducer(
+    (state: FormState, action: FormAction): FormState => {
+      switch (action.type) {
+        case "open":
+          return {
+            formValues: {
+              supplierId: action.supplierId,
+              quantityReceived: action.quantityReceived,
+              totalProcurementCost: action.totalProcurementCost,
+            },
+            dirty: false,
+            errors: {},
+          }
+        case "setFormValues":
+          return { ...state, formValues: action.formValues }
+        case "setDirty":
+          return { ...state, dirty: action.dirty }
+        case "setErrors":
+          return { ...state, errors: action.errors }
+        case "clearFieldError": {
+          const next = { ...state.errors }
+          delete next[action.field]
+          return { ...state, errors: next }
+        }
+        default:
+          return state
+      }
+    },
+    { formValues: null, dirty: false, errors: {} }
+  )
+
+  const { formValues, dirty, errors } = formState
 
   useEffect(() => {
     if (open && detail) {
-      setFormValues({
+      dispatch({
+        type: "open",
         supplierId: detail.supplierId ?? "",
         quantityReceived: detail.quantityReceived,
         totalProcurementCost: detail.totalProcurementCost,
       })
-      setDirty(false)
-      setErrors({})
     }
   }, [open, detail])
 
@@ -58,43 +101,34 @@ export function useEditBatchForm({
     field: "supplierId" | "quantityReceived" | "totalProcurementCost",
     value: string | number | undefined
   ) => {
-    setFormValues((prev) => {
-      if (!prev || !detail) return prev
-      const next = { ...prev, [field]: value }
-      setDirty(
+    if (!formValues || !detail) return
+    const next = { ...formValues, [field]: value }
+    dispatch({ type: "setFormValues", formValues: next })
+    dispatch({
+      type: "setDirty",
+      dirty:
         next.supplierId !== (detail.supplierId ?? "") ||
-          next.quantityReceived !== detail.quantityReceived ||
-          next.totalProcurementCost !== detail.totalProcurementCost
-      )
-      return next
+        next.quantityReceived !== detail.quantityReceived ||
+        next.totalProcurementCost !== detail.totalProcurementCost,
     })
-    clearFieldError(field)
+    dispatch({ type: "clearFieldError", field })
   }
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setErrors({})
+    dispatch({ type: "setErrors", errors: {} })
 
     if (!formValues) return
 
     const result = validateBatchUpdate(formValues)
 
     if (!result.success) {
-      setErrors(result.errors)
+      dispatch({ type: "setErrors", errors: result.errors })
       return
     }
 
     setOpen(false)
     await update.submit(batchId, detail!.productId, result.data)
-  }
-
-  const clearFieldError = (field: keyof BatchUpdateFieldErrors) => {
-    setErrors((prev) => {
-      if (!prev[field]) return prev
-      const next = { ...prev }
-      delete next[field]
-      return next
-    })
   }
 
   return {

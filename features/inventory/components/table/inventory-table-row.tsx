@@ -21,8 +21,10 @@ export default function InventoryTableRow({
     <TableRow
       key={row.id}
       className={cn(
-        "cursor-pointer transition-colors hover:bg-muted/50",
-        isExpanded && "bg-muted/30"
+        "cursor-pointer transition-colors"
+        // row.original.status === "archived"
+        //   ? "bg-amber-100 dark:bg-amber-950 hover:bg-amber-100/50 dark:hover:bg-amber-950/50"
+        //   : "hover:bg-muted/20"
       )}
       onClick={onToggle}
     >

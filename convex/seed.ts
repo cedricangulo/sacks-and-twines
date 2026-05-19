@@ -159,57 +159,57 @@ export const writeAll = internalMutation({
     // ═══════════════════════════════════════════════════════════════════════
     // 1. Clear existing data (children before parents)
     // ═══════════════════════════════════════════════════════════════════════
-    const allDispatchItems = await ctx.db.query("dispatchItems").collect()
-    for (const d of allDispatchItems) await ctx.db.delete(d._id)
+    const [allDispatchItems, allAdjustments, allLogs, allDispatches, allBatches, allProducts, allSuppliers] =
+      await Promise.all([
+        ctx.db.query("dispatchItems").collect(),
+        ctx.db.query("stockAdjustments").collect(),
+        ctx.db.query("auditLogs").collect(),
+        ctx.db.query("dispatches").collect(),
+        ctx.db.query("batches").collect(),
+        ctx.db.query("products").collect(),
+        ctx.db.query("suppliers").collect(),
+      ])
 
-    const allAdjustments = await ctx.db.query("stockAdjustments").collect()
-    for (const a of allAdjustments) await ctx.db.delete(a._id)
-
-    const allLogs = await ctx.db.query("auditLogs").collect()
-    for (const l of allLogs) await ctx.db.delete(l._id)
-
-    const allDispatches = await ctx.db.query("dispatches").collect()
-    for (const d of allDispatches) await ctx.db.delete(d._id)
-
-    const allBatches = await ctx.db.query("batches").collect()
-    for (const b of allBatches) await ctx.db.delete(b._id)
-
-    const allProducts = await ctx.db.query("products").collect()
-    for (const p of allProducts) await ctx.db.delete(p._id)
-
-    const allSuppliers = await ctx.db.query("suppliers").collect()
-    for (const s of allSuppliers) await ctx.db.delete(s._id)
+    await Promise.all([
+      ...allDispatchItems.map((d) => ctx.db.delete(d._id)),
+      ...allAdjustments.map((a) => ctx.db.delete(a._id)),
+      ...allLogs.map((l) => ctx.db.delete(l._id)),
+      ...allDispatches.map((d) => ctx.db.delete(d._id)),
+      ...allBatches.map((b) => ctx.db.delete(b._id)),
+      ...allProducts.map((p) => ctx.db.delete(p._id)),
+      ...allSuppliers.map((s) => ctx.db.delete(s._id)),
+    ])
 
     // ═══════════════════════════════════════════════════════════════════════
     // 2. Insert suppliers
     // ═══════════════════════════════════════════════════════════════════════
-    const supplierIds: Id<"suppliers">[] = []
-    for (const def of SUPPLIER_DEFS) {
-      const id = await ctx.db.insert("suppliers", def)
-      supplierIds.push(id)
-    }
-
     // ═══════════════════════════════════════════════════════════════════════
     // 3. Insert products
     // ═══════════════════════════════════════════════════════════════════════
-    const productIds: Id<"products">[] = []
+    const [supplierIds, productResults] = await Promise.all([
+      Promise.all(SUPPLIER_DEFS.map((def) => ctx.db.insert("suppliers", def))),
+      Promise.all(
+        PRODUCT_DEFS.map(async (def) => {
+          const id = await ctx.db.insert("products", {
+            skuCode: nextSkuCode(),
+            name: def.name,
+            category: def.category,
+            baseUom: def.baseUom,
+            weightPerUnit: def.weightPerUnit,
+            currentQuantity: 0,
+            totalAssetValue: 0,
+            lowStockThreshold: def.lowStockThreshold,
+            status: "active",
+            imagePath: PRODUCT_IMAGE_MAP[def.name],
+          })
+          return { id, def }
+        })
+      ),
+    ])
+    const productIds = productResults.map((r) => r.id)
     const productMap: Record<string, { id: Id<"products">; def: ProductDef }> =
       {}
-
-    for (const def of PRODUCT_DEFS) {
-      const id = await ctx.db.insert("products", {
-        skuCode: nextSkuCode(),
-        name: def.name,
-        category: def.category,
-        baseUom: def.baseUom,
-        weightPerUnit: def.weightPerUnit,
-        currentQuantity: 0,
-        totalAssetValue: 0,
-        lowStockThreshold: def.lowStockThreshold,
-        status: "active",
-        imagePath: PRODUCT_IMAGE_MAP[def.name],
-      })
-      productIds.push(id)
+    for (const { id, def } of productResults) {
       productMap[def.name] = { id, def }
     }
 
@@ -305,6 +305,18 @@ export const writeAll = internalMutation({
     const peakStart = new Date("2025-10-01T00:00:00+08:00")
     const peakEnd = DATE_END
 
+    // Build product → active batches index for O(1) lookups
+    const activeBatchesByProduct = new Map<Id<"products">, typeof batchRecords>()
+    const depletedBatchIds = new Set<Id<"batches">>()
+    for (const batch of batchRecords) {
+      let list = activeBatchesByProduct.get(batch.productId)
+      if (!list) {
+        list = []
+        activeBatchesByProduct.set(batch.productId, list)
+      }
+      list.push(batch)
+    }
+
     for (let i = 0; i < NUM_DISPATCHES; i++) {
       const isPeak = Math.random() < 0.85
       const dBase = isPeak
@@ -332,6 +344,8 @@ export const writeAll = internalMutation({
 
       dispatchRecords.push({ id: dispatchId, userId, createdDate: dBase })
 
+      const productBatches = activeBatchesByProduct
+
       // 1-3 items per dispatch
       const numItems = rndInt(1, 3)
       const usedProducts = new Set<Id<"products">>()
@@ -351,17 +365,21 @@ export const writeAll = internalMutation({
         const qtyDeducted = toFloat(dispatchQty * product.def.weightPerUnit, 4)
 
         // Find an active batch with enough remaining
-        const candidateBatches = batchRecords.filter(
-          (b) =>
-            b.productId === product.id &&
-            b.status !== "depleted" &&
-            b.quantityRemaining >= qtyDeducted
+        const productBatchesList = (productBatches.get(product.id) ?? []).filter(
+          (b) => !depletedBatchIds.has(b.id)
+        )
+        const candidateBatches = productBatchesList.filter(
+          (b) => b.quantityRemaining >= qtyDeducted
         )
 
         if (candidateBatches.length === 0) {
-          const anyBatch = batchRecords.find(
-            (b) => b.productId === product.id && b.quantityRemaining > 0
-          )
+          let anyBatch: (typeof productBatchesList)[number] | undefined
+          for (const batch of productBatchesList) {
+            if (batch.quantityRemaining > 0) {
+              anyBatch = batch
+              break
+            }
+          }
           if (!anyBatch || anyBatch.quantityRemaining < qtyDeducted) continue
           candidateBatches.push(anyBatch)
         }
@@ -391,21 +409,38 @@ export const writeAll = internalMutation({
           batch.quantityRemaining - qtyDeducted,
           4
         )
+
+        // Track depleted batches for O(1) exclusion
+        if (batch.quantityRemaining <= 0) {
+          depletedBatchIds.add(batch.id)
+        }
       }
     }
 
     // Insert dispatch items
-    for (const item of dispatchItemsToInsert) {
-      await ctx.db.insert("dispatchItems", item)
-    }
+    await Promise.all(
+      dispatchItemsToInsert.map((item) => ctx.db.insert("dispatchItems", item))
+    )
 
-    // ── Mark depleted batches ──
+    // ── Update batch quantities after dispatches ──
     for (const batch of batchRecords) {
-      if (batch.quantityRemaining <= 0) {
+      const remaining = Math.max(0, batch.quantityRemaining)
+      if (remaining <= 0) {
         batch.status = "depleted"
-        await ctx.db.patch(batch.id, { status: "depleted" })
       }
+      batch.quantityRemaining = remaining
     }
+    await Promise.all(
+      batchRecords.map((batch) => {
+        const patch: Record<string, unknown> = {
+          quantityRemaining: batch.quantityRemaining,
+        }
+        if (batch.status === "depleted") {
+          patch.status = "depleted"
+        }
+        return ctx.db.patch(batch.id, patch)
+      })
+    )
 
     // ═══════════════════════════════════════════════════════════════════════
     // 6. Insert stock adjustments (1-2 per product)
@@ -466,18 +501,26 @@ export const writeAll = internalMutation({
       }
     }
 
-    // ── Update depleted batches after adjustments ──
+    // ── Update batch quantities after adjustments ──
     for (const batch of batchRecords) {
       if (batch.quantityRemaining <= 0 && batch.status !== "depleted") {
         batch.status = "depleted"
-        await ctx.db.patch(batch.id, { status: "depleted" })
       }
     }
+    await Promise.all(
+      batchRecords.map((batch) =>
+        ctx.db.patch(batch.id, {
+          quantityRemaining: batch.quantityRemaining,
+          ...(batch.status === "depleted" ? { status: "depleted" as const } : {}),
+        })
+      )
+    )
 
     // ═══════════════════════════════════════════════════════════════════════
     // 7. Update product quantities from active batches
     // ═══════════════════════════════════════════════════════════════════════
-    for (const { id: pId, def } of productList) {
+    await Promise.all(
+      productList.map(async ({ id: pId, def }) => {
       const activeBatches = batchRecords.filter(
         (b) => b.productId === pId && b.quantityRemaining > 0
       )
@@ -497,8 +540,9 @@ export const writeAll = internalMutation({
         totalAssetValue = toFloat(currentQuantity * latest.unitCost)
       }
 
-      await ctx.db.patch(pId, { currentQuantity, totalAssetValue })
-    }
+        await ctx.db.patch(pId, { currentQuantity, totalAssetValue })
+      })
+    )
 
     // ═══════════════════════════════════════════════════════════════════════
     // 8. Insert audit logs
@@ -514,32 +558,34 @@ export const writeAll = internalMutation({
     }
 
     // Batch stock-in logs
-    for (const batch of batchRecords) {
-      const productName = productNameById[batch.productId] ?? "Unknown"
-      const pDef = productByName[productName]
+    await Promise.all(
+      batchRecords.map(async (batch) => {
+        const productName = productNameById[batch.productId] ?? "Unknown"
+        const pDef = productByName[productName]
 
-      const totalReceived =
-        batch.quantityRemaining +
-        dispatchItemsToInsert
-          .filter((d) => d.batchId === batch.id)
-          .reduce((s, d) => s + d.quantityDeducted, 0)
+        const totalReceived =
+          batch.quantityRemaining +
+          dispatchItemsToInsert
+            .filter((d) => d.batchId === batch.id)
+            .reduce((s, d) => s + d.quantityDeducted, 0)
 
-      await ctx.db.insert("auditLogs", {
-        userId: ownerId,
-        action: "stock_in",
-        description: JSON.stringify({
-          resource_type: "product",
-          resource_id: batch.productId,
-          product_name: productName,
-          quantity: toFloat(totalReceived),
-          uom: pDef?.baseUom ?? "piece",
-          batch_code: batch.batchCode,
-        }),
-        ipAddress: "127.0.0.1",
-        userAgent: "Convex Seed",
-        createdAt: batch.createdDate.getTime(),
+        return ctx.db.insert("auditLogs", {
+          userId: ownerId,
+          action: "stock_in",
+          description: JSON.stringify({
+            resource_type: "product",
+            resource_id: batch.productId,
+            product_name: productName,
+            quantity: toFloat(totalReceived),
+            uom: pDef?.baseUom ?? "piece",
+            batch_code: batch.batchCode,
+          }),
+          ipAddress: "127.0.0.1",
+          userAgent: "Convex Seed",
+          createdAt: batch.createdDate.getTime(),
+        })
       })
-    }
+    )
 
     // Dispatch stock-out logs
     const dispatchItemGroups: Record<string, typeof dispatchItemsToInsert> = {}
@@ -549,9 +595,10 @@ export const writeAll = internalMutation({
       dispatchItemGroups[key].push(item)
     }
 
+    const dispatchLogPromises: Array<Promise<unknown>> = []
     for (const dispatch of dispatchRecords) {
-      const items = dispatchItemGroups[dispatch.id] ?? []
-      if (items.length === 0) continue
+      const items = dispatchItemGroups[dispatch.id]
+      if (!items || items.length === 0) continue
 
       const products = items.map((item) => ({
         name: productNameById[item.productId] ?? "Unknown",
@@ -561,58 +608,68 @@ export const writeAll = internalMutation({
         quantity: item.dispatchQuantity,
       }))
 
-      await ctx.db.insert("auditLogs", {
-        userId: dispatch.userId,
-        action: "stock_out",
-        description: JSON.stringify({
-          resource_type: "dispatch",
-          resource_id: dispatch.id,
-          total_quantity: toFloat(
-            items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
-          ),
-          items_count: items.length,
-          products,
-        }),
-        ipAddress: "127.0.0.1",
-        userAgent: "Convex Seed",
-        createdAt: dispatch.createdDate.getTime(),
-      })
+      dispatchLogPromises.push(
+        ctx.db.insert("auditLogs", {
+          userId: dispatch.userId,
+          action: "stock_out",
+          description: JSON.stringify({
+            resource_type: "dispatch",
+            resource_id: dispatch.id,
+            total_quantity: toFloat(
+              items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
+            ),
+            items_count: items.length,
+            products,
+          }),
+          ipAddress: "127.0.0.1",
+          userAgent: "Convex Seed",
+          createdAt: dispatch.createdDate.getTime(),
+        })
+      )
     }
+    await Promise.all(dispatchLogPromises)
 
     // Adjustment audit logs
-    for (const adj of adjustmentRecords) {
-      const productName = productNameById[adj.productId] ?? "Unknown"
-      const batch = batchRecords.find((b) => b.id === adj.batchId)
-      const batchCode = batch?.batchCode ?? "Unknown"
-      const beforeRemaining = batch?.quantityRemaining ?? 0
-
-      const logDate = randDate(DATE_BASE, DATE_END)
-      await ctx.db.insert("auditLogs", {
-        userId: ownerId,
-        action: "stock_adjustment",
-        description: JSON.stringify({
-          resource_type: "batch",
-          resource_id: adj.batchId,
-          product_name: productName,
-          quantity_adjusted: adj.quantity,
-          reason: adj.reason,
-          direction:
-            adj.reason === "damaged" || adj.reason === "lost"
-              ? "deduct"
-              : "add",
-          batch_code: batchCode,
-          changes: {
-            quantity_remaining: {
-              old: beforeRemaining,
-              new: Math.max(0, beforeRemaining - adj.quantity),
-            },
-          },
-        }),
-        ipAddress: "127.0.0.1",
-        userAgent: "Convex Seed",
-        createdAt: logDate.getTime(),
-      })
+    const batchById = new Map<Id<"batches">, (typeof batchRecords)[0]>()
+    for (const b of batchRecords) {
+      batchById.set(b.id, b)
     }
+
+    await Promise.all(
+      adjustmentRecords.map(async (adj) => {
+        const productName = productNameById[adj.productId] ?? "Unknown"
+        const batch = batchById.get(adj.batchId)
+        const batchCode = batch?.batchCode ?? "Unknown"
+        const beforeRemaining = batch?.quantityRemaining ?? 0
+
+        const logDate = randDate(DATE_BASE, DATE_END)
+        return ctx.db.insert("auditLogs", {
+          userId: ownerId,
+          action: "stock_adjustment",
+          description: JSON.stringify({
+            resource_type: "batch",
+            resource_id: adj.batchId,
+            product_name: productName,
+            quantity_adjusted: adj.quantity,
+            reason: adj.reason,
+            direction:
+              adj.reason === "damaged" || adj.reason === "lost"
+                ? "deduct"
+                : "add",
+            batch_code: batchCode,
+            changes: {
+              quantity_remaining: {
+                old: beforeRemaining,
+                new: Math.max(0, beforeRemaining - adj.quantity),
+              },
+            },
+          }),
+          ipAddress: "127.0.0.1",
+          userAgent: "Convex Seed",
+          createdAt: logDate.getTime(),
+        })
+      })
+    )
 
     // Auth event audit logs
     const authEvents: Array<Record<string, unknown>> = [
@@ -646,17 +703,19 @@ export const writeAll = internalMutation({
       )
     }
 
-    for (const event of authEvents) {
-      const logDate = randDate(DATE_BASE, DATE_END)
-      await ctx.db.insert("auditLogs", {
-        userId: ownerId,
-        action: event.action as string,
-        description: JSON.stringify(event),
-        ipAddress: "127.0.0.1",
-        userAgent: "Convex Seed",
-        createdAt: logDate.getTime(),
+    await Promise.all(
+      authEvents.map((event) => {
+        const logDate = randDate(DATE_BASE, DATE_END)
+        return ctx.db.insert("auditLogs", {
+          userId: ownerId,
+          action: event.action as string,
+          description: JSON.stringify(event),
+          ipAddress: "127.0.0.1",
+          userAgent: "Convex Seed",
+          createdAt: logDate.getTime(),
+        })
       })
-    }
+    )
 
     // ═══════════════════════════════════════════════════════════════════════
     // Return summary

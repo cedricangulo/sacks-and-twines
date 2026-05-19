@@ -1,15 +1,16 @@
 "use client"
 
+import type { VisibilityState } from "@tanstack/react-table"
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getSortedRowModel,
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp, PackageOpen, SearchX } from "lucide-react"
+import { ArrowDown, ArrowUp, PackageOpen } from "lucide-react"
+import type { Dispatch, SetStateAction } from "react"
 import { Fragment, useMemo, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -39,31 +40,38 @@ import BatchDetailsRow from "./batch-details-row"
 import InventoryTableRow from "./inventory-table-row"
 import ProductTableActions from "./product-table-actions"
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  }).format(value)
+const currencyFormatter = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+})
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+})
 
+const formatCurrency = (value: number) => currencyFormatter.format(value)
 const formatDateTime = (timestamp: number) =>
-  new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(timestamp))
+  dateFormatter.format(new Date(timestamp))
 
 const columnHelper = createColumnHelper<Product>()
 
 interface InventoryTableProps {
   products: Product[]
-  search: string
+  columnVisibility: VisibilityState
+  onColumnVisibilityChange: Dispatch<SetStateAction<VisibilityState>>
+  batchColumnVisibility: VisibilityState
+  onBatchColumnVisibilityChange: Dispatch<SetStateAction<VisibilityState>>
 }
 
 export default function InventoryTable({
   products,
-  search,
+  columnVisibility,
+  onColumnVisibilityChange,
+  batchColumnVisibility,
+  onBatchColumnVisibilityChange,
 }: InventoryTableProps) {
   const [expandedProductId, setExpandedProductId] = useState<string | null>(
     null
@@ -80,6 +88,7 @@ export default function InventoryTable({
         id: "expand",
         header: "",
         enableSorting: false,
+        enableHiding: false,
         enableGlobalFilter: false,
       }),
       columnHelper.accessor("name", {
@@ -94,6 +103,7 @@ export default function InventoryTable({
           </div>
         ),
         sortingFn: "alphanumeric",
+        enableHiding: false,
       }),
       columnHelper.accessor("skuCode", {
         header: "SKU",
@@ -163,7 +173,7 @@ export default function InventoryTable({
               ) : p.status === "archived" ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className="rounded-full size-2 bg-gray-500 animate-pulse" />
+                    <span className="rounded-full size-2 bg-amber-500 animate-pulse" />
                   </TooltipTrigger>
                   <TooltipContent>Product is archived</TooltipContent>
                 </Tooltip>
@@ -188,8 +198,9 @@ export default function InventoryTable({
       columnHelper.display({
         id: "actions",
         header: "",
-        cell: ({ row }) => <ProductTableActions productId={row.original._id} />,
+        cell: ({ row }) => <ProductTableActions product={row.original} />,
         enableSorting: false,
+        enableHiding: false,
         enableGlobalFilter: false,
       }),
     ],
@@ -199,11 +210,10 @@ export default function InventoryTable({
   const table = useReactTable({
     data,
     columns,
-    state: { globalFilter: search, sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
-    globalFilterFn: "includesString",
+    onColumnVisibilityChange,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     enableSortingRemoval: false,
     isMultiSortEvent: () => false,
     getSortedRowModel: getSortedRowModel(),
@@ -222,15 +232,11 @@ export default function InventoryTable({
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            {search ? <SearchX size={16} /> : <PackageOpen size={16} />}
+            <PackageOpen size={16} />
           </EmptyMedia>
-          <EmptyTitle>
-            {search ? "No products match your search" : "No products yet"}
-          </EmptyTitle>
+          <EmptyTitle>No products yet</EmptyTitle>
           <EmptyDescription>
-            {search
-              ? "Try adjusting your search terms."
-              : "Add your first inventory to get started."}
+            Add your first inventory to get started.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -280,13 +286,14 @@ export default function InventoryTable({
               onToggle={() => toggleExpand(row.original._id)}
             />
             {expandedProductId === row.original._id ? (
-              <TableRow
-                key={`${row.id}-batches`}
-                className="hover:bg-transparent"
-              >
+              <TableRow key={`${row.id}-batches`}>
                 <TableCell colSpan={totalColumns} className="p-4">
                   <div className="overflow-hidden transition-all">
-                    <BatchDetailsRow productId={row.original._id} />
+                    <BatchDetailsRow
+                      productId={row.original._id}
+                      columnVisibility={batchColumnVisibility}
+                      onColumnVisibilityChange={onBatchColumnVisibilityChange}
+                    />
                   </div>
                 </TableCell>
               </TableRow>

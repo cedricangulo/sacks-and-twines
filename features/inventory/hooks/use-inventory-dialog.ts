@@ -74,12 +74,18 @@ export function useInventoryDialog() {
 
   const supplierOptions = useMemo(
     () =>
-      suppliers
-        ?.filter((s: { archivedAt?: number }) => !s.archivedAt)
-        .map((s: { _id: unknown; companyName: string }) => ({
-          id: String(s._id),
-          name: s.companyName,
-        })) ?? [],
+      suppliers?.reduce<Array<{ id: string; name: string }>>(
+        (
+          acc,
+          s: { archivedAt?: number; _id: unknown; companyName: string }
+        ) => {
+          if (!s.archivedAt) {
+            acc.push({ id: String(s._id), name: s.companyName })
+          }
+          return acc
+        },
+        []
+      ) ?? [],
     [suppliers]
   )
 

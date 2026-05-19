@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useBatchDetail } from "./use-batch-detail"
 import { useVoidBatch } from "./use-void-batch"
@@ -18,12 +18,16 @@ export function useVoidBatchDialog({
   const voidBatch = useVoidBatch()
   const [internalOpen, setInternalOpen] = useState(false)
   const open = openProp ?? internalOpen
-  const setOpen = onOpenChange ?? setInternalOpen
   const [reason, setReason] = useState("")
 
-  useEffect(() => {
-    if (open) setReason("")
-  }, [open])
+  const setOpen = (val: boolean) => {
+    if (val) setReason("")
+    if (onOpenChange !== undefined) {
+      onOpenChange(val)
+    } else {
+      setInternalOpen(val)
+    }
+  }
 
   const handleVoid = async () => {
     setOpen(false)

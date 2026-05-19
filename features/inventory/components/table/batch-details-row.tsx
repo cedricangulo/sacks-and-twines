@@ -1,5 +1,6 @@
 "use client"
 
+import type { VisibilityState } from "@tanstack/react-table"
 import {
   createColumnHelper,
   flexRender,
@@ -9,6 +10,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { ArrowDown, ArrowUp, Loader2Icon } from "lucide-react"
+import type { Dispatch, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -24,27 +26,32 @@ import { useBatches } from "../../hooks/use-batches"
 import type { Batch } from "../../validation"
 import BatchActionsMenu from "./batch-actions-menu"
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  }).format(value)
+const currencyFormatter = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+})
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+})
 
+const formatCurrency = (value: number) => currencyFormatter.format(value)
 const formatDateTime = (timestamp: number) =>
-  new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(timestamp))
+  dateFormatter.format(new Date(timestamp))
 
 const columnHelper = createColumnHelper<Batch>()
 
 export default function BatchDetailsRow({
   productId,
+  columnVisibility,
+  onColumnVisibilityChange,
 }: {
   productId: Id<"products">
+  columnVisibility: VisibilityState
+  onColumnVisibilityChange: Dispatch<SetStateAction<VisibilityState>>
 }) {
   const batches = useBatches(productId)
   const [sorting, setSorting] = useState<SortingState>([
@@ -59,6 +66,7 @@ export default function BatchDetailsRow({
         header: "Batch Code",
         cell: (info) => <span className="font-mono">{info.getValue()}</span>,
         sortingFn: "alphanumeric",
+        enableHiding: false,
       }),
       columnHelper.accessor("quantityReceived", {
         header: "Qty Received",
@@ -132,6 +140,7 @@ export default function BatchDetailsRow({
         header: "",
         cell: ({ row }) => <BatchActionsMenu batch={row.original} />,
         enableSorting: false,
+        enableHiding: false,
         enableGlobalFilter: false,
       }),
     ],
@@ -141,8 +150,9 @@ export default function BatchDetailsRow({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
+    onColumnVisibilityChange,
     getCoreRowModel: getCoreRowModel(),
     enableSortingRemoval: false,
     isMultiSortEvent: () => false,
@@ -154,7 +164,7 @@ export default function BatchDetailsRow({
     return (
       <div className="flex items-center justify-center py-8 text-muted-foreground">
         <Loader2Icon size={20} className="mr-2 animate-spin" />
-        Loading batches...
+        Loading batches&hellip;
       </div>
     )
   }
