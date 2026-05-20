@@ -101,10 +101,7 @@ describe("supplier mutations", () => {
         role: "staff",
         status: "active",
       }),
-      createSupplier(
-        t,
-        supplierData({ companyName: "Acme Corp" })
-      ),
+      createSupplier(t, supplierData({ companyName: "Acme Corp" })),
     ])
 
     authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
@@ -256,6 +253,26 @@ describe("supplier mutations", () => {
     ).rejects.toThrowError("A supplier with this company name already exists")
   })
 
+  it("rejects supplier creation for deactivated owner", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "deactivated",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.create, {
+        companyName: "Test Supplier",
+        contactPerson: "John",
+        contactNumber: "09171234567",
+        address: "Some Address 123 Street City",
+      })
+    ).rejects.toThrowError("Only owners can create suppliers")
+  })
+
   // ── Update ────────────────────────────────────────────────
 
   it("updates a supplier and writes an audit log", async () => {
@@ -324,10 +341,7 @@ describe("supplier mutations", () => {
         status: "active",
       }),
       Promise.all([
-        createSupplier(
-          t,
-          supplierData({ companyName: "Supplier A" })
-        ),
+        createSupplier(t, supplierData({ companyName: "Supplier A" })),
         createSupplier(t, supplierData({ companyName: "Supplier B" })),
       ]),
     ])
@@ -367,10 +381,7 @@ describe("supplier mutations", () => {
         role: "staff",
         status: "active",
       }),
-      createSupplier(
-        t,
-        supplierData({ companyName: "Acme Corp" })
-      ),
+      createSupplier(t, supplierData({ companyName: "Acme Corp" })),
     ])
 
     authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
@@ -424,10 +435,7 @@ describe("supplier mutations", () => {
         role: "owner",
         status: "active",
       }),
-      createSupplier(
-        t,
-        supplierData({ companyName: "Acme Corp" })
-      ),
+      createSupplier(t, supplierData({ companyName: "Acme Corp" })),
     ])
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
@@ -479,10 +487,7 @@ describe("supplier mutations", () => {
           status: "active",
         })
       }),
-      createSupplier(
-        t,
-        supplierData({ companyName: "Acme Corp" })
-      ),
+      createSupplier(t, supplierData({ companyName: "Acme Corp" })),
     ])
     await t.run(async (ctx) => {
       await ctx.db.insert("batches", {
@@ -517,10 +522,7 @@ describe("supplier mutations", () => {
         role: "owner",
         status: "active",
       }),
-      createSupplier(
-        t,
-        supplierData({ companyName: "Acme Corp" })
-      ),
+      createSupplier(t, supplierData({ companyName: "Acme Corp" })),
     ])
     await t.run(async (ctx) => {
       await ctx.db.patch(supplierId, { archivedAt: Date.now() })
@@ -559,10 +561,7 @@ describe("supplier mutations", () => {
         role: "staff",
         status: "active",
       }),
-      createSupplier(
-        t,
-        supplierData({ companyName: "Acme Corp" })
-      ),
+      createSupplier(t, supplierData({ companyName: "Acme Corp" })),
     ])
 
     authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
@@ -601,5 +600,166 @@ describe("supplier mutations", () => {
         supplierId: phantomId,
       })
     ).rejects.toThrowError("Supplier not found")
+  })
+
+  // ── Unarchive ──────────────────────────────────────────────
+
+  it("unarchives a supplier and writes an audit log", async () => {
+    const t = makeTest()
+    const [ownerId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      createSupplier(t, supplierData({ companyName: "Acme Corp" })),
+    ])
+    await t.run(async (ctx) => {
+      await ctx.db.patch(supplierId, { archivedAt: Date.now() })
+    })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const result = await t.mutation(api.suppliers.mutations.unarchive, {
+      supplierId,
+    })
+
+    expect(result).toBe(true)
+
+    const unarchived = await t.query(async (ctx) => {
+      return await ctx.db.get(supplierId)
+    })
+
+    expect(unarchived?.archivedAt).toBeUndefined()
+
+    const auditLog = await t.query(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "supplier_unarchive"))
+        .first()
+    })
+
+    expect(auditLog).toMatchObject({
+      userId: ownerId,
+      action: "supplier_unarchive",
+      description: "Unarchived supplier Acme Corp",
+    })
+  })
+
+  it("rejects unauthenticated unarchive", async () => {
+    const t = makeTest()
+    const supplierId = await createSupplier(
+      t,
+      supplierData({ companyName: "Acme Corp" })
+    )
+    await t.run(async (ctx) => {
+      await ctx.db.patch(supplierId, { archivedAt: Date.now() })
+    })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.unarchive, {
+        supplierId,
+      })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("rejects non-owner unarchive", async () => {
+    const t = makeTest()
+    const [staffId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "staff@test.com",
+        name: "Staff",
+        role: "staff",
+        status: "active",
+      }),
+      createSupplier(t, supplierData({ companyName: "Acme Corp" })),
+    ])
+    await t.run(async (ctx) => {
+      await ctx.db.patch(supplierId, { archivedAt: Date.now() })
+    })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.unarchive, {
+        supplierId,
+      })
+    ).rejects.toThrowError("Only owners can unarchive suppliers")
+  })
+
+  it("rejects unarchiving non-existent supplier", async () => {
+    const t = makeTest()
+    const [ownerId, phantomId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      t.run(async (ctx) => {
+        const id = await ctx.db.insert("suppliers", {
+          companyName: "Temp",
+          contactPerson: "",
+          contactNumber: "",
+          address: "",
+        })
+        await ctx.db.delete(id)
+        return id
+      }),
+    ])
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.unarchive, {
+        supplierId: phantomId,
+      })
+    ).rejects.toThrowError("Supplier not found")
+  })
+
+  it("rejects unarchiving a non-archived supplier", async () => {
+    const t = makeTest()
+    const [ownerId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      createSupplier(t, supplierData({ companyName: "Acme Corp" })),
+    ])
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.unarchive, {
+        supplierId,
+      })
+    ).rejects.toThrowError("Supplier is not archived")
+  })
+
+  it("rejects unarchive for deactivated owner", async () => {
+    const t = makeTest()
+    const [ownerId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "deactivated",
+      }),
+      createSupplier(t, supplierData({ companyName: "Acme Corp" })),
+    ])
+    await t.run(async (ctx) => {
+      await ctx.db.patch(supplierId, { archivedAt: Date.now() })
+    })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.suppliers.mutations.unarchive, {
+        supplierId,
+      })
+    ).rejects.toThrowError("Only owners can unarchive suppliers")
   })
 })

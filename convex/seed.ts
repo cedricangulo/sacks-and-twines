@@ -159,16 +159,23 @@ export const writeAll = internalMutation({
     // ═══════════════════════════════════════════════════════════════════════
     // 1. Clear existing data (children before parents)
     // ═══════════════════════════════════════════════════════════════════════
-    const [allDispatchItems, allAdjustments, allLogs, allDispatches, allBatches, allProducts, allSuppliers] =
-      await Promise.all([
-        ctx.db.query("dispatchItems").collect(),
-        ctx.db.query("stockAdjustments").collect(),
-        ctx.db.query("auditLogs").collect(),
-        ctx.db.query("dispatches").collect(),
-        ctx.db.query("batches").collect(),
-        ctx.db.query("products").collect(),
-        ctx.db.query("suppliers").collect(),
-      ])
+    const [
+      allDispatchItems,
+      allAdjustments,
+      allLogs,
+      allDispatches,
+      allBatches,
+      allProducts,
+      allSuppliers,
+    ] = await Promise.all([
+      ctx.db.query("dispatchItems").collect(),
+      ctx.db.query("stockAdjustments").collect(),
+      ctx.db.query("auditLogs").collect(),
+      ctx.db.query("dispatches").collect(),
+      ctx.db.query("batches").collect(),
+      ctx.db.query("products").collect(),
+      ctx.db.query("suppliers").collect(),
+    ])
 
     await Promise.all([
       ...allDispatchItems.map((d) => ctx.db.delete(d._id)),
@@ -306,7 +313,10 @@ export const writeAll = internalMutation({
     const peakEnd = DATE_END
 
     // Build product → active batches index for O(1) lookups
-    const activeBatchesByProduct = new Map<Id<"products">, typeof batchRecords>()
+    const activeBatchesByProduct = new Map<
+      Id<"products">,
+      typeof batchRecords
+    >()
     const depletedBatchIds = new Set<Id<"batches">>()
     for (const batch of batchRecords) {
       let list = activeBatchesByProduct.get(batch.productId)
@@ -365,9 +375,9 @@ export const writeAll = internalMutation({
         const qtyDeducted = toFloat(dispatchQty * product.def.weightPerUnit, 4)
 
         // Find an active batch with enough remaining
-        const productBatchesList = (productBatches.get(product.id) ?? []).filter(
-          (b) => !depletedBatchIds.has(b.id)
-        )
+        const productBatchesList = (
+          productBatches.get(product.id) ?? []
+        ).filter((b) => !depletedBatchIds.has(b.id))
         const candidateBatches = productBatchesList.filter(
           (b) => b.quantityRemaining >= qtyDeducted
         )
@@ -511,7 +521,9 @@ export const writeAll = internalMutation({
       batchRecords.map((batch) =>
         ctx.db.patch(batch.id, {
           quantityRemaining: batch.quantityRemaining,
-          ...(batch.status === "depleted" ? { status: "depleted" as const } : {}),
+          ...(batch.status === "depleted"
+            ? { status: "depleted" as const }
+            : {}),
         })
       )
     )
@@ -521,24 +533,24 @@ export const writeAll = internalMutation({
     // ═══════════════════════════════════════════════════════════════════════
     await Promise.all(
       productList.map(async ({ id: pId, def }) => {
-      const activeBatches = batchRecords.filter(
-        (b) => b.productId === pId && b.quantityRemaining > 0
-      )
-
-      const totalQty = activeBatches.reduce(
-        (sum, b) => sum + b.quantityRemaining,
-        0
-      )
-      const currentQuantity =
-        def.baseUom === "piece" ? Math.round(totalQty) : toFloat(totalQty)
-
-      let totalAssetValue = 0
-      if (activeBatches.length > 0) {
-        const latest = activeBatches.reduce((a, b) =>
-          a.createdDate > b.createdDate ? a : b
+        const activeBatches = batchRecords.filter(
+          (b) => b.productId === pId && b.quantityRemaining > 0
         )
-        totalAssetValue = toFloat(currentQuantity * latest.unitCost)
-      }
+
+        const totalQty = activeBatches.reduce(
+          (sum, b) => sum + b.quantityRemaining,
+          0
+        )
+        const currentQuantity =
+          def.baseUom === "piece" ? Math.round(totalQty) : toFloat(totalQty)
+
+        let totalAssetValue = 0
+        if (activeBatches.length > 0) {
+          const latest = activeBatches.reduce((a, b) =>
+            a.createdDate > b.createdDate ? a : b
+          )
+          totalAssetValue = toFloat(currentQuantity * latest.unitCost)
+        }
 
         await ctx.db.patch(pId, { currentQuantity, totalAssetValue })
       })

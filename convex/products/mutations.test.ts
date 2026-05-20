@@ -1046,4 +1046,23 @@ describe("product mutations", () => {
     expect(logs[0].action).toBe("product_update")
     expect(logs[0].description).toContain("After Update")
   })
+
+  it("rejects product creation for deactivated owner", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "deactivated",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.products.mutations.create, {
+        name: "Test Product",
+        category: "sacks",
+        baseUom: "piece",
+      })
+    ).rejects.toThrowError("Only owners can create products")
+  })
 })

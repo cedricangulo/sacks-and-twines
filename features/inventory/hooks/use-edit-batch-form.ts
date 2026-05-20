@@ -1,9 +1,8 @@
 "use client"
 
-import { useQuery } from "convex-helpers/react/cache"
 import { SubmitEvent, useEffect, useReducer, useState } from "react"
-import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { useSuppliers } from "@/features/suppliers/hooks/use-suppliers"
 import { type BatchUpdateFieldErrors, validateBatchUpdate } from "../validation"
 import { useBatchDetail } from "./use-batch-detail"
 import { useUpdateBatch } from "./use-update-batch"
@@ -18,7 +17,7 @@ export function useEditBatchForm({
   onOpenChange?: (open: boolean) => void
 }) {
   const detail = useBatchDetail(batchId)
-  const suppliers = useQuery(api.suppliers.queries.list, {})
+  const suppliers = useSuppliers()
   const update = useUpdateBatch()
   const [internalOpen, setInternalOpen] = useState(false)
   const open = openProp ?? internalOpen
@@ -45,7 +44,12 @@ export function useEditBatchForm({
   }
 
   type FormAction =
-    | { type: "open"; supplierId: string; quantityReceived: number; totalProcurementCost: number }
+    | {
+        type: "open"
+        supplierId: string
+        quantityReceived: number
+        totalProcurementCost: number
+      }
     | { type: "setFormValues"; formValues: FormState["formValues"] }
     | { type: "setDirty"; dirty: boolean }
     | { type: "setErrors"; errors: BatchUpdateFieldErrors }

@@ -27,7 +27,10 @@ export const list = query({
 
     return await Promise.all(
       dispatches.map(async (dispatch) => {
-        if (dispatch.userName !== undefined && dispatch.itemCount !== undefined) {
+        if (
+          dispatch.userName !== undefined &&
+          dispatch.itemCount !== undefined
+        ) {
           return {
             ...dispatch,
             userName: dispatch.userName,

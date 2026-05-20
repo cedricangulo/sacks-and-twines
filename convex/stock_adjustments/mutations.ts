@@ -13,7 +13,7 @@ export const create = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can adjust stock")
 
     await Promise.all([
@@ -54,7 +54,10 @@ export const create = zMutation({
     await Promise.all([
       ctx.db.patch(batchId, patch),
       ctx.db.patch(productId, {
-        currentQuantity: Math.max(0, product.currentQuantity + quantityAdjusted),
+        currentQuantity: Math.max(
+          0,
+          product.currentQuantity + quantityAdjusted
+        ),
         totalAssetValue: Math.max(0, product.totalAssetValue + costDelta),
       }),
       ctx.db.insert("auditLogs", {

@@ -12,7 +12,7 @@ export const create = zMutation({
     }
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner") {
+    if (!caller || caller.role !== "owner" || caller.status !== "active") {
       throw new Error("Only owners can create staff users")
     }
 
@@ -65,7 +65,7 @@ export const deactivate = zMutation({
     }
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner") {
+    if (!caller || caller.role !== "owner" || caller.status !== "active") {
       throw new Error("Only owners can deactivate users")
     }
 

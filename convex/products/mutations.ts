@@ -18,7 +18,7 @@ export const create = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can create products")
 
     await Promise.all([
@@ -89,7 +89,7 @@ export const update = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can update products")
 
     await Promise.all([
@@ -107,12 +107,12 @@ export const update = zMutation({
     if (duplicate !== null && duplicate._id.toString() !== productId.toString())
       throw new Error("A product with this name already exists")
 
-    const batches = await ctx.db
+    const batch = await ctx.db
       .query("batches")
       .withIndex("by_product", (q) => q.eq("productId", productId))
-      .collect()
+      .first()
 
-    if (batches.length > 0) {
+    if (batch !== null) {
       if (category !== existing.category)
         throw new Error(
           "Category cannot be changed because this product already has stock records"
@@ -155,7 +155,7 @@ export const archive = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can archive products")
 
     await Promise.all([
@@ -188,7 +188,7 @@ export const unarchive = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can unarchive products")
 
     await Promise.all([

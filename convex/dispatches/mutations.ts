@@ -10,6 +10,8 @@ export const submit = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
+    if (!caller || caller.status !== "active")
+      throw new Error("Account deactivated")
 
     await Promise.all([
       perUserLimit(ctx, "createDispatch", callerId),
@@ -52,20 +54,22 @@ export const submit = zMutation({
       }
 
       // Get active batches with remaining stock, FIFO (oldest first)
-      const batches = await ctx.db
+      const activeBatches = await ctx.db
         .query("batches")
-        .withIndex("by_product", (q) => q.eq("productId", item.productId))
+        .withIndex("by_product_status", (q) =>
+          q.eq("productId", item.productId).eq("status", "active")
+        )
         .order("asc")
         .collect()
 
-      const activeBatches = batches.filter(
-        (b) => b.status === "active" && b.quantityRemaining > 0
+      const availableBatches = activeBatches.filter(
+        (b) => b.quantityRemaining > 0
       )
 
       let remaining = toDeduct
       let totalCostDeducted = 0
 
-      for (const batch of activeBatches) {
+      for (const batch of availableBatches) {
         if (remaining <= 0) break
 
         const deducted = Math.min(remaining, batch.quantityRemaining)

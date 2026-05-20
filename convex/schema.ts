@@ -58,6 +58,7 @@ export default defineSchema({
     createdAt: v.optional(v.number()),
   })
     .index("by_product", ["productId"])
+    .index("by_product_status", ["productId", "status"])
     .index("by_batchCode", ["batchCode"])
     .index("by_supplier", ["supplierId"]),
 

@@ -1,6 +1,5 @@
 "use client"
 
-import { useConvexAuth } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
 import { Button } from "@/components/ui/button"
 import {
@@ -29,6 +28,7 @@ import {
 } from "@/components/ui/select"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import { useStockAdjustForm } from "../../hooks/use-stock-adjust-form"
 
 const REASONS_BY_DIRECTION: Record<
@@ -82,7 +82,7 @@ export default function AdjustStockDialog({
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
-  const { isAuthenticated } = useConvexAuth()
+  const { isAuthenticated } = useCurrentUser()
   const product = useQuery(
     api.products.queries.getById,
     isAuthenticated ? { productId } : "skip"

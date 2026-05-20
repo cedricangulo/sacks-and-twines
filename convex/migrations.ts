@@ -33,7 +33,8 @@ export const setOwnerProfile = migrations.define({
 export const backfillDispatches = migrations.define({
   table: "dispatches",
   migrateOne: async (ctx, dispatch) => {
-    if (dispatch.userName !== undefined && dispatch.itemCount !== undefined) return
+    if (dispatch.userName !== undefined && dispatch.itemCount !== undefined)
+      return
     const [user, items] = await Promise.all([
       ctx.db.get(dispatch.userId),
       ctx.db

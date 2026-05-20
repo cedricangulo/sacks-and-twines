@@ -1,10 +1,9 @@
 "use client"
 
-import { useQuery } from "convex-helpers/react/cache"
 import type { SubmitEvent } from "react"
 import { useMemo, useState } from "react"
-import { api } from "@/convex/_generated/api"
 import { useProducts } from "@/features/products/hooks/use-products"
+import { useSuppliers } from "@/features/suppliers/hooks/use-suppliers"
 import { useImageUpload } from "@/lib/hooks/use-image-upload"
 import { type StockInFieldErrors, validateStockIn } from "../validation"
 import { useCreateStockIn } from "./use-create-stock-in"
@@ -52,7 +51,7 @@ const EMPTY_FIELDS: FieldValues = {
 
 export function useInventoryDialog() {
   const products = useProducts()
-  const suppliers = useQuery(api.suppliers.queries.list, {})
+  const suppliers = useSuppliers()
   const create = useCreateStockIn()
   const image = useImageUpload()
 

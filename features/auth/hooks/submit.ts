@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuthActions } from "@convex-dev/auth/react"
+import { useRouter } from "next/navigation"
 import { SubmitEvent, useState } from "react"
 import { z } from "zod"
 
@@ -11,6 +12,7 @@ const SignInSchema = z.object({
 
 function useSubmitSignIn() {
   const { signIn } = useAuthActions()
+  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -36,11 +38,11 @@ function useSubmitSignIn() {
       const result = await signIn("password", formData)
       if (result && typeof result === "object" && "signingIn" in result) {
         if (result.signingIn) {
-          window.location.href = "/"
+          router.push("/")
         }
       } else if (result === undefined) {
         // signIn may return undefined for some flows; still navigate
-        window.location.href = "/"
+        router.push("/")
       }
     } catch (err) {
       setError("Invalid email or password. Please try again.")

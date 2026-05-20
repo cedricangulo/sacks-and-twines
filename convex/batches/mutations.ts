@@ -10,7 +10,7 @@ export const generateUploadUrl = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can upload files")
 
     await Promise.all([
@@ -45,7 +45,7 @@ export const stockIn = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can stock in")
 
     await Promise.all([
@@ -191,7 +191,7 @@ export const update = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can update batches")
 
     await Promise.all([
@@ -238,10 +238,14 @@ export const update = zMutation({
         ])
         await Promise.all([
           oldSupplierDoc?.batchCount !== undefined
-            ? ctx.db.patch(batch.supplierId, { batchCount: oldSupplierDoc.batchCount - 1 })
+            ? ctx.db.patch(batch.supplierId, {
+                batchCount: oldSupplierDoc.batchCount - 1,
+              })
             : Promise.resolve(),
           newSupplierDoc?.batchCount !== undefined
-            ? ctx.db.patch(supplierId, { batchCount: newSupplierDoc.batchCount + 1 })
+            ? ctx.db.patch(supplierId, {
+                batchCount: newSupplierDoc.batchCount + 1,
+              })
             : Promise.resolve(),
         ])
       }
@@ -283,10 +287,14 @@ export const update = zMutation({
         ])
         await Promise.all([
           oldSupplierDoc?.batchCount !== undefined
-            ? ctx.db.patch(batch.supplierId, { batchCount: oldSupplierDoc.batchCount - 1 })
+            ? ctx.db.patch(batch.supplierId, {
+                batchCount: oldSupplierDoc.batchCount - 1,
+              })
             : Promise.resolve(),
           newSupplierDoc?.batchCount !== undefined
-            ? ctx.db.patch(supplierId, { batchCount: newSupplierDoc.batchCount + 1 })
+            ? ctx.db.patch(supplierId, {
+                batchCount: newSupplierDoc.batchCount + 1,
+              })
             : Promise.resolve(),
         ])
       }
@@ -310,7 +318,7 @@ export const voidBatch = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can void batches")
 
     await Promise.all([
@@ -355,7 +363,9 @@ export const voidBatch = zMutation({
       (adj) => adj.status === "applied"
     )
     await Promise.all(
-      voidedAdjustments.map((adj) => ctx.db.patch(adj._id, { status: "voided" }))
+      voidedAdjustments.map((adj) =>
+        ctx.db.patch(adj._id, { status: "voided" })
+      )
     )
     const voidedCount = voidedAdjustments.length
 

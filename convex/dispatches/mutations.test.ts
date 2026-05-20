@@ -602,4 +602,34 @@ describe("dispatch mutations", () => {
       })
     ).rejects.toThrow("Insufficient stock")
   })
+
+  it("rejects submit for deactivated user", async () => {
+    const t = makeTest()
+    const [userId, supplierId, productId] = await Promise.all([
+      createUser(t, {
+        email: "user@test.com",
+        name: "User",
+        role: "staff",
+        status: "deactivated",
+      }),
+      createSupplier(t),
+      createProduct(t),
+    ])
+    const ownerId = await createUser(t)
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      quantityReceived: 5,
+      quantityRemaining: 5,
+      unitCost: 500,
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
+
+    await expect(
+      t.mutation(api.dispatches.mutations.submit, {
+        items: [{ productId, quantity: 1, dispatchUom: "piece" }],
+      })
+    ).rejects.toThrowError("Account deactivated")
+  })
 })

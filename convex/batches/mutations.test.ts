@@ -921,4 +921,29 @@ describe("batch mutations", () => {
       originalImagePath
     )
   })
+
+  it("rejects stockIn for deactivated owner", async () => {
+    const t = makeTest()
+    const [ownerId, productId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "deactivated",
+      }),
+      createProduct(t, "Test Product"),
+      createSupplier(t, "Test Supplier"),
+    ])
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.batches.mutations.stockIn, {
+        mode: "existing",
+        productId,
+        supplierId,
+        quantityReceived: 50,
+        totalProcurementCost: 25000,
+      })
+    ).rejects.toThrowError("Only owners can stock in")
+  })
 })

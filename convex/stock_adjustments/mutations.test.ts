@@ -407,4 +407,28 @@ describe("stock adjustment mutations", () => {
       direction: "add",
     })
   })
+
+  it("rejects stock adjustment for deactivated owner", async () => {
+    const t = makeTest()
+    const ownerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "deactivated",
+      })
+    })
+    const { batchId, productId } = await seedData(t, ownerId)
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.stock_adjustments.mutations.create, {
+        batchId,
+        productId,
+        direction: "add",
+        quantity: 10,
+        reason: "recount",
+      })
+    ).rejects.toThrowError("Only owners can adjust stock")
+  })
 })

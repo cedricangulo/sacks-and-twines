@@ -1,6 +1,5 @@
 "use client"
 
-import { useConvexAuth } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
 import { Columns3, SearchIcon, XIcon } from "lucide-react"
 import type { Dispatch, SetStateAction } from "react"
@@ -22,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { api } from "@/convex/_generated/api"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import {
   DISPATCH_TABLE_COLUMNS,
   ITEMS_TABLE_COLUMNS,
@@ -60,7 +60,7 @@ export default function DispatchFilterBar({
   itemsVisibility,
   onItemsVisibilityChange,
 }: Props) {
-  const { isAuthenticated } = useConvexAuth()
+  const { isAuthenticated } = useCurrentUser()
 
   const users = useQuery(
     api.users.queries.listNames,

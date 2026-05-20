@@ -19,7 +19,7 @@ export const create = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can create suppliers")
 
     await Promise.all([
@@ -69,7 +69,7 @@ export const update = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can update suppliers")
 
     await Promise.all([
@@ -116,7 +116,7 @@ export const archive = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can archive suppliers")
 
     await Promise.all([
@@ -129,11 +129,11 @@ export const archive = zMutation({
     if (existing.archivedAt !== undefined)
       throw new Error("Supplier is already archived")
 
-    const batches = await ctx.db
+    const batch = await ctx.db
       .query("batches")
       .withIndex("by_supplier", (q) => q.eq("supplierId", supplierId))
-      .collect()
-    if (batches.length > 0) {
+      .first()
+    if (batch !== null) {
       throw new Error(
         "This supplier has existing batch records and cannot be archived."
       )
@@ -159,7 +159,7 @@ export const unarchive = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can unarchive suppliers")
 
     await Promise.all([
