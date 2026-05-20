@@ -1,6 +1,5 @@
 "use client"
 
-import { useConvexAuth } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
 import { Package, SearchX } from "lucide-react"
 import {
@@ -12,12 +11,13 @@ import {
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import ProductCard from "@/features/products/components/product-card"
 import ProductFilterBar from "@/features/products/components/product-filter-bar"
 import { useProductFilters } from "@/features/products/hooks/use-product-filters"
 
 export default function ProductsPage() {
-  const { isAuthenticated } = useConvexAuth()
+  const { isAuthenticated } = useCurrentUser()
   const products = useQuery(
     api.products.queries.listDispatchReady,
     isAuthenticated ? {} : "skip"

@@ -1,17 +1,12 @@
 "use client"
 
-import { useConvexAuth, useQuery } from "convex/react"
 import { redirect } from "next/navigation"
 import { useEffect } from "react"
 import { Spinner } from "@/components/ui/spinner"
-import { api } from "@/convex/_generated/api"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 
 export default function HomePage() {
-  const { isLoading, isAuthenticated } = useConvexAuth()
-  const user = useQuery(
-    api.users.queries.currentUser,
-    isAuthenticated ? {} : "skip"
-  )
+  const { user, isLoading, isAuthenticated } = useCurrentUser()
 
   useEffect(() => {
     if (isLoading) return

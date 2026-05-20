@@ -1,7 +1,5 @@
 "use client"
 
-import { useConvexAuth } from "convex/react"
-import { useQuery } from "convex-helpers/react/cache"
 import { Building2, SearchX } from "lucide-react"
 import { useState } from "react"
 import {
@@ -12,21 +10,15 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
-import { api } from "@/convex/_generated/api"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import SupplierFilterBar from "@/features/suppliers/components/supplier-filter-bar"
 import SupplierTableContainer from "@/features/suppliers/components/supplier-table-container"
 import { useSupplierFilters } from "@/features/suppliers/hooks/use-supplier-filters"
+import { useSuppliers } from "@/features/suppliers/hooks/use-suppliers"
 
 export default function SuppliersPage() {
-  const { isAuthenticated } = useConvexAuth()
-  const user = useQuery(
-    api.users.queries.currentUser,
-    isAuthenticated ? {} : "skip"
-  )
-  const suppliers = useQuery(
-    api.suppliers.queries.list,
-    isAuthenticated ? {} : "skip"
-  )
+  const { user, isLoading: isUserLoading } = useCurrentUser()
+  const suppliers = useSuppliers()
   const {
     search,
     setSearch,
@@ -59,7 +51,7 @@ export default function SuppliersPage() {
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={setColumnVisibility}
       />
-      {user === undefined || filtered === undefined ? (
+      {isUserLoading || filtered === undefined ? (
         <Skeleton className="h-64 w-full" />
       ) : user?.role !== "owner" ? (
         <p className="text-sm text-muted-foreground">
