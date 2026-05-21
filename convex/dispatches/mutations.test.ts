@@ -11,6 +11,7 @@ const authMocks = vi.hoisted(() => ({
 const modules = {
   "./_generated/api.ts": () => import("../_generated/api"),
   "./_generated/server.ts": () => import("../_generated/server"),
+  "./auditLogs/mutations.ts": () => import("../auditLogs/mutations"),
   "./dispatches/mutations.ts": () => import("./mutations"),
 }
 
@@ -269,6 +270,16 @@ describe("dispatch mutations", () => {
       const logs = await ctx.db.query("auditLogs").collect()
       expect(logs).toHaveLength(1)
       expect(logs[0].action).toBe("dispatch_submit")
+      const description = JSON.parse(logs[0].description)
+      expect(description).toMatchObject({
+        summary: expect.stringContaining("Walk-in Customer"),
+        details: {
+          customerReference: "Walk-in Customer",
+          totalItems: 1,
+          totalBatches: 1,
+        },
+        changes: expect.objectContaining({}),
+      })
     })
   })
 

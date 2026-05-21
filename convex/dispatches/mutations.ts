@@ -1,4 +1,5 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
+import { internal } from "../_generated/api"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { submitDispatchArgs } from "./validators"
@@ -27,6 +28,9 @@ export const submit = zMutation({
     })
 
     let totalDispatchItems = 0
+    let totalCostDeducted = 0
+    const batchChanges: Record<string, { old: number; new: number }> = {}
+    const itemSummaries: string[] = []
 
     for (const item of items) {
       const product = await ctx.db.get(item.productId)
@@ -67,13 +71,18 @@ export const submit = zMutation({
       )
 
       let remaining = toDeduct
-      let totalCostDeducted = 0
+      let itemCost = 0
 
       for (const batch of availableBatches) {
         if (remaining <= 0) break
 
         const deducted = Math.min(remaining, batch.quantityRemaining)
         const newRemaining = batch.quantityRemaining - deducted
+
+        batchChanges[batch.batchCode] = {
+          old: batch.quantityRemaining,
+          new: newRemaining,
+        }
 
         // dispatchQuantity in the user's chosen UOM for this batch's portion
         let dispatchQty: number
@@ -101,8 +110,13 @@ export const submit = zMutation({
 
         remaining -= deducted
         totalCostDeducted += deducted * batch.unitCost
+        itemCost += deducted * batch.unitCost
         totalDispatchItems++
       }
+
+      itemSummaries.push(
+        `${product.name} x ${item.quantity} ${item.dispatchUom} (₱${itemCost.toFixed(2)})`
+      )
 
       // Guard: all requested quantity must be fulfilled
       if (remaining > 0) {
@@ -120,10 +134,22 @@ export const submit = zMutation({
       })
     }
 
-    await ctx.db.insert("auditLogs", {
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "dispatch_submit",
-      description: `Dispatched ${items.length} product(s) across ${totalDispatchItems} batch(es)`,
+      description: JSON.stringify({
+        summary: `Dispatched ${items.length} product(s) across ${totalDispatchItems} batch(es)${customerReference ? ` to ${customerReference}` : ""}`,
+        details: {
+          customerReference: customerReference ?? "—",
+          totalItems: items.length,
+          totalBatches: totalDispatchItems,
+          totalCost: totalCostDeducted.toFixed(2),
+          items: itemSummaries.join("; "),
+        },
+        changes: batchChanges,
+      }),
+      resourceType: "dispatch",
+      resourceId: dispatchId,
       userAgent,
     })
 

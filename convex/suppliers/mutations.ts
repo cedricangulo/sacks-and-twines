@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { zid } from "convex-helpers/server/zod4"
+import { internal } from "../_generated/api"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import {
@@ -41,10 +42,12 @@ export const create = zMutation({
       address,
     })
 
-    await ctx.db.insert("auditLogs", {
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "supplier_create",
       description: `Created supplier ${companyName}`,
+      resourceType: "supplier",
+      resourceId: supplierId,
       userAgent,
     })
 
@@ -98,10 +101,31 @@ export const update = zMutation({
       address,
     })
 
-    await ctx.db.insert("auditLogs", {
+    const changes: Record<string, { old: unknown; new: unknown }> = {}
+    if (companyName !== existing.companyName)
+      changes.company_name = { old: existing.companyName, new: companyName }
+    if (contactPerson !== existing.contactPerson)
+      changes.contact_person = {
+        old: existing.contactPerson,
+        new: contactPerson,
+      }
+    if (contactNumber !== existing.contactNumber)
+      changes.contact_number = {
+        old: existing.contactNumber,
+        new: contactNumber,
+      }
+    if (address !== existing.address)
+      changes.address = { old: existing.address, new: address }
+
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "supplier_update",
-      description: `Updated supplier ${existing.companyName} → ${companyName}`,
+      description: JSON.stringify({
+        summary: `Updated supplier ${existing.companyName} → ${companyName}`,
+        changes: Object.keys(changes).length > 0 ? changes : undefined,
+      }),
+      resourceType: "supplier",
+      resourceId: supplierId,
       userAgent,
     })
 
@@ -141,10 +165,12 @@ export const archive = zMutation({
 
     await ctx.db.patch(supplierId, { archivedAt: Date.now() })
 
-    await ctx.db.insert("auditLogs", {
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "supplier_archive",
       description: `Archived supplier ${existing.companyName}`,
+      resourceType: "supplier",
+      resourceId: supplierId,
       userAgent,
     })
 
@@ -174,10 +200,12 @@ export const unarchive = zMutation({
 
     await ctx.db.patch(supplierId, { archivedAt: undefined })
 
-    await ctx.db.insert("auditLogs", {
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "supplier_unarchive",
       description: `Unarchived supplier ${existing.companyName}`,
+      resourceType: "supplier",
+      resourceId: supplierId,
       userAgent,
     })
 

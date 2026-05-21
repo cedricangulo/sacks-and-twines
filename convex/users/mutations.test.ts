@@ -12,6 +12,7 @@ const authMocks = vi.hoisted(() => ({
 const modules = {
   "./_generated/api.ts": () => import("../_generated/api"),
   "./_generated/server.ts": () => import("../_generated/server"),
+  "./auditLogs/mutations.ts": () => import("../auditLogs/mutations"),
   "./users/queries.ts": () => import("./queries"),
   "./users/mutations.ts": () => import("./mutations"),
 }
@@ -150,7 +151,10 @@ describe("user mutations", () => {
         role: args.profile.role,
         status: args.profile.status,
       })
-      return { _id: userId, ...args.profile }
+      return {
+        user: { _id: userId, ...args.profile },
+        account: {},
+      }
     })
 
     const result = await t.mutation(api.users.mutations.create, {
@@ -160,6 +164,7 @@ describe("user mutations", () => {
     })
 
     expect(result).toMatchObject({
+      _id: expect.any(String),
       email: "staff@test.com",
       name: "New Staff",
       role: "staff",
@@ -258,7 +263,10 @@ describe("user mutations", () => {
         role: args.profile.role,
         status: args.profile.status,
       })
-      return { _id: userId, ...args.profile }
+      return {
+        user: { _id: userId, ...args.profile },
+        account: {},
+      }
     })
 
     for (let i = 0; i < 10; i++) {

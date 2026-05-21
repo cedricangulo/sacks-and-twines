@@ -1,4 +1,5 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
+import { internal } from "../_generated/api"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { createStockAdjustmentArgs } from "./validators"
@@ -60,16 +61,27 @@ export const create = zMutation({
         ),
         totalAssetValue: Math.max(0, product.totalAssetValue + costDelta),
       }),
-      ctx.db.insert("auditLogs", {
+      ctx.runMutation(internal.auditLogs.mutations.log, {
         userId: callerId,
         action: "stock_adjustment",
         description: JSON.stringify({
-          batchCode: batch.batchCode,
-          productName: product.name,
-          quantityAdjusted,
-          reason,
-          direction,
+          summary: `Stock ${direction === "add" ? "added to" : "deducted from"} ${product.name} (${reason})`,
+          details: {
+            batchCode: batch.batchCode,
+            productName: product.name,
+            quantityAdjusted,
+            reason,
+            direction,
+          },
+          changes: {
+            qty_remaining: {
+              old: batch.quantityRemaining,
+              new: newRemaining,
+            },
+          },
         }),
+        resourceType: "batch",
+        resourceId: batchId,
         userAgent,
       }),
     ])

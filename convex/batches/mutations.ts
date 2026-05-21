@@ -1,4 +1,5 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
+import { internal } from "../_generated/api"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { stockInArgs, updateBatchArgs, voidBatchArgs } from "./validators"
@@ -125,7 +126,7 @@ export const stockIn = zMutation({
         )
     }
 
-    await ctx.db.insert("batches", {
+    const batchId = await ctx.db.insert("batches", {
       productId: resolvedProductId,
       supplierId,
       userId: callerId,
@@ -156,13 +157,25 @@ export const stockIn = zMutation({
       await ctx.db.patch(resolvedProductId, patch)
     }
 
-    await ctx.db.insert("auditLogs", {
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "stock_in",
-      description:
-        mode === "existing"
-          ? `Stocked in ${quantityReceived} units (${batchCode}) into existing product`
-          : `Created product ${name} and stocked in ${quantityReceived} units (${batchCode})`,
+      description: JSON.stringify({
+        summary:
+          mode === "existing"
+            ? `Stocked in ${quantityReceived} units of ${product?.name} (${batchCode})`
+            : `Created product ${name} and stocked in ${quantityReceived} units (${batchCode})`,
+        details: {
+          product: mode === "existing" ? (product?.name ?? "—") : (name ?? "—"),
+          batchCode,
+          quantity: quantityReceived,
+          supplier: supplierDoc?.companyName ?? "—",
+          totalCost: totalProcurementCost,
+          unitCost,
+        },
+      }),
+      resourceType: "batch",
+      resourceId: batchId,
       userAgent,
     })
 
@@ -204,6 +217,8 @@ export const update = zMutation({
     if (batch.status === "voided")
       throw new Error("Cannot update a voided batch")
 
+    const changes: Record<string, { old: unknown; new: unknown }> = {}
+
     const [dispatchItems, adjustments] = await Promise.all([
       ctx.db
         .query("dispatchItems")
@@ -236,6 +251,10 @@ export const update = zMutation({
           ctx.db.get(batch.supplierId),
           ctx.db.get(supplierId),
         ])
+        changes.supplier_name = {
+          old: oldSupplierDoc?.companyName,
+          new: newSupplierDoc?.companyName,
+        }
         await Promise.all([
           oldSupplierDoc?.batchCount !== undefined
             ? ctx.db.patch(batch.supplierId, {
@@ -255,6 +274,20 @@ export const update = zMutation({
       const oldCost = batch.totalProcurementCost
       const qtyDelta = quantityReceived - oldQty
       const costDelta = totalProcurementCost - oldCost
+
+      if (oldQty !== quantityReceived) {
+        changes.qty_received = { old: oldQty, new: quantityReceived }
+        changes.qty_remaining = {
+          old: batch.quantityRemaining,
+          new: batch.quantityRemaining + qtyDelta,
+        }
+      }
+      if (oldCost !== totalProcurementCost) {
+        changes.total_cost = { old: oldCost, new: totalProcurementCost }
+      }
+      if (unitCost !== batch.unitCost) {
+        changes.unit_cost = { old: batch.unitCost, new: unitCost }
+      }
 
       await ctx.db.patch(batchId, {
         supplierId,
@@ -285,6 +318,10 @@ export const update = zMutation({
           ctx.db.get(batch.supplierId),
           ctx.db.get(supplierId),
         ])
+        changes.supplier_name = {
+          old: oldSupplierDoc?.companyName,
+          new: newSupplierDoc?.companyName,
+        }
         await Promise.all([
           oldSupplierDoc?.batchCount !== undefined
             ? ctx.db.patch(batch.supplierId, {
@@ -300,10 +337,15 @@ export const update = zMutation({
       }
     }
 
-    await ctx.db.insert("auditLogs", {
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "batch_update",
-      description: `Updated batch ${batch.batchCode}`,
+      description: JSON.stringify({
+        summary: `Updated batch ${batch.batchCode}`,
+        changes: Object.keys(changes).length > 0 ? changes : undefined,
+      }),
+      resourceType: "batch",
+      resourceId: batchId,
       userAgent,
     })
 
@@ -369,16 +411,22 @@ export const voidBatch = zMutation({
     )
     const voidedCount = voidedAdjustments.length
 
-    await ctx.db.insert("auditLogs", {
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "batch_void",
-      description: [
-        `Voided batch ${batch.batchCode}`,
-        `Removed ${batch.quantityRemaining} units from ${product?.name ?? "product"}`,
-        reason ? `Reason: ${reason}` : null,
-      ]
-        .filter(Boolean)
-        .join(". "),
+      description: JSON.stringify({
+        summary: `Voided batch ${batch.batchCode} — removed ${batch.quantityRemaining} units from ${product?.name ?? "product"}`,
+        details: {
+          batchCode: batch.batchCode,
+          product: product?.name ?? "—",
+          unitsRemoved: batch.quantityRemaining,
+          costRemoved: batch.totalProcurementCost,
+          voidedAdjustments: voidedCount,
+          reason: reason ?? "—",
+        },
+      }),
+      resourceType: "batch",
+      resourceId: batchId,
       userAgent,
     })
 

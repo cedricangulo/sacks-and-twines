@@ -11,6 +11,7 @@ const authMocks = vi.hoisted(() => ({
 const modules = {
   "./_generated/api.ts": () => import("../_generated/api"),
   "./_generated/server.ts": () => import("../_generated/server"),
+  "./auditLogs/mutations.ts": () => import("../auditLogs/mutations"),
   "./users/queries.ts": () => import("../users/queries"),
   "./users/mutations.ts": () => import("../users/mutations"),
   "./suppliers/queries.ts": () => import("./queries"),
@@ -327,7 +328,19 @@ describe("supplier mutations", () => {
     expect(auditLog).toMatchObject({
       userId: ownerId,
       action: "supplier_update",
-      description: "Updated supplier Old Name → New Name",
+    })
+    const description = JSON.parse(auditLog!.description)
+    expect(description).toMatchObject({
+      summary: "Updated supplier Old Name → New Name",
+      changes: {
+        company_name: { old: "Old Name", new: "New Name" },
+        contact_person: { old: "Old Contact", new: "New Contact" },
+        contact_number: { old: "09171234567", new: "09179876543" },
+        address: {
+          old: "Old Address Street City",
+          new: "New Address Street City",
+        },
+      },
     })
   })
 

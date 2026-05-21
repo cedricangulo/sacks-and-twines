@@ -11,6 +11,7 @@ const authMocks = vi.hoisted(() => ({
 const modules = {
   "./_generated/api.ts": () => import("../_generated/api"),
   "./_generated/server.ts": () => import("../_generated/server"),
+  "./auditLogs/mutations.ts": () => import("../auditLogs/mutations"),
   "./products/queries.ts": () => import("./queries"),
   "./products/mutations.ts": () => import("./mutations"),
   "./users/queries.ts": () => import("../users/queries"),

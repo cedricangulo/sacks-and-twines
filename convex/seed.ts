@@ -140,12 +140,12 @@ const PRODUCT_DEFS: ProductDef[] = [
 ]
 
 const PRODUCT_IMAGE_MAP: Record<string, string> = {
-  "Rice Sack": "kg2e9g9wf9a13e1p3c04kq05hx86zrdg",
-  "Gunny Sack": "kg22vfdmxf6rw81g098zsezpa586zs1w",
-  "Flour Sack": "kg2cw8n4spc33trcrr4gjc25q186z19g",
-  "Binder Twine": "kg20h27w8mg8kt8arnfnc4jmqn86ytc9",
-  "Baler Twine": "kg27e2gwxzbjeje7be494a4r2d86ygfk",
-  "Sisal Twine": "kg22gjb2f09z5whj1vwqv7mdbd86zqce",
+  "Rice Sack": "kg274bbqe3y204k3t9rb9pkbv58773qm",
+  "Gunny Sack": "kg26bxcwgxghe3kgnfrngreh89876fjg",
+  "Flour Sack": "kg24nnbp9tc1gfb0n0krd9hw958764sw",
+  "Binder Twine": "kg28hxx2hbbcxyek93y5sxj9658773qy",
+  "Baler Twine": "kg2bxmmkvnrdp6fyzcg05ejdcn876kgt",
+  "Sisal Twine": "kg27da983b0880hwwvhn2khqqh8778en",
 }
 
 // ─── Internal Mutation: writeAll ───────────────────────────────────────────
@@ -585,13 +585,16 @@ export const writeAll = internalMutation({
           userId: ownerId,
           action: "stock_in",
           description: JSON.stringify({
-            resource_type: "product",
-            resource_id: batch.productId,
-            product_name: productName,
-            quantity: toFloat(totalReceived),
-            uom: pDef?.baseUom ?? "piece",
-            batch_code: batch.batchCode,
+            summary: `Stocked in ${toFloat(totalReceived)} units of ${productName} (${batch.batchCode})`,
+            details: {
+              product: productName,
+              batchCode: batch.batchCode,
+              quantity: toFloat(totalReceived),
+              uom: pDef?.baseUom ?? "piece",
+            },
           }),
+          resourceType: "batch",
+          resourceId: batch.id,
           ipAddress: "127.0.0.1",
           userAgent: "Convex Seed",
           createdAt: batch.createdDate.getTime(),
@@ -612,27 +615,29 @@ export const writeAll = internalMutation({
       const items = dispatchItemGroups[dispatch.id]
       if (!items || items.length === 0) continue
 
-      const products = items.map((item) => ({
-        name: productNameById[item.productId] ?? "Unknown",
-        category:
-          productByName[productNameById[item.productId]]?.category ?? "sacks",
-        uom: item.dispatchUom,
-        quantity: item.dispatchQuantity,
-      }))
+      const products = items
+        .map(
+          (item) =>
+            `${productNameById[item.productId] ?? "Unknown"} x ${item.dispatchQuantity} ${item.dispatchUom}`
+        )
+        .join("; ")
 
       dispatchLogPromises.push(
         ctx.db.insert("auditLogs", {
           userId: dispatch.userId,
           action: "stock_out",
           description: JSON.stringify({
-            resource_type: "dispatch",
-            resource_id: dispatch.id,
-            total_quantity: toFloat(
-              items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
-            ),
-            items_count: items.length,
-            products,
+            summary: `Dispatched ${items.length} product(s) (${toFloat(items.reduce((sum, item) => sum + item.dispatchQuantity, 0))} units)`,
+            details: {
+              totalItems: items.length,
+              totalQuantity: toFloat(
+                items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
+              ),
+              products,
+            },
           }),
+          resourceType: "dispatch",
+          resourceId: dispatch.id,
           ipAddress: "127.0.0.1",
           userAgent: "Convex Seed",
           createdAt: dispatch.createdDate.getTime(),
@@ -659,16 +664,17 @@ export const writeAll = internalMutation({
           userId: ownerId,
           action: "stock_adjustment",
           description: JSON.stringify({
-            resource_type: "batch",
-            resource_id: adj.batchId,
-            product_name: productName,
-            quantity_adjusted: adj.quantity,
-            reason: adj.reason,
-            direction:
-              adj.reason === "damaged" || adj.reason === "lost"
-                ? "deduct"
-                : "add",
-            batch_code: batchCode,
+            summary: `Adjusted stock for ${productName} (${adj.reason === "damaged" || adj.reason === "lost" ? "deduct" : "add"}, ${adj.reason})`,
+            details: {
+              productName,
+              quantityAdjusted: adj.quantity,
+              reason: adj.reason,
+              direction:
+                adj.reason === "damaged" || adj.reason === "lost"
+                  ? "deduct"
+                  : "add",
+              batchCode,
+            },
             changes: {
               quantity_remaining: {
                 old: beforeRemaining,
@@ -676,6 +682,8 @@ export const writeAll = internalMutation({
               },
             },
           }),
+          resourceType: "batch",
+          resourceId: adj.batchId,
           ipAddress: "127.0.0.1",
           userAgent: "Convex Seed",
           createdAt: logDate.getTime(),
@@ -722,6 +730,8 @@ export const writeAll = internalMutation({
           userId: ownerId,
           action: event.action as string,
           description: JSON.stringify(event),
+          resourceType: "user",
+          resourceId: ownerId,
           ipAddress: "127.0.0.1",
           userAgent: "Convex Seed",
           createdAt: logDate.getTime(),
