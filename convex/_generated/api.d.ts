@@ -8,7 +8,11 @@
  * @module
  */
 
+import type * as auditLogs_mutations from "../auditLogs/mutations.js";
+import type * as auditLogs_queries from "../auditLogs/queries.js";
 import type * as auth from "../auth.js";
+import type * as auth_logAttempt from "../auth/logAttempt.js";
+import type * as auth_verify from "../auth/verify.js";
 import type * as batches_mutations from "../batches/mutations.js";
 import type * as batches_queries from "../batches/queries.js";
 import type * as batches_validators from "../batches/validators.js";
@@ -42,7 +46,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "auditLogs/mutations": typeof auditLogs_mutations;
+  "auditLogs/queries": typeof auditLogs_queries;
   auth: typeof auth;
+  "auth/logAttempt": typeof auth_logAttempt;
+  "auth/verify": typeof auth_verify;
   "batches/mutations": typeof batches_mutations;
   "batches/queries": typeof batches_queries;
   "batches/validators": typeof batches_validators;
