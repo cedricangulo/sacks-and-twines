@@ -1,9 +1,11 @@
 "use client"
 
 import { useAuthActions } from "@convex-dev/auth/react"
+import { useMutation } from "convex/react"
 import { useRouter } from "next/navigation"
 import { SubmitEvent, useState } from "react"
 import { z } from "zod"
+import { api } from "@/convex/_generated/api"
 
 const SignInSchema = z.object({
   email: z.email(),
@@ -13,6 +15,7 @@ const SignInSchema = z.object({
 function useSubmitSignIn() {
   const { signIn } = useAuthActions()
   const router = useRouter()
+  const logAttempt = useMutation(api.auth.logAttempt.logAttempt)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -38,15 +41,46 @@ function useSubmitSignIn() {
       const result = await signIn("password", formData)
       if (result && typeof result === "object" && "signingIn" in result) {
         if (result.signingIn) {
+          logAttempt({
+            action: "auth_sign_in",
+            email: parsed.data.email,
+            resourceType: "user",
+            userAgent: navigator.userAgent,
+          }).catch(() => {})
           router.push("/")
         }
       } else if (result === undefined) {
-        // signIn may return undefined for some flows; still navigate
+        logAttempt({
+          action: "auth_sign_in",
+          email: parsed.data.email,
+          resourceType: "user",
+          userAgent: navigator.userAgent,
+        }).catch(() => {})
         router.push("/")
       }
     } catch (err) {
-      setError("Invalid email or password. Please try again.")
-      console.error("Sign in failed", err)
+      logAttempt({
+        action: "auth_sign_in_failed",
+        email: parsed.data.email,
+        resourceType: "user",
+        userAgent: navigator.userAgent,
+      }).catch(() => {})
+
+      const isRateLimited =
+        err instanceof Error &&
+        (err.message.includes("RateLimited") ||
+          err.message.includes("rate limit") ||
+          err.message.includes("Too many sign-in"))
+
+      setError(
+        isRateLimited
+          ? "Too many sign-in attempts. Please try again later."
+          : "Invalid email or password. Please try again."
+      )
+
+      if (!isRateLimited) {
+        console.error("Sign in failed", err)
+      }
     } finally {
       setPending(false)
     }

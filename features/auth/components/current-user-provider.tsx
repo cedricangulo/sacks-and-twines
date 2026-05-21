@@ -2,7 +2,7 @@
 
 import { useConvexAuth } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
-import { createContext, useContext } from "react"
+import { createContext, use, useEffect, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Doc } from "@/convex/_generated/dataModel"
 
@@ -21,13 +21,20 @@ export function CurrentUserProvider({
 }: {
   children: React.ReactNode
 }) {
+  const [isHydrating, setIsHydrating] = useState(true)
+
+  useEffect(() => {
+    setIsHydrating(false)
+  }, [])
+
   const { isLoading: isAuthLoading, isAuthenticated } = useConvexAuth()
   const user = useQuery(
     api.users.queries.currentUser,
     isAuthenticated ? {} : "skip"
   )
 
-  const isLoading = isAuthLoading || (user === undefined && isAuthenticated)
+  const isLoading =
+    isAuthLoading || isHydrating || (user === undefined && isAuthenticated)
 
   return (
     <CurrentUserContext.Provider value={{ user, isLoading, isAuthenticated }}>
@@ -37,7 +44,7 @@ export function CurrentUserProvider({
 }
 
 export function useCurrentUser(): CurrentUserContextValue {
-  const context = useContext(CurrentUserContext)
+  const context = use(CurrentUserContext)
   if (context === undefined) {
     throw new Error("useCurrentUser must be used within a CurrentUserProvider")
   }

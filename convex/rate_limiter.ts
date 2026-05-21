@@ -12,7 +12,7 @@
  * ──────────────────────────────────────────────────────────────
  */
 
-import { MINUTE, RateLimiter } from "@convex-dev/rate-limiter"
+import { HOUR, MINUTE, RateLimiter } from "@convex-dev/rate-limiter"
 import { components } from "./_generated/api"
 
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
@@ -93,6 +93,15 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     period: MINUTE,
     rate: 20,
     capacity: 40,
+  },
+
+  // ── Auth ────────────────────────────────────────────────────
+  /** Failed sign-in attempts per email address */
+  signInFailed: {
+    kind: "token bucket",
+    period: HOUR,
+    rate: 10,
+    capacity: 10,
   },
 
   // ── Future: Dispatches ──────────────────────────────────────
