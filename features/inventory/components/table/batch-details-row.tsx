@@ -22,25 +22,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { Id } from "@/convex/_generated/dataModel"
+import { formatCurrency, formatDateTime, formatNumber } from "@/lib/formatters"
 import { useBatches } from "../../hooks/use-batches"
 import type { Batch } from "../../validation"
 import BatchActionsMenu from "./batch-actions-menu"
-
-const currencyFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-})
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-})
-
-const formatCurrency = (value: number) => currencyFormatter.format(value)
-const formatDateTime = (timestamp: number) =>
-  dateFormatter.format(new Date(timestamp))
 
 const columnHelper = createColumnHelper<Batch>()
 
@@ -71,14 +56,18 @@ export default function BatchDetailsRow({
       columnHelper.accessor("quantityReceived", {
         header: "Qty Received",
         cell: (info) => (
-          <span className="font-mono tabular-nums">{info.getValue()}</span>
+          <span className="font-mono tabular-nums">
+            {formatNumber(info.getValue())}
+          </span>
         ),
         sortingFn: "basic",
       }),
       columnHelper.accessor("quantityRemaining", {
         header: "Qty Remaining",
         cell: (info) => (
-          <span className="font-mono tabular-nums">{info.getValue()}</span>
+          <span className="font-mono tabular-nums">
+            {formatNumber(info.getValue())}
+          </span>
         ),
         sortingFn: "basic",
       }),

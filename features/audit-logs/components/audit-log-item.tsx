@@ -7,6 +7,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
+import { formatDateTime } from "@/lib/formatters"
 import { FIELD_LABELS } from "../constants"
 import { formatRelativeTime } from "../helpers/format-relative-time"
 import {
@@ -21,24 +22,13 @@ interface AuditLogItemProps {
   isExpanded: boolean
 }
 
-const timestampFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  second: "2-digit",
-})
-
 export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
   const detail = useAuditLogDetail(log._id, isExpanded)
   const isLoading = isExpanded && detail === undefined
 
   const displayName = log.userName ?? "Unknown"
   const relativeTime = formatRelativeTime(log._creationTime)
-  const formattedTimestamp = timestampFormatter.format(
-    new Date(log._creationTime)
-  )
+  const formattedTimestamp = formatDateTime(log._creationTime)
 
   const parsedDesc = parseDescription(log.description)
 

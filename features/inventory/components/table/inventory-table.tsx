@@ -34,27 +34,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { formatCurrency, formatDateTime, formatNumber } from "@/lib/formatters"
 import { cn, getInitials } from "@/lib/utils"
 import type { Product } from "../../validation"
 import BatchDetailsRow from "./batch-details-row"
 import InventoryTableRow from "./inventory-table-row"
 import ProductTableActions from "./product-table-actions"
-
-const currencyFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-})
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-})
-
-const formatCurrency = (value: number) => currencyFormatter.format(value)
-const formatDateTime = (timestamp: number) =>
-  dateFormatter.format(new Date(timestamp))
 
 const columnHelper = createColumnHelper<Product>()
 
@@ -128,7 +113,7 @@ export default function InventoryTable({
         header: "Stock",
         cell: (info) => (
           <span className="font-mono tabular-nums">
-            {info.getValue().toLocaleString()}
+            {formatNumber(info.getValue())}
           </span>
         ),
         sortingFn: "basic",

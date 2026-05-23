@@ -28,19 +28,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { formatDateTime } from "@/lib/formatters"
 import type { Dispatch as DispatchType } from "../../validation"
 import DispatchItemsRow from "./dispatch-items-row"
 import DispatchTableRow from "./dispatch-table-row"
-
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-})
-const formatDateTime = (timestamp: number) =>
-  dateFormatter.format(new Date(timestamp))
 
 const columnHelper = createColumnHelper<DispatchType>()
 

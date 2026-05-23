@@ -29,6 +29,7 @@ import {
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
+import { formatNumber } from "@/lib/formatters"
 import { useStockAdjustForm } from "../../hooks/use-stock-adjust-form"
 
 const REASONS_BY_DIRECTION: Record<
@@ -133,14 +134,14 @@ export default function AdjustStockDialog({
           <p>
             <span className="text-muted-foreground">Current stock:</span>{" "}
             <span className="font-medium">
-              {(product?.currentQuantity ?? 0).toLocaleString()}{" "}
+              {formatNumber(product?.currentQuantity ?? 0)}{" "}
               {product?.baseUom ?? "pcs"}
             </span>
           </p>
           <p>
             <span className="text-muted-foreground">Quantity Remaining:</span>{" "}
             <span className="font-medium">
-              {batchQuantity.toLocaleString()} {product?.baseUom ?? "pcs"}
+              {formatNumber(batchQuantity)} {product?.baseUom ?? "pcs"}
             </span>
           </p>
         </div>
@@ -237,15 +238,17 @@ export default function AdjustStockDialog({
               <p className="text-sm text-muted-foreground">
                 New stock after adjustment:{" "}
                 <span className="font-medium">
-                  {newQuantity.toLocaleString()} {product?.baseUom ?? "pcs"}
+                  {formatNumber(newQuantity)} {product?.baseUom ?? "pcs"}
                 </span>
               </p>
               <p className="text-sm text-muted-foreground">
                 Adjusted quantity:{" "}
                 <span className="font-medium">
-                  {batchQuantity - parsedQty <= 0
-                    ? 0
-                    : batchQuantity - parsedQty}{" "}
+                  {formatNumber(
+                    batchQuantity - parsedQty <= 0
+                      ? 0
+                      : batchQuantity - parsedQty
+                  )}{" "}
                   {product?.baseUom ?? "pcs"}
                 </span>
               </p>

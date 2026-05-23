@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { formatNumber } from "@/lib/formatters"
 import { getInitials } from "@/lib/utils"
 import { useDispatchQueueContext } from "../hooks/dispatch-queue-context"
 import { useDispatchSubmit } from "../hooks/use-dispatch-submit"
@@ -54,7 +55,7 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
                     {item.name}
                   </h4>
                   <p className="font-mono type-base tabular-nums text-muted-foreground">
-                    {item.quantity.toLocaleString()} {item.dispatchUom}
+                    {formatNumber(item.quantity)} {item.dispatchUom}
                     {item.quantity !== 1 ? "s" : ""}
                   </p>
                 </div>
