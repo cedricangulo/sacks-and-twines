@@ -2,8 +2,8 @@
 
 import type { SubmitEvent } from "react"
 import { useMemo, useState } from "react"
-import { useProducts } from "@/features/products/hooks/use-products"
-import { useSuppliers } from "@/features/suppliers/hooks/use-suppliers"
+import { useActiveProducts } from "@/features/products/hooks/use-products"
+import { useSupplierOptions } from "@/features/suppliers/hooks/use-suppliers"
 import { useImageUpload } from "@/lib/hooks/use-image-upload"
 import { type StockInFieldErrors, validateStockIn } from "../validation"
 import { useCreateStockIn } from "./use-create-stock-in"
@@ -50,8 +50,8 @@ const EMPTY_FIELDS: FieldValues = {
 }
 
 export function useInventoryDialog() {
-  const products = useProducts()
-  const suppliers = useSuppliers()
+  const products = useActiveProducts()
+  const supplierOptions = useSupplierOptions()
   const create = useCreateStockIn()
   const image = useImageUpload()
 
@@ -69,23 +69,6 @@ export function useInventoryDialog() {
   const selectedProduct = useMemo(
     () => products?.find((p) => p._id === selectedProductId) ?? null,
     [products, selectedProductId]
-  )
-
-  const supplierOptions = useMemo(
-    () =>
-      suppliers?.reduce<Array<{ id: string; name: string }>>(
-        (
-          acc,
-          s: { archivedAt?: number; _id: unknown; companyName: string }
-        ) => {
-          if (!s.archivedAt) {
-            acc.push({ id: String(s._id), name: s.companyName })
-          }
-          return acc
-        },
-        []
-      ) ?? [],
-    [suppliers]
   )
 
   const refreshDraftCodes = () => {

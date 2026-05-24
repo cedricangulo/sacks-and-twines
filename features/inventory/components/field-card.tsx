@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Id } from "@/convex/_generated/dataModel"
 import SupplierCombobox from "@/features/suppliers/components/supplier-combobox"
 import type { StockInFieldErrors } from "../validation"
 
@@ -33,7 +34,7 @@ interface FieldCardState {
   }
   locked: Record<string, boolean>
   errors: StockInFieldErrors
-  supplierOptions: Array<{ id: string; name: string }>
+  supplierOptions: { id: Id<"suppliers">; name: string }[] | null
 }
 
 interface FieldCardActions {
@@ -212,7 +213,7 @@ const FieldCard = memo(function FieldCard({
           hasError={!!errors.supplierId}
         >
           <SupplierCombobox
-            suppliers={supplierOptions}
+            suppliers={supplierOptions ?? []}
             value={fields.supplierId}
             onChange={(v) => {
               onFieldChange("supplierId", v)
