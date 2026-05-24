@@ -25,6 +25,20 @@ export const list = query({
   },
 })
 
+export const listActiveOptions = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (userId === null) throw new Error("Unauthorized")
+
+    const suppliers = await ctx.db.query("suppliers").collect()
+
+    return suppliers
+      .filter((s) => s.archivedAt === undefined)
+      .map((s) => ({ _id: s._id, companyName: s.companyName }))
+  },
+})
+
 export const getById = query({
   args: { supplierId: v.id("suppliers") },
   handler: async (ctx, { supplierId }) => {

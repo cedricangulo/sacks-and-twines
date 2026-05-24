@@ -8,3 +8,11 @@ export function useProducts() {
   const { isAuthenticated } = useCurrentUser()
   return useQuery(api.products.queries.list, isAuthenticated ? {} : "skip")
 }
+
+export function useActiveProducts() {
+  const { isAuthenticated } = useCurrentUser()
+  return useQuery(
+    api.products.queries.listActive,
+    isAuthenticated ? {} : "skip"
+  )
+}
