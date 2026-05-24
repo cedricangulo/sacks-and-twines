@@ -38,6 +38,9 @@ importers:
       convex-helpers:
         specifier: ^0.1.118
         version: 0.1.118(@standard-schema/spec@1.1.0)(convex@1.39.1(react@19.2.6))(hono@4.12.18)(react@19.2.6)(typescript@5.9.3)(zod@4.4.3)
+      jwt-decode:
+        specifier: ^4.0.0
+        version: 4.0.0
       lucia:
         specifier: ^3.2.2
         version: 3.2.2

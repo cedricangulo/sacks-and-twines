@@ -90,7 +90,7 @@ export const listDispatchReady = query({
     if (userId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(userId)
-    if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
+    if (!caller || caller.status !== "active") throw new Error("Unauthorized")
 
     const products = await ctx.db
       .query("products")

@@ -81,10 +81,7 @@ export default function ProductCombobox({
             />
           </div>
 
-          <div
-            className="overflow-y-auto max-h-68"
-            id="product-listbox"
-          >
+          <div className="overflow-y-auto max-h-68" id="product-listbox">
             {filtered.length === 0 ? (
               <p className="p-4 text-center type-sm text-destructive-foreground">
                 No items found.

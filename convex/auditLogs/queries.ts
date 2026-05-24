@@ -94,6 +94,27 @@ export const getById = query({
   },
 })
 
+export const getPersonalById = query({
+  args: { logId: v.id("auditLogs") },
+  handler: async (ctx, { logId }) => {
+    const callerId = await getAuthUserId(ctx)
+    if (callerId === null) throw new Error("Unauthorized")
+
+    const caller = await ctx.db.get(callerId)
+    if (!caller || caller.status !== "active") throw new Error("Unauthorized")
+
+    const log = await ctx.db.get(logId)
+    if (!log) return null
+    if (log.userId !== callerId) throw new Error("Unauthorized")
+
+    const userName = caller.name ?? null
+    const userEmail = caller.email
+    const userRole = caller.role ?? null
+
+    return { ...log, userName, userEmail, userRole }
+  },
+})
+
 export const listByUser = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, { paginationOpts }) => {

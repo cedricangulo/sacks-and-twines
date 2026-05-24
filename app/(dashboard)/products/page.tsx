@@ -55,7 +55,7 @@ export default function ProductsPage() {
         onClear={clearFilters}
       />
       {filtered === undefined ? (
-        <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+        <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
           <div className="absolute bottom-0 left-0 z-20 w-full h-2/4 bg-linear-to-t from-background to-transparent" />
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-81 rounded-4xl" />
@@ -64,7 +64,7 @@ export default function ProductsPage() {
       ) : (
         <>
           {filtered.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
               {filtered.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}

@@ -53,4 +53,10 @@ const passwordProvider = ConvexCredentials({
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [passwordProvider],
+  jwt: {
+    customClaims: async (ctx, { userId }) => {
+      const user = await ctx.db.get(userId)
+      return { role: user?.role ?? null }
+    },
+  },
 })

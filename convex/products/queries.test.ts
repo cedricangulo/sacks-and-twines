@@ -35,10 +35,10 @@ describe("product queries", () => {
 
   async function createUser(
     t: ReturnType<typeof convexTest>,
-    user: { email: string; name: string; role: "owner" | "staff" }
+    user: { email: string; name: string; role: "owner" | "staff"; status?: "active" | "deactivated" }
   ) {
     return await t.run(async (ctx) => {
-      return await ctx.db.insert("users", user)
+      return await ctx.db.insert("users", { status: "active", ...user })
     })
   }
 
@@ -268,14 +268,10 @@ describe("product queries", () => {
     ).rejects.toThrowError("Unauthorized")
   })
 
-  it("listDispatchReady rejects non-owners", async () => {
+  it("listDispatchReady rejects unauthenticated users", async () => {
     const t = makeTest()
-    const staffId = await createUser(t, {
-      email: "staff@test.com",
-      name: "Staff",
-      role: "staff",
-    })
-    authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
 
     await expect(
       t.query(api.products.queries.listDispatchReady)
