@@ -248,52 +248,34 @@ describe("signIn action", () => {
   })
 
   // Scenario 5+7: Rate limiting — 11 failed attempts should be blocked
-  it(
-    "rate limits after 10 failed attempts per email",
-    SLOW,
-    async () => {
-      const t = makeTest()
-      await seedUserWithPassword(t, "ratelimit@test.com", "correct-pw")
+  it("rate limits after 10 failed attempts per email", SLOW, async () => {
+    const t = makeTest()
+    await seedUserWithPassword(t, "ratelimit@test.com", "correct-pw")
 
-      const attempt = (password: string) =>
-        t.action(api.auth.signIn, {
-          provider: "password",
-          params: { flow: "signIn", email: "ratelimit@test.com", password },
-        })
+    const attempt = (password: string) =>
+      t.action(api.auth.signIn, {
+        provider: "password",
+        params: { flow: "signIn", email: "ratelimit@test.com", password },
+      })
 
-      for (let i = 0; i < 10; i++) {
-        await expect(attempt("wrong-" + i)).rejects.toThrow(
-          ERROR_MESSAGES.INVALID_CREDENTIALS
-        )
-      }
-
-      await expect(attempt("wrong-11")).rejects.toThrow(
-        ERROR_MESSAGES.RATE_LIMITED
+    for (let i = 0; i < 10; i++) {
+      await expect(attempt("wrong-" + i)).rejects.toThrow(
+        ERROR_MESSAGES.INVALID_CREDENTIALS
       )
-    })
+    }
+
+    await expect(attempt("wrong-11")).rejects.toThrow(
+      ERROR_MESSAGES.RATE_LIMITED
+    )
+  })
 
   // Scenario 9: Different email has independent rate limit bucket
-  it(
-    "different emails have separate rate limit buckets",
-    SLOW,
-    async () => {
-      const t = makeTest()
-      await seedUserWithPassword(t, "bucket1@test.com", "pw1")
-      await seedUserWithPassword(t, "bucket2@test.com", "pw2")
+  it("different emails have separate rate limit buckets", SLOW, async () => {
+    const t = makeTest()
+    await seedUserWithPassword(t, "bucket1@test.com", "pw1")
+    await seedUserWithPassword(t, "bucket2@test.com", "pw2")
 
-      for (let i = 0; i < 10; i++) {
-        await expect(
-          t.action(api.auth.signIn, {
-            provider: "password",
-            params: {
-              flow: "signIn",
-              email: "bucket1@test.com",
-              password: "wrong",
-            },
-          })
-        ).rejects.toThrow()
-      }
-
+    for (let i = 0; i < 10; i++) {
       await expect(
         t.action(api.auth.signIn, {
           provider: "password",
@@ -303,49 +285,58 @@ describe("signIn action", () => {
             password: "wrong",
           },
         })
-      ).rejects.toThrow(ERROR_MESSAGES.RATE_LIMITED)
+      ).rejects.toThrow()
+    }
 
-      await expect(
-        t.action(api.auth.signIn, {
-          provider: "password",
-          params: {
-            flow: "signIn",
-            email: "bucket2@test.com",
-            password: "pw2",
-          },
-        })
-      ).resolves.toHaveProperty("tokens")
-    })
+    await expect(
+      t.action(api.auth.signIn, {
+        provider: "password",
+        params: {
+          flow: "signIn",
+          email: "bucket1@test.com",
+          password: "wrong",
+        },
+      })
+    ).rejects.toThrow(ERROR_MESSAGES.RATE_LIMITED)
+
+    await expect(
+      t.action(api.auth.signIn, {
+        provider: "password",
+        params: {
+          flow: "signIn",
+          email: "bucket2@test.com",
+          password: "pw2",
+        },
+      })
+    ).resolves.toHaveProperty("tokens")
+  })
 
   // Scenario 8: Successful sign-in resets rate limit counter
-  it(
-    "resets rate limit on successful sign-in",
-    SLOW,
-    async () => {
-      const t = makeTest()
-      await seedUserWithPassword(t, "reset@test.com", "correct-pw")
+  it("resets rate limit on successful sign-in", SLOW, async () => {
+    const t = makeTest()
+    await seedUserWithPassword(t, "reset@test.com", "correct-pw")
 
-      const attempt = (password: string) =>
-        t.action(api.auth.signIn, {
-          provider: "password",
-          params: { flow: "signIn", email: "reset@test.com", password },
-        })
+    const attempt = (password: string) =>
+      t.action(api.auth.signIn, {
+        provider: "password",
+        params: { flow: "signIn", email: "reset@test.com", password },
+      })
 
-      for (let i = 0; i < 5; i++) {
-        await expect(attempt("wrong-" + i)).rejects.toThrow()
-      }
+    for (let i = 0; i < 5; i++) {
+      await expect(attempt("wrong-" + i)).rejects.toThrow()
+    }
 
-      const result = await attempt("correct-pw")
-      expect(result.tokens).not.toBeNull()
+    const result = await attempt("correct-pw")
+    expect(result.tokens).not.toBeNull()
 
-      for (let i = 0; i < 10; i++) {
-        await expect(attempt("wrong-" + (10 + i))).rejects.toThrow(
-          ERROR_MESSAGES.INVALID_CREDENTIALS
-        )
-      }
-
-      await expect(attempt("wrong-final")).rejects.toThrow(
-        ERROR_MESSAGES.RATE_LIMITED
+    for (let i = 0; i < 10; i++) {
+      await expect(attempt("wrong-" + (10 + i))).rejects.toThrow(
+        ERROR_MESSAGES.INVALID_CREDENTIALS
       )
-    })
+    }
+
+    await expect(attempt("wrong-final")).rejects.toThrow(
+      ERROR_MESSAGES.RATE_LIMITED
+    )
+  })
 })

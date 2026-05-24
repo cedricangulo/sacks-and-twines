@@ -116,6 +116,73 @@ describe("supplier queries", () => {
     expect(result).toHaveLength(0)
   })
 
+  // -- listActiveOptions --
+
+  it("listActiveOptions rejects unauthenticated", async () => {
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+    await expect(
+      t.query(api.suppliers.queries.listActiveOptions)
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("listActiveOptions returns only non-archived suppliers", async () => {
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce("user123")
+
+    const activeId = await createSupplier(t, { companyName: "Active Co" })
+    const archivedId = await createSupplier(t, { companyName: "Archived Co" })
+    await t.run(async (ctx) => {
+      await ctx.db.patch(archivedId, { archivedAt: Date.now() })
+    })
+
+    const result = await t.query(api.suppliers.queries.listActiveOptions)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      _id: activeId,
+      companyName: "Active Co",
+    })
+  })
+
+  it("listActiveOptions returns only id and companyName", async () => {
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce("user123")
+
+    await createSupplier(t, { companyName: "Active Co" })
+
+    const result = await t.query(api.suppliers.queries.listActiveOptions)
+
+    expect(result[0]).toHaveProperty("_id")
+    expect(result[0]).toHaveProperty("companyName")
+    expect(result[0]).not.toHaveProperty("contactPerson")
+    expect(result[0]).not.toHaveProperty("address")
+  })
+
+  it("listActiveOptions returns empty array when no suppliers exist", async () => {
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce("user123")
+
+    const result = await t.query(api.suppliers.queries.listActiveOptions)
+
+    expect(result).toEqual([])
+  })
+
+  it("listActiveOptions returns empty array when all suppliers are archived", async () => {
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce("user123")
+
+    const archivedId = await createSupplier(t, { companyName: "Archived Co" })
+    await t.run(async (ctx) => {
+      await ctx.db.patch(archivedId, { archivedAt: Date.now() })
+    })
+
+    const result = await t.query(api.suppliers.queries.listActiveOptions)
+
+    expect(result).toEqual([])
+  })
+
   it("gets supplier by id for authenticated users", async () => {
     const t = makeTest()
     authMocks.getAuthUserId.mockResolvedValueOnce("user123")
