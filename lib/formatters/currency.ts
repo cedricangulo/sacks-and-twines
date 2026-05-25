@@ -23,5 +23,5 @@ export function formatCurrency(
     opts.minimumFractionDigits = minimumFractionDigits
   if (typeof maximumFractionDigits === "number")
     opts.maximumFractionDigits = maximumFractionDigits
-  return new Intl.NumberFormat(locale, opts).format(value)
+  return value.toLocaleString(locale, opts)
 }

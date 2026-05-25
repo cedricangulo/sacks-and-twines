@@ -138,23 +138,24 @@ export const stockIn = zMutation({
       status: "active",
     })
 
-    // Increment supplier batchCount
-    const supplierDoc = await ctx.db.get(supplierId)
+    // Increment supplier batchCount and update product in parallel
+    const patchProduct = product
+      ? ctx.db.patch(resolvedProductId, {
+          currentQuantity: product.currentQuantity + quantityReceived,
+          totalAssetValue: product.totalAssetValue + totalProcurementCost,
+          ...(imageStorageId ? { imagePath: imageStorageId } : {}),
+        })
+      : Promise.resolve()
+
+    const [supplierDoc] = await Promise.all([
+      ctx.db.get(supplierId),
+      patchProduct,
+    ])
+
     if (supplierDoc) {
       await ctx.db.patch(supplierId, {
         batchCount: (supplierDoc.batchCount ?? 0) + 1,
       })
-    }
-
-    if (product) {
-      const patch: Record<string, unknown> = {
-        currentQuantity: product.currentQuantity + quantityReceived,
-        totalAssetValue: product.totalAssetValue + totalProcurementCost,
-      }
-      if (imageStorageId) {
-        patch.imagePath = imageStorageId
-      }
-      await ctx.db.patch(resolvedProductId, patch)
     }
 
     await ctx.runMutation(internal.auditLogs.mutations.log, {

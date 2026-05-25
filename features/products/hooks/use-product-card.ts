@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { useDispatchQueueContext } from "@/features/dispatches/hooks/dispatch-queue-context"
 import type { DispatchReadyProduct } from "@/features/products/validation"
 
@@ -18,13 +18,8 @@ export function useProductCard(product: DispatchReadyProduct) {
   const dispatchUom = queueItem?.dispatchUom ?? product.baseUom
 
   const [inputValue, setInputValue] = useState(String(quantity))
+  const [isEditing, setIsEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (document.activeElement !== inputRef.current) {
-      setInputValue(String(quantity))
-    }
-  }, [quantity])
 
   const commitInput = (raw: string) => {
     const trimmed = raw.trim()
@@ -44,7 +39,10 @@ export function useProductCard(product: DispatchReadyProduct) {
     const clamped = Math.min(val, product.currentQuantity)
     setQuantity(product, clamped)
     setInputValue(String(clamped))
+    setIsEditing(false)
   }
+
+  const displayValue = isEditing ? inputValue : String(quantity)
 
   const isLowStock =
     product.lowStockThreshold > 0 &&
@@ -57,10 +55,11 @@ export function useProductCard(product: DispatchReadyProduct) {
   return {
     quantity,
     dispatchUom,
-    inputValue,
+    inputValue: displayValue,
     setInputValue,
     inputRef,
     commitInput,
+    setIsEditing,
     isLowStock,
     isOutOfStock,
     isAtMax,

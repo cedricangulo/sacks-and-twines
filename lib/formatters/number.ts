@@ -19,10 +19,9 @@ export function formatNumber(
     opts.minimumFractionDigits = minimumFractionDigits
   if (typeof maximumFractionDigits === "number")
     opts.maximumFractionDigits = maximumFractionDigits
-  return new Intl.NumberFormat(locale, opts).format(value)
+  return value.toLocaleString(locale, opts)
 }
 
 export function formatQuantity(value: number) {
-  // default quantity formatting used in tables/UI that expect up to 4 fractional digits
   return formatNumber(value, { locale: "en-PH", maximumFractionDigits: 4 })
 }

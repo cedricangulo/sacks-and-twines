@@ -1,17 +1,33 @@
 "use client"
 
 import { useQuery } from "convex-helpers/react/cache"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import { ITEMS_PER_PAGE } from "../constants"
 import type { AuditLogEntry } from "./use-audit-logs"
 
 export function usePersonalAuditLogs(skip = false) {
-  const [cursor, setCursor] = useState<string | null>(null)
-  const [history, setHistory] = useState<string[]>([])
-  const [pageNum, setPageNum] = useState(1)
-  const [maxPage, setMaxPage] = useState(1)
-  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [state, setState] = useState(() => ({
+    skip,
+    cursor: null as string | null,
+    history: [] as string[],
+    pageNum: 1,
+    maxPage: 1,
+    isTransitioning: false,
+  }))
+
+  if (state.skip !== skip) {
+    setState({
+      skip,
+      cursor: null,
+      history: [],
+      pageNum: 1,
+      maxPage: 1,
+      isTransitioning: false,
+    })
+  }
+
+  const { cursor, history, pageNum, maxPage, isTransitioning } = state
 
   const queryArgs = useMemo(
     () =>
@@ -25,42 +41,47 @@ export function usePersonalAuditLogs(skip = false) {
     | { page: AuditLogEntry[]; continueCursor: string; isDone: boolean }
     | undefined
 
-  useEffect(() => {
-    if (result !== undefined && isTransitioning) {
-      setIsTransitioning(false)
-    }
-  }, [result, isTransitioning])
+  const isLoading = result === undefined
+  const transitioning = isTransitioning && isLoading
 
   const goNext = useCallback(() => {
     if (!result || result.isDone || isTransitioning) return
-    setHistory((prev) => [...prev, cursor ?? ""])
-    setCursor(result.continueCursor)
-    setPageNum((prev) => {
-      const next = prev + 1
-      setMaxPage((m) => Math.max(m, next))
-      return next
+    setState((prev) => {
+      const nextPageNum = prev.pageNum + 1
+      return {
+        ...prev,
+        cursor: result.continueCursor,
+        history: [...prev.history, prev.cursor ?? ""],
+        pageNum: nextPageNum,
+        maxPage: Math.max(prev.maxPage, nextPageNum),
+        isTransitioning: true,
+      }
     })
-    setIsTransitioning(true)
-  }, [result, cursor, isTransitioning])
+  }, [result, isTransitioning])
 
   const goPrev = useCallback(() => {
     if (history.length === 0 || isTransitioning) return
-    const newHistory = [...history]
-    const prevCursorStr = newHistory.pop()!
-    setCursor(prevCursorStr === "" ? null : prevCursorStr)
-    setHistory(newHistory)
-    setPageNum((prev) => prev - 1)
-    setIsTransitioning(true)
+    setState((prev) => {
+      const nextHistory = [...prev.history]
+      const prevCursorStr = nextHistory.pop()!
+      return {
+        ...prev,
+        cursor: prevCursorStr === "" ? null : prevCursorStr,
+        history: nextHistory,
+        pageNum: prev.pageNum - 1,
+        isTransitioning: true,
+      }
+    })
   }, [history, isTransitioning])
 
   const hasNext =
-    !isTransitioning &&
+    !transitioning &&
     (pageNum < maxPage || (result !== undefined && !result.isDone))
-  const hasPrev = !isTransitioning && history.length > 0
+  const hasPrev = !transitioning && history.length > 0
 
   return {
     page: result?.page ?? [],
-    isLoading: result === undefined,
+    isLoading,
     pageNum,
     goNext,
     goPrev,

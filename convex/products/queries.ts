@@ -99,19 +99,20 @@ export const listDispatchReady = query({
 
     return await Promise.all(
       products.map(async (product) => {
-        const lastBatch = await ctx.db
-          .query("batches")
-          .withIndex("by_product", (q) => q.eq("productId", product._id))
-          .order("desc")
-          .first()
-
-        const activeBatches = await ctx.db
-          .query("batches")
-          .withIndex("by_product_status", (q) =>
-            q.eq("productId", product._id).eq("status", "active")
-          )
-          .order("asc")
-          .collect()
+        const [lastBatch, activeBatches] = await Promise.all([
+          ctx.db
+            .query("batches")
+            .withIndex("by_product", (q) => q.eq("productId", product._id))
+            .order("desc")
+            .first(),
+          ctx.db
+            .query("batches")
+            .withIndex("by_product_status", (q) =>
+              q.eq("productId", product._id).eq("status", "active")
+            )
+            .order("asc")
+            .collect(),
+        ])
 
         const fifoBatches = activeBatches.filter((b) => b.quantityRemaining > 0)
 

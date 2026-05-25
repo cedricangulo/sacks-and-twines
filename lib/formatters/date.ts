@@ -26,7 +26,7 @@ export function formatDateTime(
     hour: "numeric",
     minute: "2-digit",
   }
-  return new Intl.DateTimeFormat(locale, { ...defaultOpts, ...opts }).format(d)
+  return d.toLocaleString(locale, { ...defaultOpts, ...opts })
 }
 
 export function formatDate(
@@ -38,7 +38,7 @@ export function formatDate(
   }: FormatDateOptions = {}
 ) {
   const d = toDate(value)
-  return new Intl.DateTimeFormat(locale, { dateStyle, ...opts }).format(d)
+  return d.toLocaleDateString(locale, { dateStyle, ...opts })
 }
 
 export function formatTime(
@@ -50,5 +50,5 @@ export function formatTime(
   }: FormatDateOptions = {}
 ) {
   const d = toDate(value)
-  return new Intl.DateTimeFormat(locale, { timeStyle, ...opts }).format(d)
+  return d.toLocaleTimeString(locale, { timeStyle, ...opts })
 }

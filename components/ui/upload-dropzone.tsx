@@ -29,14 +29,14 @@ export default function UploadDropzone({
     if (file) onSelect(file)
   }
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault()
     setIsDragActive(false)
     const file = e.dataTransfer.files?.[0]
     handleFile(file ?? null)
   }
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault()
     setIsDragActive(true)
   }
@@ -45,7 +45,7 @@ export default function UploadDropzone({
     setIsDragActive(false)
   }
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault()
       inputRef.current?.click()
@@ -77,11 +77,10 @@ export default function UploadDropzone({
 
   return (
     <div>
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         className={cn(
-          "flex flex-col items-center justify-center size-40 border border-dashed rounded-xl transition-colors",
+          "flex flex-col items-center justify-center size-40 border border-dashed rounded-xl transition-colors text-center",
           isDragActive
             ? "border-primary bg-primary/5"
             : "border-input hover:bg-accent hover:border-muted-foreground",
@@ -92,6 +91,7 @@ export default function UploadDropzone({
         onDragLeave={handleDragLeave}
         onClick={() => inputRef.current?.click()}
         onKeyDown={handleKeyDown}
+        aria-label="Upload image"
       >
         <ImageUp className="mb-2 size-6 text-muted-foreground" />
         <p className="px-2 text-xs text-center text-muted-foreground">
@@ -100,14 +100,15 @@ export default function UploadDropzone({
         <p className="px-2 text-[10px] text-center text-muted-foreground">
           Max 5MB, JPEG/PNG
         </p>
-      </div>
+      </button>
 
       <input
         ref={inputRef}
         type="file"
         id={id}
         accept={accept}
-        className="hidden"
+        className="sr-only"
+        aria-label="Upload image file"
         onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
       />
 

@@ -2,7 +2,7 @@
 
 import { useMutation } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
-import { SubmitEvent, useEffect, useReducer, useState } from "react"
+import { SubmitEvent, useReducer, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
@@ -17,6 +17,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ALLOWED_TYPES = ["image/jpeg", "image/png"]
 
 type DialogState = {
+  initKey: string
   formValues: ProductUpdateFormData | null
   imagePreview: string | null
   imageCleared: boolean
@@ -29,6 +30,7 @@ type DialogState = {
 
 type DialogAction =
   | {
+      initKey: string
       type: "open"
       formValues: ProductUpdateFormData
       imagePreview: string | null
@@ -47,6 +49,7 @@ type DialogAction =
   | { type: "setDirty" }
 
 const INITIAL_DIALOG_STATE: DialogState = {
+  initKey: "closed",
   formValues: null,
   imagePreview: null,
   imageCleared: false,
@@ -61,6 +64,7 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
   switch (action.type) {
     case "open":
       return {
+        initKey: action.initKey,
         formValues: action.formValues,
         imagePreview: action.imagePreview,
         imageCleared: false,
@@ -135,7 +139,13 @@ export function useEditProductForm({
   const generateUploadUrl = useMutation(api.batches.mutations.generateUploadUrl)
   const [internalOpen, setInternalOpen] = useState(false)
   const open = openProp ?? internalOpen
-  const setOpen = onOpenChange ?? setInternalOpen
+  const setOpen = (nextOpen: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(nextOpen)
+      return
+    }
+    setInternalOpen(nextOpen)
+  }
   const [dialogState, dispatch] = useReducer(
     dialogReducer,
     INITIAL_DIALOG_STATE
@@ -153,23 +163,36 @@ export function useEditProductForm({
 
   const hasBatches = (detail?.batchCount ?? 0) > 0
 
-  useEffect(() => {
-    if (open && detail) {
-      dispatch({
-        type: "open",
-        formValues: {
-          name: detail.name,
-          category: detail.category,
-          baseUom: detail.baseUom,
-          weightPerUnit:
-            detail.weightPerUnit ?? (detail.category === "sacks" ? 0 : 20),
-          lowStockThreshold: detail.lowStockThreshold ?? 0,
-        },
-        imagePreview: detail.imageUrl ?? null,
-        hasBatches,
-      })
-    }
-  }, [open, detail, hasBatches])
+  const initKey = open
+    ? detail
+      ? productId
+      : `loading:${productId}`
+    : "closed"
+
+  if (dialogState.initKey !== initKey) {
+    dispatch({
+      initKey,
+      type: "open",
+      formValues: detail
+        ? {
+            name: detail.name,
+            category: detail.category,
+            baseUom: detail.baseUom,
+            weightPerUnit:
+              detail.weightPerUnit ?? (detail.category === "sacks" ? 0 : 20),
+            lowStockThreshold: detail.lowStockThreshold ?? 0,
+          }
+        : {
+            name: "",
+            category: "sacks",
+            baseUom: "piece",
+            weightPerUnit: 0,
+            lowStockThreshold: 0,
+          },
+      imagePreview: detail?.imageUrl ?? null,
+      hasBatches,
+    })
+  }
 
   const handleImageSelect = (file: File | null) => {
     if (file) {

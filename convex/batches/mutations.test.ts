@@ -437,7 +437,7 @@ describe("batch mutations", () => {
       createSupplier(t, "Supplier"),
     ])
 
-    const { productId: _, batchCode } = await t.mutation(
+    const { productId: _, batchCode: _batchCode } = await t.mutation(
       api.batches.mutations.stockIn,
       {
         mode: "existing",
