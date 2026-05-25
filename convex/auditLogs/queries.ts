@@ -1,11 +1,15 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { paginationOptsValidator } from "convex/server"
 import { v } from "convex/values"
+import { filter } from "convex-helpers/server/filter"
+import type { Id } from "../_generated/dataModel"
+import type { QueryCtx } from "../_generated/server"
 import { query } from "../_generated/server"
 
 export const list = query({
   args: {
     paginationOpts: paginationOptsValidator,
+    search: v.optional(v.string()),
     action: v.optional(v.string()),
     userId: v.optional(v.id("users")),
     dateFrom: v.optional(v.number()),
@@ -13,7 +17,7 @@ export const list = query({
   },
   handler: async (
     ctx,
-    { paginationOpts, action, userId, dateFrom, dateTo }
+    { paginationOpts, search, action, userId, dateFrom, dateTo }
   ) => {
     const callerId = await getAuthUserId(ctx)
     if (callerId === null) throw new Error("Unauthorized")
@@ -46,6 +50,16 @@ export const list = query({
     }
     if (dateTo !== undefined) {
       base = base.filter((q) => q.lte(q.field("_creationTime"), dateTo))
+    }
+
+    if (search) {
+      const q = search.toLowerCase()
+      base = filter(
+        base,
+        (log) =>
+          log.action.toLowerCase().includes(q) ||
+          log.description.toLowerCase().includes(q)
+      )
     }
 
     const result = await base.order("desc").paginate(paginationOpts)
@@ -161,65 +175,103 @@ export const listActions = query({
   },
 })
 
-export const exportCsv = query({
+async function fetchExportLogs(
+  ctx: QueryCtx,
   args: {
+    search?: string
+    action?: string
+    userId?: Id<"users">
+    dateFrom?: number
+    dateTo?: number
+  }
+) {
+  const { search, action, userId, dateFrom, dateTo } = args
+  const callerId = await getAuthUserId(ctx)
+  if (callerId === null) throw new Error("Unauthorized")
+
+  const caller = await ctx.db.get(callerId)
+  if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
+
+  let base
+
+  if (action && userId) {
+    base = ctx.db
+      .query("auditLogs")
+      .withIndex("by_action_userId", (q) =>
+        q.eq("action", action).eq("userId", userId)
+      )
+  } else if (action) {
+    base = ctx.db
+      .query("auditLogs")
+      .withIndex("by_action", (q) => q.eq("action", action))
+  } else if (userId) {
+    base = ctx.db
+      .query("auditLogs")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+  } else {
+    base = ctx.db.query("auditLogs")
+  }
+
+  if (dateFrom !== undefined) {
+    base = base.filter((q) => q.gte(q.field("_creationTime"), dateFrom))
+  }
+  if (dateTo !== undefined) {
+    base = base.filter((q) => q.lte(q.field("_creationTime"), dateTo))
+  }
+
+  if (search) {
+    const q = search.toLowerCase()
+    base = filter(
+      base,
+      (log) =>
+        log.action.toLowerCase().includes(q) ||
+        log.description.toLowerCase().includes(q)
+    )
+  }
+
+  const logs = await base.order("desc").take(10000)
+
+  return await Promise.all(
+    logs.map(async (log) => {
+      let userName: string | null = null
+      let userEmail: string | null = null
+      let userRole: string | null = null
+      if (log.userId) {
+        const user = await ctx.db.get(log.userId)
+        if (user) {
+          userName = user.name ?? null
+          userEmail = user.email
+          userRole = user.role ?? null
+        }
+      }
+      return { ...log, userName, userEmail, userRole }
+    })
+  )
+}
+
+export const exportData = query({
+  args: {
+    search: v.optional(v.string()),
     action: v.optional(v.string()),
     userId: v.optional(v.id("users")),
     dateFrom: v.optional(v.number()),
     dateTo: v.optional(v.number()),
   },
-  handler: async (ctx, { action, userId, dateFrom, dateTo }) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
+  handler: async (ctx, args) => {
+    return await fetchExportLogs(ctx, args)
+  },
+})
 
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
-
-    let base
-
-    if (action && userId) {
-      base = ctx.db
-        .query("auditLogs")
-        .withIndex("by_action_userId", (q) =>
-          q.eq("action", action).eq("userId", userId)
-        )
-    } else if (action) {
-      base = ctx.db
-        .query("auditLogs")
-        .withIndex("by_action", (q) => q.eq("action", action))
-    } else if (userId) {
-      base = ctx.db
-        .query("auditLogs")
-        .withIndex("by_userId", (q) => q.eq("userId", userId))
-    } else {
-      base = ctx.db.query("auditLogs")
-    }
-
-    if (dateFrom !== undefined) {
-      base = base.filter((q) => q.gte(q.field("_creationTime"), dateFrom))
-    }
-    if (dateTo !== undefined) {
-      base = base.filter((q) => q.lte(q.field("_creationTime"), dateTo))
-    }
-
-    const logs = await base.order("desc").take(10000)
-
-    const enriched = await Promise.all(
-      logs.map(async (log) => {
-        let userName: string | null = null
-        let userEmail: string | null = null
-        let userRole: string | null = null
-        if (log.userId) {
-          const user = await ctx.db.get(log.userId)
-          if (user) {
-            userName = user.name ?? null
-            userEmail = user.email
-            userRole = user.role ?? null
-          }
-        }
-        return { ...log, userName, userEmail, userRole }
-      })
-    )
+export const exportCsv = query({
+  args: {
+    search: v.optional(v.string()),
+    action: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+    dateFrom: v.optional(v.number()),
+    dateTo: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const enriched = await fetchExportLogs(ctx, args)
 
     const escapeCsv = (val: string | number | null | undefined): string => {
       if (val === null || val === undefined) return ""

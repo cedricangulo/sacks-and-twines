@@ -379,6 +379,336 @@ describe("audit log queries", () => {
     })
   })
 
+  // ── list (search) ──────────────────────────────────────────
+
+  it("filters by search matching action", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "product_create",
+      description: "Created a new product",
+    })
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "stock_in",
+      description: "Stocked inventory",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      search: "product",
+    })
+
+    expect(result.page).toHaveLength(1)
+    expect(result.page[0].action).toBe("product_create")
+  })
+
+  it("filters by search matching description", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "product_create",
+      description: "Created a new product",
+    })
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "stock_in",
+      description: "Stocked inventory",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      search: "inventory",
+    })
+
+    expect(result.page).toHaveLength(1)
+    expect(result.page[0].description).toBe("Stocked inventory")
+  })
+
+  it("filters by search with multiple matches", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "product_create",
+      description: "Created product A",
+    })
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "product_update",
+      description: "Updated product B",
+    })
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "stock_in",
+      description: "Stocked inventory",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      search: "product",
+    })
+
+    expect(result.page).toHaveLength(2)
+    expect(result.page.map((l) => l.action).sort()).toEqual([
+      "product_create",
+      "product_update",
+    ])
+  })
+
+  it("search is case-insensitive", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "Product_Create",
+      description: "Created with mixed case",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      search: "product",
+    })
+
+    expect(result.page).toHaveLength(1)
+  })
+
+  it("returns empty page when search has no matches", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "product_create",
+      description: "Created product",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      search: "nonexistent",
+    })
+
+    expect(result.page).toHaveLength(0)
+  })
+
+  it("combines search with action filter", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "product_create",
+      description: "Created a bag",
+    })
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "product_create",
+      description: "Created a rope",
+    })
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "stock_in",
+      description: "Stocked a bag",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      action: "product_create",
+      search: "rope",
+    })
+
+    expect(result.page).toHaveLength(1)
+    expect(result.page[0].description).toBe("Created a rope")
+  })
+
+  it("combines search with dateFrom filter", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const ids = await t.run(async (ctx) => {
+      const firstId = await ctx.db.insert("auditLogs", {
+        action: "product_create",
+        description: "Old product",
+        userId: ownerId,
+      })
+      const first = await ctx.db.get(firstId)
+      const secondId = await ctx.db.insert("auditLogs", {
+        action: "product_create",
+        description: "New product",
+        userId: ownerId,
+      })
+      const second = await ctx.db.get(secondId)
+      return {
+        firstTime: first!._creationTime,
+        secondTime: second!._creationTime,
+      }
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      search: "product",
+      dateFrom: ids.secondTime,
+    })
+
+    expect(result.page).toHaveLength(1)
+    expect(result.page[0].description).toBe("New product")
+  })
+
+  it("combines search with dateTo filter", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const ids = await t.run(async (ctx) => {
+      const firstId = await ctx.db.insert("auditLogs", {
+        action: "product_create",
+        description: "Old product",
+        userId: ownerId,
+      })
+      const first = await ctx.db.get(firstId)
+      await ctx.db.insert("auditLogs", {
+        action: "product_create",
+        description: "New product",
+        userId: ownerId,
+      })
+      return { firstTime: first!._creationTime }
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      search: "product",
+      dateTo: ids.firstTime,
+    })
+
+    expect(result.page).toHaveLength(1)
+    expect(result.page[0].description).toBe("Old product")
+  })
+
+  it("combines dateFrom and dateTo together", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const ids = await t.run(async (ctx) => {
+      const firstId = await ctx.db.insert("auditLogs", {
+        action: "product_create",
+        description: "Old product",
+        userId: ownerId,
+      })
+      const first = await ctx.db.get(firstId)
+      const secondId = await ctx.db.insert("auditLogs", {
+        action: "product_create",
+        description: "Middle product",
+        userId: ownerId,
+      })
+      const second = await ctx.db.get(secondId)
+      await ctx.db.insert("auditLogs", {
+        action: "product_create",
+        description: "New product",
+        userId: ownerId,
+      })
+      return {
+        firstTime: first!._creationTime,
+        secondTime: second!._creationTime,
+      }
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      dateFrom: ids.firstTime,
+      dateTo: ids.secondTime,
+    })
+
+    expect(result.page).toHaveLength(2)
+    expect(result.page.map((log) => log.description)).toEqual([
+      "Middle product",
+      "Old product",
+    ])
+  })
+
+  it("returns empty page when filters match nothing", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "product_create",
+      description: "Created product",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      action: "stock_in",
+      dateFrom: Date.now(),
+    })
+
+    expect(result.page).toHaveLength(0)
+  })
+
   // ── getById ────────────────────────────────────────────────
 
   describe("getById", () => {
@@ -740,6 +1070,37 @@ describe("audit log queries", () => {
 
       expect(result).toEqual([])
     })
+
+    it("returns distinct sorted actions ignoring order of inserts", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "z_action",
+        description: "Z",
+      })
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "a_action",
+        description: "A",
+      })
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "m_action",
+        description: "M",
+      })
+
+      const result = await t.query(api.auditLogs.queries.listActions, {})
+
+      expect(result).toEqual(["a_action", "m_action", "z_action"])
+    })
   })
 
   // ── exportCsv ──────────────────────────────────────────────
@@ -877,6 +1238,313 @@ describe("audit log queries", () => {
 
       const lines = result.trim().split("\n")
       expect(lines).toHaveLength(1)
+    })
+
+    it("filters CSV export by search matching action", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "product_create",
+        description: "Created product",
+      })
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "stock_in",
+        description: "Stocked inventory",
+      })
+
+      const result = await t.query(api.auditLogs.queries.exportCsv, {
+        search: "stock",
+      })
+
+      expect(result).not.toContain("product_create")
+      expect(result).toContain("stock_in")
+    })
+
+    it("filters CSV export by search matching description", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "product_create",
+        description: "Created a rope product",
+      })
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "stock_in",
+        description: "Stocked bags",
+      })
+
+      const result = await t.query(api.auditLogs.queries.exportCsv, {
+        search: "rope",
+      })
+
+      expect(result).toContain("Created a rope product")
+      expect(result).not.toContain("Stocked bags")
+    })
+
+    it("filters CSV export by dateFrom and dateTo", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      const ids = await t.run(async (ctx) => {
+        const firstId = await ctx.db.insert("auditLogs", {
+          action: "product_create",
+          description: "Old product",
+          userId: ownerId,
+        })
+        const first = await ctx.db.get(firstId)
+        const secondId = await ctx.db.insert("auditLogs", {
+          action: "product_create",
+          description: "Middle product",
+          userId: ownerId,
+        })
+        const second = await ctx.db.get(secondId)
+        await ctx.db.insert("auditLogs", {
+          action: "product_create",
+          description: "New product",
+          userId: ownerId,
+        })
+        return {
+          firstTime: first!._creationTime,
+          secondTime: second!._creationTime,
+        }
+      })
+
+      const result = await t.query(api.auditLogs.queries.exportCsv, {
+        dateFrom: ids.firstTime,
+        dateTo: ids.secondTime,
+      })
+
+      expect(result).toContain("Middle product")
+      expect(result).toContain("Old product")
+      expect(result).not.toContain("New product")
+    })
+
+    it("returns header only when CSV search has no matches", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "product_create",
+        description: "Created product",
+      })
+
+      const result = await t.query(api.auditLogs.queries.exportCsv, {
+        search: "nonexistent",
+      })
+
+      const lines = result.trim().split("\n")
+      expect(lines).toHaveLength(1)
+    })
+  })
+
+  // ── exportData ──────────────────────────────────────────────
+
+  describe("exportData", () => {
+    it("rejects unauthenticated", async () => {
+      const t = makeTest()
+      authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+      await expect(
+        t.query(api.auditLogs.queries.exportData, {})
+      ).rejects.toThrowError("Unauthorized")
+    })
+
+    it("rejects non-owners", async () => {
+      const t = makeTest()
+      const staffId = await createUser(t, {
+        email: "staff@test.com",
+        name: "Staff",
+        role: "staff",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
+
+      await expect(
+        t.query(api.auditLogs.queries.exportData, {})
+      ).rejects.toThrowError("Unauthorized")
+    })
+
+    it("returns enriched log array for owners", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "product_create",
+        description: "Created product A",
+      })
+
+      const result = await t.query(api.auditLogs.queries.exportData, {})
+
+      expect(Array.isArray(result)).toBe(true)
+      expect(result).toHaveLength(1)
+      expect(result[0]).toHaveProperty("action", "product_create")
+      expect(result[0]).toHaveProperty("userName", "Owner")
+      expect(result[0]).toHaveProperty("userEmail", "owner@test.com")
+      expect(result[0]).toHaveProperty("userRole", "owner")
+      expect(result[0]).toHaveProperty("description", "Created product A")
+    })
+
+    it("filters by action", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "stock_in",
+        description: "Stock in",
+      })
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "product_create",
+        description: "Create product",
+      })
+
+      const result = await t.query(api.auditLogs.queries.exportData, {
+        action: "stock_in",
+      })
+
+      expect(result).toHaveLength(1)
+      expect(result[0].action).toBe("stock_in")
+    })
+
+    it("filters by search", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "product_create",
+        description: "Created a rope product",
+      })
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "stock_in",
+        description: "Stocked bags",
+      })
+
+      const result = await t.query(api.auditLogs.queries.exportData, {
+        search: "rope",
+      })
+
+      expect(result).toHaveLength(1)
+      expect(result[0].description).toContain("rope")
+    })
+
+    it("filters by date range", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      const ids = await t.run(async (ctx) => {
+        const firstId = await ctx.db.insert("auditLogs", {
+          action: "product_create",
+          description: "Old product",
+          userId: ownerId,
+        })
+        const first = await ctx.db.get(firstId)
+        const secondId = await ctx.db.insert("auditLogs", {
+          action: "product_create",
+          description: "Middle product",
+          userId: ownerId,
+        })
+        const second = await ctx.db.get(secondId)
+        await ctx.db.insert("auditLogs", {
+          action: "product_create",
+          description: "New product",
+          userId: ownerId,
+        })
+        return {
+          firstTime: first!._creationTime,
+          secondTime: second!._creationTime,
+        }
+      })
+
+      const result = await t.query(api.auditLogs.queries.exportData, {
+        dateFrom: ids.firstTime,
+        dateTo: ids.secondTime,
+      })
+
+      expect(result).toHaveLength(2)
+      expect(result.some((l) => l.description === "Old product")).toBe(true)
+      expect(result.some((l) => l.description === "Middle product")).toBe(true)
+      expect(result.some((l) => l.description === "New product")).toBe(false)
+    })
+
+    it("returns empty array when no logs match", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "product_create",
+        description: "Created product",
+      })
+
+      const result = await t.query(api.auditLogs.queries.exportData, {
+        search: "nonexistent",
+      })
+
+      expect(result).toHaveLength(0)
     })
   })
 })
