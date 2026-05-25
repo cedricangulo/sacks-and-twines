@@ -29,7 +29,7 @@ export default function RootLayout({
       )}
     >
       <body>
-        <ConvexAuthNextjsServerProvider>
+        <ConvexAuthNextjsServerProvider verbose={true}>
           <Providers>{children}</Providers>
         </ConvexAuthNextjsServerProvider>
       </body>
