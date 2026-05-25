@@ -15,32 +15,37 @@ const isProtectedRoute = createRouteMatcher([
   "/audit-logs(.*)",
 ])
 
-export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
-  if (isProtectedRoute(request)) {
-    if (!(await convexAuth.isAuthenticated())) {
-      return nextjsMiddlewareRedirect(request, "/sign-in")
-    }
+export default convexAuthNextjsMiddleware(
+  async (request, { convexAuth }) => {
+    if (isProtectedRoute(request)) {
+      if (!(await convexAuth.isAuthenticated())) {
+        return nextjsMiddlewareRedirect(request, "/sign-in")
+      }
 
-    const token = await convexAuth.getToken()
-    if (!token) {
-      return nextjsMiddlewareRedirect(request, "/sign-in")
-    }
+      const token = await convexAuth.getToken()
+      if (!token) {
+        return nextjsMiddlewareRedirect(request, "/sign-in")
+      }
 
-    let role: string | undefined
-    try {
-      const decoded = jwtDecode<{ role?: string }>(token)
-      role = decoded?.role
-    } catch {
-      return nextjsMiddlewareRedirect(request, "/sign-in")
-    }
+      let role: string | undefined
+      try {
+        const decoded = jwtDecode<{ role?: string }>(token)
+        role = decoded?.role
+      } catch {
+        return nextjsMiddlewareRedirect(request, "/sign-in")
+      }
 
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set("x-user-role", role ?? "")
-    return NextResponse.next({
-      request: { headers: requestHeaders },
-    })
+      const requestHeaders = new Headers(request.headers)
+      requestHeaders.set("x-user-role", role ?? "")
+      return NextResponse.next({
+        request: { headers: requestHeaders },
+      })
+    }
+  },
+  {
+    verbose: true,
   }
-})
+)
 
 export const config = {
   matcher: ["/((?!.*\\..*|_next).*)", "/"],
