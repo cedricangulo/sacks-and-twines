@@ -1,20 +1,14 @@
 "use client"
 
-import { useConvexAuth } from "convex/react"
-import { useQuery } from "convex-helpers/react/cache"
 import { Skeleton } from "@/components/ui/skeleton"
-import { api } from "@/convex/_generated/api"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 
 interface Props {
   children: React.ReactNode
 }
 
 export default function DashboardPageLayout({ children }: Props) {
-  const { isAuthenticated } = useConvexAuth()
-  const user = useQuery(
-    api.users.queries.currentUser,
-    isAuthenticated ? {} : "skip"
-  )
+  const { user, isLoading } = useCurrentUser()
 
   const hours = new Date().getHours()
   const greetings =
@@ -24,7 +18,7 @@ export default function DashboardPageLayout({ children }: Props) {
     <div className="p-6 space-y-6">
       <h2 className="font-semibold type-lg">
         Good {greetings},{" "}
-        {user === undefined ? (
+        {isLoading ? (
           <Skeleton className="inline-block w-32 h-5" />
         ) : (
           user?.name

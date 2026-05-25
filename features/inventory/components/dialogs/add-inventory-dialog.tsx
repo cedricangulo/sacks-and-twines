@@ -48,11 +48,20 @@ export default function AddInventoryDialog() {
   } = useInventoryDialog()
 
   return (
-    <Dialog open={open} onOpenChange={handleOpen}>
+    <Dialog modal={false} open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
         <Button>Add Inventory</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-5xl!">
+
+      {open ? (
+        // * manual backdrop since modal={false} is used
+        <div className="fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+      ) : null}
+
+      <DialogContent
+        className="sm:max-w-5xl!"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Add Inventory</DialogTitle>
           <DialogDescription>

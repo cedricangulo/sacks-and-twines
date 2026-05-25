@@ -11,6 +11,7 @@ const authMocks = vi.hoisted(() => ({
 const modules = {
   "./_generated/api.ts": () => import("../_generated/api"),
   "./_generated/server.ts": () => import("../_generated/server"),
+  "./auditLogs/mutations.ts": () => import("../auditLogs/mutations"),
   "./products/queries.ts": () => import("../products/queries"),
   "./stock_adjustments/mutations.ts": () => import("./mutations"),
 }
@@ -401,10 +402,40 @@ describe("stock adjustment mutations", () => {
     expect(logs[0].action).toBe("stock_adjustment")
     const description = JSON.parse(logs[0].description)
     expect(description).toMatchObject({
-      productName: "Test Product",
-      quantityAdjusted: 15,
-      reason: "system_reversal",
-      direction: "add",
+      summary: "Stock added to Test Product (system_reversal)",
+      details: {
+        productName: "Test Product",
+        quantityAdjusted: 15,
+        reason: "system_reversal",
+        direction: "add",
+      },
+      changes: {
+        qty_remaining: { old: 100, new: 115 },
+      },
     })
+  })
+
+  it("rejects stock adjustment for deactivated owner", async () => {
+    const t = makeTest()
+    const ownerId = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "deactivated",
+      })
+    })
+    const { batchId, productId } = await seedData(t, ownerId)
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.stock_adjustments.mutations.create, {
+        batchId,
+        productId,
+        direction: "add",
+        quantity: 10,
+        reason: "recount",
+      })
+    ).rejects.toThrowError("Only owners can adjust stock")
   })
 })

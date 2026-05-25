@@ -1,6 +1,5 @@
 "use client"
 
-import { useConvexAuth } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
 import { PackageOpen, SearchX } from "lucide-react"
 import { useState } from "react"
@@ -13,16 +12,13 @@ import {
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import InventoryFilterBar from "@/features/inventory/components/inventory-filter-bar"
 import InventoryTable from "@/features/inventory/components/table/inventory-table"
 import { useInventoryFilters } from "@/features/inventory/hooks/use-inventory-filters"
 
 export default function InventoryPage() {
-  const { isAuthenticated } = useConvexAuth()
-  const user = useQuery(
-    api.users.queries.currentUser,
-    isAuthenticated ? {} : "skip"
-  )
+  const { user, isLoading: isUserLoading, isAuthenticated } = useCurrentUser()
   const products = useQuery(
     api.products.queries.list,
     isAuthenticated ? {} : "skip"
@@ -70,7 +66,7 @@ export default function InventoryPage() {
         batchVisibility={batchVisibility}
         onBatchVisibilityChange={setBatchVisibility}
       />
-      {user === undefined || filtered === undefined ? (
+      {isUserLoading || filtered === undefined ? (
         <Skeleton className="h-64 w-full" />
       ) : user?.role !== "owner" ? (
         <p className="text-sm text-muted-foreground">

@@ -1,10 +1,10 @@
 "use client"
 
-import { useConvexAuth } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
 import { useMemo } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import type { Dispatch } from "../validation"
 
 function todayRange() {
@@ -23,7 +23,7 @@ interface UseDispatchesArgs {
 }
 
 export function useDispatches(args: UseDispatchesArgs) {
-  const { isAuthenticated } = useConvexAuth()
+  const { isAuthenticated } = useCurrentUser()
 
   const today = useMemo(() => todayRange(), [])
 

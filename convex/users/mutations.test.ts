@@ -12,6 +12,7 @@ const authMocks = vi.hoisted(() => ({
 const modules = {
   "./_generated/api.ts": () => import("../_generated/api"),
   "./_generated/server.ts": () => import("../_generated/server"),
+  "./auditLogs/mutations.ts": () => import("../auditLogs/mutations"),
   "./users/queries.ts": () => import("./queries"),
   "./users/mutations.ts": () => import("./mutations"),
 }
@@ -150,7 +151,10 @@ describe("user mutations", () => {
         role: args.profile.role,
         status: args.profile.status,
       })
-      return { _id: userId, ...args.profile }
+      return {
+        user: { _id: userId, ...args.profile },
+        account: {},
+      }
     })
 
     const result = await t.mutation(api.users.mutations.create, {
@@ -160,6 +164,7 @@ describe("user mutations", () => {
     })
 
     expect(result).toMatchObject({
+      _id: expect.any(String),
       email: "staff@test.com",
       name: "New Staff",
       role: "staff",
@@ -236,6 +241,49 @@ describe("user mutations", () => {
         password: "1234567",
       })
     ).rejects.toThrowError("Password must be at least 8 characters")
+  })
+
+  it("blocks createUser after exhausting per-user rate limit", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+    authMocks.createAccount.mockImplementation(async (ctx, args) => {
+      const userId = await (
+        ctx as {
+          db: { insert: (table: string, value: unknown) => Promise<string> }
+        }
+      ).db.insert("users", {
+        email: args.profile.email,
+        name: args.profile.name,
+        role: args.profile.role,
+        status: args.profile.status,
+      })
+      return {
+        user: { _id: userId, ...args.profile },
+        account: {},
+      }
+    })
+
+    for (let i = 0; i < 10; i++) {
+      await t.mutation(api.users.mutations.create, {
+        name: `Staff ${i}`,
+        email: `staff${i}@test.com`,
+        password: "Password1!",
+      })
+    }
+
+    await expect(
+      t.mutation(api.users.mutations.create, {
+        name: "Blocked Staff",
+        email: "blocked@test.com",
+        password: "Password1!",
+      })
+    ).rejects.toMatchObject({ data: { kind: "RateLimited" } })
   })
 
   // ── Deactivate ────────────────────────────────────────────
@@ -356,5 +404,74 @@ describe("user mutations", () => {
         userId: ownerId,
       })
     ).rejects.toThrowError("You cannot deactivate yourself")
+  })
+
+  it("rejects user creation for deactivated owner", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "deactivated",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.create, {
+        name: "New Staff",
+        email: "staff@test.com",
+        password: "password123",
+      })
+    ).rejects.toThrowError("Only owners can create staff users")
+  })
+
+  it("rejects deactivation for deactivated owner", async () => {
+    const t = makeTest()
+    const [ownerId, staffId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "deactivated",
+      }),
+      createUser(t, {
+        email: "staff@test.com",
+        name: "Staff",
+        role: "staff",
+        status: "active",
+      }),
+    ])
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.deactivate, {
+        userId: staffId,
+      })
+    ).rejects.toThrowError("Only owners can deactivate users")
+  })
+
+  it("rejects deactivation for non-owner staff caller", async () => {
+    const t = makeTest()
+    const [staffCallerId, staffTargetId] = await Promise.all([
+      createUser(t, {
+        email: "staff@test.com",
+        name: "Staff Caller",
+        role: "staff",
+        status: "active",
+      }),
+      createUser(t, {
+        email: "other@test.com",
+        name: "Other Staff",
+        role: "staff",
+        status: "active",
+      }),
+    ])
+    authMocks.getAuthUserId.mockResolvedValueOnce(staffCallerId)
+
+    await expect(
+      t.mutation(api.users.mutations.deactivate, {
+        userId: staffTargetId,
+      })
+    ).rejects.toThrowError("Only owners can deactivate users")
   })
 })

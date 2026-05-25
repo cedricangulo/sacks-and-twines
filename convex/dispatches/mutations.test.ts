@@ -11,6 +11,7 @@ const authMocks = vi.hoisted(() => ({
 const modules = {
   "./_generated/api.ts": () => import("../_generated/api"),
   "./_generated/server.ts": () => import("../_generated/server"),
+  "./auditLogs/mutations.ts": () => import("../auditLogs/mutations"),
   "./dispatches/mutations.ts": () => import("./mutations"),
 }
 
@@ -269,6 +270,16 @@ describe("dispatch mutations", () => {
       const logs = await ctx.db.query("auditLogs").collect()
       expect(logs).toHaveLength(1)
       expect(logs[0].action).toBe("dispatch_submit")
+      const description = JSON.parse(logs[0].description)
+      expect(description).toMatchObject({
+        summary: expect.stringContaining("Walk-in Customer"),
+        details: {
+          customerReference: "Walk-in Customer",
+          totalItems: 1,
+          totalBatches: 1,
+        },
+        changes: expect.objectContaining({}),
+      })
     })
   })
 
@@ -601,5 +612,35 @@ describe("dispatch mutations", () => {
         items: [{ productId, quantity: 10, dispatchUom: "piece" }],
       })
     ).rejects.toThrow("Insufficient stock")
+  })
+
+  it("rejects submit for deactivated user", async () => {
+    const t = makeTest()
+    const [userId, supplierId, productId] = await Promise.all([
+      createUser(t, {
+        email: "user@test.com",
+        name: "User",
+        role: "staff",
+        status: "deactivated",
+      }),
+      createSupplier(t),
+      createProduct(t),
+    ])
+    const ownerId = await createUser(t)
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      quantityReceived: 5,
+      quantityRemaining: 5,
+      unitCost: 500,
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
+
+    await expect(
+      t.mutation(api.dispatches.mutations.submit, {
+        items: [{ productId, quantity: 1, dispatchUom: "piece" }],
+      })
+    ).rejects.toThrowError("Account deactivated")
   })
 })

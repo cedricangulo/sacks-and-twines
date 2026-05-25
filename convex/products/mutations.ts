@@ -1,4 +1,5 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
+import { internal } from "../_generated/api"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import {
@@ -18,7 +19,7 @@ export const create = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can create products")
 
     await Promise.all([
@@ -59,10 +60,12 @@ export const create = zMutation({
       status: "active",
     })
 
-    await ctx.db.insert("auditLogs", {
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "product_create",
       description: `Created product ${name} (${skuCode})`,
+      resourceType: "product",
+      resourceId: productId,
       userAgent,
     })
 
@@ -89,7 +92,7 @@ export const update = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can update products")
 
     await Promise.all([
@@ -107,12 +110,12 @@ export const update = zMutation({
     if (duplicate !== null && duplicate._id.toString() !== productId.toString())
       throw new Error("A product with this name already exists")
 
-    const batches = await ctx.db
+    const batch = await ctx.db
       .query("batches")
       .withIndex("by_product", (q) => q.eq("productId", productId))
-      .collect()
+      .first()
 
-    if (batches.length > 0) {
+    if (batch !== null) {
       if (category !== existing.category)
         throw new Error(
           "Category cannot be changed because this product already has stock records"
@@ -137,10 +140,42 @@ export const update = zMutation({
 
     await ctx.db.patch(productId, patch)
 
-    await ctx.db.insert("auditLogs", {
+    const changes: Record<string, { old: unknown; new: unknown }> = {}
+    if (name !== existing.name) changes.name = { old: existing.name, new: name }
+    if (
+      weightPerUnit !== undefined &&
+      weightPerUnit !== existing.weightPerUnit
+    ) {
+      changes.weight_per_unit = {
+        old: existing.weightPerUnit,
+        new: weightPerUnit,
+      }
+    }
+    if (
+      lowStockThreshold !== undefined &&
+      lowStockThreshold !== existing.lowStockThreshold
+    ) {
+      changes.low_stock_threshold = {
+        old: existing.lowStockThreshold,
+        new: lowStockThreshold,
+      }
+    }
+    if (imageStorageId !== undefined && imageStorageId !== existing.imagePath) {
+      changes.image = {
+        old: existing.imagePath ?? "none",
+        new: imageStorageId,
+      }
+    }
+
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "product_update",
-      description: `Updated product ${existing.name} → ${name}`,
+      description: JSON.stringify({
+        summary: `Updated product ${existing.name} → ${name}`,
+        changes: Object.keys(changes).length > 0 ? changes : undefined,
+      }),
+      resourceType: "product",
+      resourceId: productId,
       userAgent,
     })
 
@@ -155,7 +190,7 @@ export const archive = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can archive products")
 
     await Promise.all([
@@ -170,10 +205,12 @@ export const archive = zMutation({
 
     await ctx.db.patch(productId, { status: "archived" })
 
-    await ctx.db.insert("auditLogs", {
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "product_archive",
       description: `Archived product ${product.name} (${product.skuCode})`,
+      resourceType: "product",
+      resourceId: productId,
       userAgent,
     })
 
@@ -188,7 +225,7 @@ export const unarchive = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can unarchive products")
 
     await Promise.all([
@@ -202,10 +239,12 @@ export const unarchive = zMutation({
 
     await ctx.db.patch(productId, { status: "active" })
 
-    await ctx.db.insert("auditLogs", {
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "product_unarchive",
       description: `Unarchived product ${product.name} (${product.skuCode})`,
+      resourceType: "product",
+      resourceId: productId,
       userAgent,
     })
 

@@ -48,9 +48,15 @@ export default function EditBatchDialog({
   } = useEditBatchForm({ batchId, open, onOpenChange })
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={setOpen}>
+    <Dialog modal={false} open={dialogOpen} onOpenChange={setOpen}>
       {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
-      <DialogContent>
+
+      {open ? (
+        // * manual backdrop since modal={false} is used
+        <div className="fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+      ) : null}
+
+      <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Edit batch</DialogTitle>
           <DialogDescription>

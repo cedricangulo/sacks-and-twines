@@ -1,8 +1,3 @@
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-})
+import { formatDate as sharedFormatDate } from "@/lib/formatters"
 
-export const formatDate = (timestamp: number) =>
-  dateFormatter.format(new Date(timestamp))
+export const formatDate = (timestamp: number) => sharedFormatDate(timestamp)

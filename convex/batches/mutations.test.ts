@@ -11,6 +11,7 @@ const authMocks = vi.hoisted(() => ({
 const modules = {
   "./_generated/api.ts": () => import("../_generated/api"),
   "./_generated/server.ts": () => import("../_generated/server"),
+  "./auditLogs/mutations.ts": () => import("../auditLogs/mutations"),
   "./batches/queries.ts": () => import("./queries"),
   "./batches/mutations.ts": () => import("./mutations"),
   "./users/queries.ts": () => import("../users/queries"),
@@ -920,5 +921,195 @@ describe("batch mutations", () => {
     expect((updatedProduct as Record<string, unknown>).imagePath).toBe(
       originalImagePath
     )
+  })
+
+  it("rejects stockIn for deactivated owner", async () => {
+    const t = makeTest()
+    const [ownerId, productId, supplierId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "deactivated",
+      }),
+      createProduct(t, "Test Product"),
+      createSupplier(t, "Test Supplier"),
+    ])
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.batches.mutations.stockIn, {
+        mode: "existing",
+        productId,
+        supplierId,
+        quantityReceived: 50,
+        totalProcurementCost: 25000,
+      })
+    ).rejects.toThrowError("Only owners can stock in")
+  })
+
+  // ── Audit Log Descriptions ────────────────────────────────
+
+  it("stock_in creates structured audit log entry", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Audit Log Product"),
+      createSupplier(t, "Audit Supplier"),
+    ])
+
+    const result = await t.mutation(api.batches.mutations.stockIn, {
+      mode: "existing",
+      productId,
+      supplierId,
+      quantityReceived: 100,
+      totalProcurementCost: 50000,
+    })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "stock_in"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    const description = JSON.parse(logs[0].description)
+    expect(description).toMatchObject({
+      summary: expect.stringContaining("Audit Log Product"),
+      details: {
+        product: "Audit Log Product",
+        batchCode: result.batchCode,
+        quantity: 100,
+        supplier: "Audit Supplier",
+        totalCost: 50000,
+        unitCost: 500,
+      },
+    })
+  })
+
+  it("batch_update creates structured audit log with changes", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Update Product"),
+      createSupplier(t, "Original Supplier"),
+    ])
+
+    await t.mutation(api.batches.mutations.stockIn, {
+      mode: "existing",
+      productId,
+      supplierId,
+      quantityReceived: 100,
+      totalProcurementCost: 50000,
+    })
+
+    const batches = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("batches")
+        .withIndex("by_product", (q) => q.eq("productId", productId))
+        .collect()
+    })
+    const batchId = batches[0]._id
+    const newSupplierId = await createSupplier(t, "New Supplier")
+
+    await t.mutation(api.batches.mutations.update, {
+      batchId,
+      productId,
+      supplierId: newSupplierId,
+      quantityReceived: 150,
+      totalProcurementCost: 75000,
+      category: "sacks",
+      baseUom: "piece",
+    })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "batch_update"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    const description = JSON.parse(logs[0].description)
+    expect(description).toMatchObject({
+      summary: expect.stringContaining(batches[0].batchCode),
+      changes: {
+        supplier_name: { old: "Original Supplier", new: "New Supplier" },
+        qty_received: { old: 100, new: 150 },
+        qty_remaining: { old: 100, new: 150 },
+        total_cost: { old: 50000, new: 75000 },
+      },
+    })
+  })
+
+  it("batch_void creates structured audit log entry", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Void Product"),
+      createSupplier(t, "Supplier"),
+    ])
+
+    await t.mutation(api.batches.mutations.stockIn, {
+      mode: "existing",
+      productId,
+      supplierId,
+      quantityReceived: 50,
+      totalProcurementCost: 25000,
+    })
+
+    const batches = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("batches")
+        .withIndex("by_product", (q) => q.eq("productId", productId))
+        .collect()
+    })
+    const batchId = batches[0]._id
+
+    await t.mutation(api.batches.mutations.voidBatch, {
+      batchId,
+      reason: "Test void reason",
+    })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "batch_void"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    const description = JSON.parse(logs[0].description)
+    expect(description).toMatchObject({
+      summary: expect.stringContaining(batches[0].batchCode),
+      details: {
+        batchCode: batches[0].batchCode,
+        product: "Void Product",
+        unitsRemoved: 50,
+        reason: "Test void reason",
+      },
+    })
   })
 })

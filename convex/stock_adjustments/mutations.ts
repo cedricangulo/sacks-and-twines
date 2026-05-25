@@ -1,4 +1,5 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
+import { internal } from "../_generated/api"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { createStockAdjustmentArgs } from "./validators"
@@ -13,7 +14,7 @@ export const create = zMutation({
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner")
+    if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can adjust stock")
 
     await Promise.all([
@@ -54,19 +55,33 @@ export const create = zMutation({
     await Promise.all([
       ctx.db.patch(batchId, patch),
       ctx.db.patch(productId, {
-        currentQuantity: Math.max(0, product.currentQuantity + quantityAdjusted),
+        currentQuantity: Math.max(
+          0,
+          product.currentQuantity + quantityAdjusted
+        ),
         totalAssetValue: Math.max(0, product.totalAssetValue + costDelta),
       }),
-      ctx.db.insert("auditLogs", {
+      ctx.runMutation(internal.auditLogs.mutations.log, {
         userId: callerId,
         action: "stock_adjustment",
         description: JSON.stringify({
-          batchCode: batch.batchCode,
-          productName: product.name,
-          quantityAdjusted,
-          reason,
-          direction,
+          summary: `Stock ${direction === "add" ? "added to" : "deducted from"} ${product.name} (${reason})`,
+          details: {
+            batchCode: batch.batchCode,
+            productName: product.name,
+            quantityAdjusted,
+            reason,
+            direction,
+          },
+          changes: {
+            qty_remaining: {
+              old: batch.quantityRemaining,
+              new: newRemaining,
+            },
+          },
         }),
+        resourceType: "batch",
+        resourceId: batchId,
         userAgent,
       }),
     ])

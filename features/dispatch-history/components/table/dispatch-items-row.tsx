@@ -21,14 +21,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { Id } from "@/convex/_generated/dataModel"
+import { formatCurrency, formatNumber } from "@/lib/formatters"
 import { useDispatchItems } from "../../hooks/use-dispatch-items"
 import type { DispatchItem } from "../../validation"
-
-const currencyFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-})
-const formatCurrency = (value: number) => currencyFormatter.format(value)
 
 const columnHelper = createColumnHelper<DispatchItem>()
 
@@ -72,7 +67,8 @@ export default function DispatchItemsRow({
           const row = info.row.original
           return (
             <span className="font-mono tabular-nums">
-              {row.dispatchQuantity.toLocaleString("en-US", {
+              {formatNumber(row.dispatchQuantity, {
+                locale: "en-PH",
                 maximumFractionDigits: 4,
               })}{" "}
               {row.dispatchUom}
@@ -86,7 +82,8 @@ export default function DispatchItemsRow({
         header: "Qty Deducted",
         cell: (info) => (
           <span className="font-mono tabular-nums">
-            {info.getValue().toLocaleString("en-US", {
+            {formatNumber(info.getValue(), {
+              locale: "en-PH",
               maximumFractionDigits: 4,
             })}
           </span>

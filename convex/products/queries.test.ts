@@ -35,10 +35,15 @@ describe("product queries", () => {
 
   async function createUser(
     t: ReturnType<typeof convexTest>,
-    user: { email: string; name: string; role: "owner" | "staff" }
+    user: {
+      email: string
+      name: string
+      role: "owner" | "staff"
+      status?: "active" | "deactivated"
+    }
   ) {
     return await t.run(async (ctx) => {
-      return await ctx.db.insert("users", user)
+      return await ctx.db.insert("users", { status: "active", ...user })
     })
   }
 
@@ -121,32 +126,32 @@ describe("product queries", () => {
     expect(result).toHaveLength(0)
   })
 
-  it("rejects unauthenticated getById", async () => {
+  // ── listActive ──────────────────────────────────────────
+
+  it("listActive rejects unauthenticated", async () => {
     const t = makeTest()
     authMocks.getAuthUserId.mockResolvedValueOnce(null)
 
-    const phantomId = await t.run(async (ctx) => {
-      const id = await ctx.db.insert("products", {
-        skuCode: "TEMP",
-        name: "Temp",
-        category: "sacks",
-        baseUom: "piece",
-        weightPerUnit: 0,
-        currentQuantity: 0,
-        totalAssetValue: 0,
-        lowStockThreshold: 0,
-        status: "active",
-      })
-      await ctx.db.delete(id)
-      return id
-    })
-
-    await expect(
-      t.query(api.products.queries.getById, { productId: phantomId })
-    ).rejects.toThrowError("Unauthorized")
+    await expect(t.query(api.products.queries.listActive)).rejects.toThrowError(
+      "Unauthorized"
+    )
   })
 
-  it("gets product by id for owners", async () => {
+  it("listActive rejects non-owners", async () => {
+    const t = makeTest()
+    const staffId = await createUser(t, {
+      email: "staff@test.com",
+      name: "Staff",
+      role: "staff",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
+
+    await expect(t.query(api.products.queries.listActive)).rejects.toThrowError(
+      "Unauthorized"
+    )
+  })
+
+  it("listActive returns only active products", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
       email: "owner@test.com",
@@ -155,16 +160,19 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, { name: "Rice Sack" })
+    await createProduct(t, { name: "Active Product" })
+    await createProduct(t, {
+      name: "Archived Product",
+      status: "archived",
+    })
 
-    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+    const result = await t.query(api.products.queries.listActive)
 
-    const result = await t.query(api.products.queries.getById, { productId })
-
-    expect(result).toMatchObject({ name: "Rice Sack" })
+    expect(result).toHaveLength(1)
+    expect(result[0].name).toBe("Active Product")
   })
 
-  it("returns null for non-existent product", async () => {
+  it("listActive returns empty array when no active products exist", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
       email: "owner@test.com",
@@ -173,32 +181,17 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const phantomId = await t.run(async (ctx) => {
-      const id = await ctx.db.insert("products", {
-        skuCode: "TEMP",
-        name: "Temp",
-        category: "sacks",
-        baseUom: "piece",
-        weightPerUnit: 0,
-        currentQuantity: 0,
-        totalAssetValue: 0,
-        lowStockThreshold: 0,
-        status: "active",
-      })
-      await ctx.db.delete(id)
-      return id
+    await createProduct(t, {
+      name: "Archived Only",
+      status: "archived",
     })
 
-    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+    const result = await t.query(api.products.queries.listActive)
 
-    const result = await t.query(api.products.queries.getById, {
-      productId: phantomId,
-    })
-
-    expect(result).toBeNull()
+    expect(result).toEqual([])
   })
 
-  it("persists imagePath on product when created via stockIn", async () => {
+  it("listActive returns empty array when no products exist", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
       email: "owner@test.com",
@@ -206,28 +199,67 @@ describe("product queries", () => {
       role: "owner",
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
-    // Not using t.mutation for stockIn — verifying schema-level persistence
-    // by inserting directly and reading back
-    const productId = await t.run(async (ctx) => {
-      return await ctx.db.insert("products", {
-        skuCode: "PERSIST-IMG",
-        name: "Persist Image",
-        category: "sacks",
-        baseUom: "piece",
-        weightPerUnit: 0,
-        currentQuantity: 0,
-        totalAssetValue: 0,
-        lowStockThreshold: 0,
+
+    const result = await t.query(api.products.queries.listActive)
+
+    expect(result).toEqual([])
+  })
+
+  it("listActive enriches with lastSupplierId from most recent batch", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, { name: "Supplier Linked" }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Supplier",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("batches", {
+        productId,
+        supplierId,
+        userId: ownerId,
+        batchCode: "BAT-LAST",
+        totalProcurementCost: 10000,
+        unitCost: 100,
+        quantityReceived: 100,
+        quantityRemaining: 100,
         status: "active",
-        imagePath: "some-storage-id",
       })
     })
 
-    const product = await t.run(async (ctx) => {
-      return await ctx.db.get(productId)
-    })
+    const result = await t.query(api.products.queries.listActive)
 
-    expect(product?.imagePath).toBe("some-storage-id")
+    expect(result).toHaveLength(1)
+    expect(result[0].lastSupplierId?.toString()).toBe(supplierId.toString())
+  })
+
+  it("listActive returns undefined lastSupplierId when product has no batches", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createProduct(t, { name: "No Batch Product" })
+
+    const result = await t.query(api.products.queries.listActive)
+
+    expect(result[0].lastSupplierId).toBeUndefined()
   })
 
   // ── listDispatchReady ──────────────────────────────────────
@@ -241,14 +273,10 @@ describe("product queries", () => {
     ).rejects.toThrowError("Unauthorized")
   })
 
-  it("listDispatchReady rejects non-owners", async () => {
+  it("listDispatchReady rejects unauthenticated users", async () => {
     const t = makeTest()
-    const staffId = await createUser(t, {
-      email: "staff@test.com",
-      name: "Staff",
-      role: "staff",
-    })
-    authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
 
     await expect(
       t.query(api.products.queries.listDispatchReady)

@@ -67,35 +67,32 @@ export default function ProductCombobox({
         <span className="truncate">
           {selected?.name ?? "Select an item or add a new one"}
         </span>
-        <ChevronsUpDown className="opacity-50 size-4 shrink-0" />
+        <ChevronsUpDown className="opacity-50" />
       </Button>
 
       {open ? (
         <div className="absolute z-50 w-full mt-1 border shadow-lg rounded-2xl bg-popover">
           <div className="p-2">
             <Input
+              list="product-listbox"
               placeholder="Search existing items..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
 
-          <div
-            className="overflow-auto max-h-48"
-            id="product-listbox"
-            role="listbox"
-          >
+          <div className="overflow-y-auto max-h-68" id="product-listbox">
             {filtered.length === 0 ? (
-              <div className="px-3 py-4 text-sm text-center text-destructive-foreground">
+              <p className="p-4 text-center type-sm text-destructive-foreground">
                 No items found.
-              </div>
+              </p>
             ) : (
               filtered.map((product) => (
                 <button
                   key={product._id}
                   type="button"
                   className={cn(
-                    "flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent transition-colors",
+                    "flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-accent transition-colors",
                     product._id === value && "bg-accent"
                   )}
                   onClick={() => {
@@ -104,16 +101,12 @@ export default function ProductCombobox({
                     setQuery("")
                   }}
                 >
-                  <span className="font-medium">{product.name}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <p className="flex items-center justify-between w-full gap-2 type-sm">
+                    <span className="font-medium">{product.name}</span>
+                    <Badge variant="secondary">{product.category}</Badge>
+                  </p>
+                  <span className="type-sm text-muted-foreground">
                     {product.skuCode}
-                    {" — "}
-                    <Badge
-                      variant="secondary"
-                      className="inline text-[10px] px-1 py-0"
-                    >
-                      {product.category}
-                    </Badge>
                   </span>
                 </button>
               ))
@@ -123,15 +116,15 @@ export default function ProductCombobox({
           <div className="p-2 border-t border-border">
             <Button
               type="button"
-              variant="ghost"
-              className="w-full gap-2"
+              variant="secondary"
+              className="w-full"
               onClick={() => {
                 onAddNew()
                 setOpen(false)
                 setQuery("")
               }}
             >
-              <Plus className="size-4" />
+              <Plus />
               Add New Item
             </Button>
           </div>

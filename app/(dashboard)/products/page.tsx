@@ -1,6 +1,5 @@
 "use client"
 
-import { useConvexAuth } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
 import { Package, SearchX } from "lucide-react"
 import {
@@ -12,12 +11,13 @@ import {
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import ProductCard from "@/features/products/components/product-card"
 import ProductFilterBar from "@/features/products/components/product-filter-bar"
 import { useProductFilters } from "@/features/products/hooks/use-product-filters"
 
 export default function ProductsPage() {
-  const { isAuthenticated } = useConvexAuth()
+  const { isAuthenticated } = useCurrentUser()
   const products = useQuery(
     api.products.queries.listDispatchReady,
     isAuthenticated ? {} : "skip"
@@ -55,16 +55,16 @@ export default function ProductsPage() {
         onClear={clearFilters}
       />
       {filtered === undefined ? (
-        <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+        <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
           <div className="absolute bottom-0 left-0 z-20 w-full h-2/4 bg-linear-to-t from-background to-transparent" />
-          {Array.from({ length: 3 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-81 rounded-4xl" />
           ))}
         </div>
       ) : (
         <>
           {filtered.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
               {filtered.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}

@@ -20,13 +20,8 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import type { Id } from "@/convex/_generated/dataModel"
+import { formatCurrency, formatNumber } from "@/lib/formatters"
 import { useVoidBatchDialog } from "../../hooks/use-void-batch-dialog"
-
-const currencyFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-})
-const formatCurrency = (value: number) => currencyFormatter.format(value)
 
 export default function VoidBatchDialog({
   batchId,
@@ -97,7 +92,7 @@ export default function VoidBatchDialog({
                     Quantity remaining
                   </dt>
                   <dd className="text-sm font-semibold text-foreground">
-                    {detail.quantityRemaining.toLocaleString()}
+                    {formatNumber(detail.quantityRemaining)}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between">
@@ -128,7 +123,7 @@ export default function VoidBatchDialog({
                   <span className="text-foreground">
                     Product quantity will decrease by{" "}
                     <span className="font-medium">
-                      {detail.quantityRemaining.toLocaleString()}
+                      {formatNumber(detail.quantityRemaining)}
                     </span>
                   </span>
                 </li>

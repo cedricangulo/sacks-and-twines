@@ -58,6 +58,7 @@ export default defineSchema({
     createdAt: v.optional(v.number()),
   })
     .index("by_product", ["productId"])
+    .index("by_product_status", ["productId", "status"])
     .index("by_batchCode", ["batchCode"])
     .index("by_supplier", ["supplierId"]),
 
@@ -106,8 +107,13 @@ export default defineSchema({
     userId: v.optional(v.id("users")),
     action: v.string(),
     description: v.string(),
+    resourceType: v.optional(v.string()),
+    resourceId: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
     userAgent: v.optional(v.string()),
     createdAt: v.optional(v.number()),
-  }),
+  })
+    .index("by_action", ["action"])
+    .index("by_userId", ["userId"])
+    .index("by_action_userId", ["action", "userId"]),
 })

@@ -1,6 +1,5 @@
 "use client"
 
-import { useConvexAuth } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
 import { SearchX, Users } from "lucide-react"
 import { useState } from "react"
@@ -13,16 +12,13 @@ import {
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import StaffFilterBar from "@/features/users/components/staff-filter-bar"
 import StaffTableContainer from "@/features/users/components/staff-table-container"
 import { useStaffFilters } from "@/features/users/hooks/use-staff-filters"
 
 export default function UsersPage() {
-  const { isAuthenticated } = useConvexAuth()
-  const user = useQuery(
-    api.users.queries.currentUser,
-    isAuthenticated ? {} : "skip"
-  )
+  const { user, isLoading: isUserLoading, isAuthenticated } = useCurrentUser()
   const staff = useQuery(api.users.queries.list, isAuthenticated ? {} : "skip")
   const {
     search,
@@ -56,7 +52,7 @@ export default function UsersPage() {
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={setColumnVisibility}
       />
-      {user === undefined || filtered === undefined ? (
+      {isUserLoading || filtered === undefined ? (
         <Skeleton className="h-64 w-full" />
       ) : user?.role !== "owner" ? (
         <p className="text-sm text-muted-foreground">

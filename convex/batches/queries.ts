@@ -80,14 +80,14 @@ export const listForDispatch = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const batches = await ctx.db
+    const activeBatches = await ctx.db
       .query("batches")
-      .withIndex("by_product", (q) => q.eq("productId", productId))
+      .withIndex("by_product_status", (q) =>
+        q.eq("productId", productId).eq("status", "active")
+      )
       .order("asc")
       .collect()
 
-    return batches.filter(
-      (b) => b.status === "active" && b.quantityRemaining > 0
-    )
+    return activeBatches.filter((b) => b.quantityRemaining > 0)
   },
 })

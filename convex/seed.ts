@@ -140,12 +140,12 @@ const PRODUCT_DEFS: ProductDef[] = [
 ]
 
 const PRODUCT_IMAGE_MAP: Record<string, string> = {
-  "Rice Sack": "kg2e9g9wf9a13e1p3c04kq05hx86zrdg",
-  "Gunny Sack": "kg22vfdmxf6rw81g098zsezpa586zs1w",
-  "Flour Sack": "kg2cw8n4spc33trcrr4gjc25q186z19g",
-  "Binder Twine": "kg20h27w8mg8kt8arnfnc4jmqn86ytc9",
-  "Baler Twine": "kg27e2gwxzbjeje7be494a4r2d86ygfk",
-  "Sisal Twine": "kg22gjb2f09z5whj1vwqv7mdbd86zqce",
+  "Rice Sack": "kg274bbqe3y204k3t9rb9pkbv58773qm",
+  "Gunny Sack": "kg26bxcwgxghe3kgnfrngreh89876fjg",
+  "Flour Sack": "kg24nnbp9tc1gfb0n0krd9hw958764sw",
+  "Binder Twine": "kg28hxx2hbbcxyek93y5sxj9658773qy",
+  "Baler Twine": "kg2bxmmkvnrdp6fyzcg05ejdcn876kgt",
+  "Sisal Twine": "kg27da983b0880hwwvhn2khqqh8778en",
 }
 
 // ─── Internal Mutation: writeAll ───────────────────────────────────────────
@@ -159,16 +159,23 @@ export const writeAll = internalMutation({
     // ═══════════════════════════════════════════════════════════════════════
     // 1. Clear existing data (children before parents)
     // ═══════════════════════════════════════════════════════════════════════
-    const [allDispatchItems, allAdjustments, allLogs, allDispatches, allBatches, allProducts, allSuppliers] =
-      await Promise.all([
-        ctx.db.query("dispatchItems").collect(),
-        ctx.db.query("stockAdjustments").collect(),
-        ctx.db.query("auditLogs").collect(),
-        ctx.db.query("dispatches").collect(),
-        ctx.db.query("batches").collect(),
-        ctx.db.query("products").collect(),
-        ctx.db.query("suppliers").collect(),
-      ])
+    const [
+      allDispatchItems,
+      allAdjustments,
+      allLogs,
+      allDispatches,
+      allBatches,
+      allProducts,
+      allSuppliers,
+    ] = await Promise.all([
+      ctx.db.query("dispatchItems").collect(),
+      ctx.db.query("stockAdjustments").collect(),
+      ctx.db.query("auditLogs").collect(),
+      ctx.db.query("dispatches").collect(),
+      ctx.db.query("batches").collect(),
+      ctx.db.query("products").collect(),
+      ctx.db.query("suppliers").collect(),
+    ])
 
     await Promise.all([
       ...allDispatchItems.map((d) => ctx.db.delete(d._id)),
@@ -306,7 +313,10 @@ export const writeAll = internalMutation({
     const peakEnd = DATE_END
 
     // Build product → active batches index for O(1) lookups
-    const activeBatchesByProduct = new Map<Id<"products">, typeof batchRecords>()
+    const activeBatchesByProduct = new Map<
+      Id<"products">,
+      typeof batchRecords
+    >()
     const depletedBatchIds = new Set<Id<"batches">>()
     for (const batch of batchRecords) {
       let list = activeBatchesByProduct.get(batch.productId)
@@ -365,9 +375,9 @@ export const writeAll = internalMutation({
         const qtyDeducted = toFloat(dispatchQty * product.def.weightPerUnit, 4)
 
         // Find an active batch with enough remaining
-        const productBatchesList = (productBatches.get(product.id) ?? []).filter(
-          (b) => !depletedBatchIds.has(b.id)
-        )
+        const productBatchesList = (
+          productBatches.get(product.id) ?? []
+        ).filter((b) => !depletedBatchIds.has(b.id))
         const candidateBatches = productBatchesList.filter(
           (b) => b.quantityRemaining >= qtyDeducted
         )
@@ -511,7 +521,9 @@ export const writeAll = internalMutation({
       batchRecords.map((batch) =>
         ctx.db.patch(batch.id, {
           quantityRemaining: batch.quantityRemaining,
-          ...(batch.status === "depleted" ? { status: "depleted" as const } : {}),
+          ...(batch.status === "depleted"
+            ? { status: "depleted" as const }
+            : {}),
         })
       )
     )
@@ -521,24 +533,24 @@ export const writeAll = internalMutation({
     // ═══════════════════════════════════════════════════════════════════════
     await Promise.all(
       productList.map(async ({ id: pId, def }) => {
-      const activeBatches = batchRecords.filter(
-        (b) => b.productId === pId && b.quantityRemaining > 0
-      )
-
-      const totalQty = activeBatches.reduce(
-        (sum, b) => sum + b.quantityRemaining,
-        0
-      )
-      const currentQuantity =
-        def.baseUom === "piece" ? Math.round(totalQty) : toFloat(totalQty)
-
-      let totalAssetValue = 0
-      if (activeBatches.length > 0) {
-        const latest = activeBatches.reduce((a, b) =>
-          a.createdDate > b.createdDate ? a : b
+        const activeBatches = batchRecords.filter(
+          (b) => b.productId === pId && b.quantityRemaining > 0
         )
-        totalAssetValue = toFloat(currentQuantity * latest.unitCost)
-      }
+
+        const totalQty = activeBatches.reduce(
+          (sum, b) => sum + b.quantityRemaining,
+          0
+        )
+        const currentQuantity =
+          def.baseUom === "piece" ? Math.round(totalQty) : toFloat(totalQty)
+
+        let totalAssetValue = 0
+        if (activeBatches.length > 0) {
+          const latest = activeBatches.reduce((a, b) =>
+            a.createdDate > b.createdDate ? a : b
+          )
+          totalAssetValue = toFloat(currentQuantity * latest.unitCost)
+        }
 
         await ctx.db.patch(pId, { currentQuantity, totalAssetValue })
       })
@@ -573,13 +585,16 @@ export const writeAll = internalMutation({
           userId: ownerId,
           action: "stock_in",
           description: JSON.stringify({
-            resource_type: "product",
-            resource_id: batch.productId,
-            product_name: productName,
-            quantity: toFloat(totalReceived),
-            uom: pDef?.baseUom ?? "piece",
-            batch_code: batch.batchCode,
+            summary: `Stocked in ${toFloat(totalReceived)} units of ${productName} (${batch.batchCode})`,
+            details: {
+              product: productName,
+              batchCode: batch.batchCode,
+              quantity: toFloat(totalReceived),
+              uom: pDef?.baseUom ?? "piece",
+            },
           }),
+          resourceType: "batch",
+          resourceId: batch.id,
           ipAddress: "127.0.0.1",
           userAgent: "Convex Seed",
           createdAt: batch.createdDate.getTime(),
@@ -600,27 +615,29 @@ export const writeAll = internalMutation({
       const items = dispatchItemGroups[dispatch.id]
       if (!items || items.length === 0) continue
 
-      const products = items.map((item) => ({
-        name: productNameById[item.productId] ?? "Unknown",
-        category:
-          productByName[productNameById[item.productId]]?.category ?? "sacks",
-        uom: item.dispatchUom,
-        quantity: item.dispatchQuantity,
-      }))
+      const products = items
+        .map(
+          (item) =>
+            `${productNameById[item.productId] ?? "Unknown"} x ${item.dispatchQuantity} ${item.dispatchUom}`
+        )
+        .join("; ")
 
       dispatchLogPromises.push(
         ctx.db.insert("auditLogs", {
           userId: dispatch.userId,
           action: "stock_out",
           description: JSON.stringify({
-            resource_type: "dispatch",
-            resource_id: dispatch.id,
-            total_quantity: toFloat(
-              items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
-            ),
-            items_count: items.length,
-            products,
+            summary: `Dispatched ${items.length} product(s) (${toFloat(items.reduce((sum, item) => sum + item.dispatchQuantity, 0))} units)`,
+            details: {
+              totalItems: items.length,
+              totalQuantity: toFloat(
+                items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
+              ),
+              products,
+            },
           }),
+          resourceType: "dispatch",
+          resourceId: dispatch.id,
           ipAddress: "127.0.0.1",
           userAgent: "Convex Seed",
           createdAt: dispatch.createdDate.getTime(),
@@ -647,16 +664,17 @@ export const writeAll = internalMutation({
           userId: ownerId,
           action: "stock_adjustment",
           description: JSON.stringify({
-            resource_type: "batch",
-            resource_id: adj.batchId,
-            product_name: productName,
-            quantity_adjusted: adj.quantity,
-            reason: adj.reason,
-            direction:
-              adj.reason === "damaged" || adj.reason === "lost"
-                ? "deduct"
-                : "add",
-            batch_code: batchCode,
+            summary: `Adjusted stock for ${productName} (${adj.reason === "damaged" || adj.reason === "lost" ? "deduct" : "add"}, ${adj.reason})`,
+            details: {
+              productName,
+              quantityAdjusted: adj.quantity,
+              reason: adj.reason,
+              direction:
+                adj.reason === "damaged" || adj.reason === "lost"
+                  ? "deduct"
+                  : "add",
+              batchCode,
+            },
             changes: {
               quantity_remaining: {
                 old: beforeRemaining,
@@ -664,6 +682,8 @@ export const writeAll = internalMutation({
               },
             },
           }),
+          resourceType: "batch",
+          resourceId: adj.batchId,
           ipAddress: "127.0.0.1",
           userAgent: "Convex Seed",
           createdAt: logDate.getTime(),
@@ -710,6 +730,8 @@ export const writeAll = internalMutation({
           userId: ownerId,
           action: event.action as string,
           description: JSON.stringify(event),
+          resourceType: "user",
+          resourceId: ownerId,
           ipAddress: "127.0.0.1",
           userAgent: "Convex Seed",
           createdAt: logDate.getTime(),

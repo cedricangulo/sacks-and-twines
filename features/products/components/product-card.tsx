@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { DispatchReadyProduct } from "@/features/products/validation"
+import { formatNumber } from "@/lib/formatters"
 import { getInitials } from "@/lib/utils"
 import { useProductCard } from "../hooks/use-product-card"
 
@@ -75,7 +76,7 @@ export default function ProductCard({ product }: Props) {
         <CardDescription>
           <h5 className="type-sm">{product.skuCode}</h5>
           <p className="type-base text-foreground">
-            {product.currentQuantity}{" "}
+            {formatNumber(product.currentQuantity)}{" "}
             <span>
               {product.baseUom}
               {product.currentQuantity !== 1 ? "s" : ""}

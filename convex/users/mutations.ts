@@ -1,4 +1,5 @@
 import { createAccount, getAuthUserId } from "@convex-dev/auth/server"
+import { internal } from "../_generated/api"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { createUserArgs, deactivateUserArgs } from "../validators/users"
@@ -12,7 +13,7 @@ export const create = zMutation({
     }
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner") {
+    if (!caller || caller.role !== "owner" || caller.status !== "active") {
       throw new Error("Only owners can create staff users")
     }
 
@@ -45,14 +46,18 @@ export const create = zMutation({
       shouldLinkViaPhone: false,
     })
 
-    await ctx.db.insert("auditLogs", {
-      userId: callerId,
-      action: "user_create",
-      description: `Created staff ${email}`,
-      userAgent,
-    })
+    if (newUser) {
+      await ctx.runMutation(internal.auditLogs.mutations.log, {
+        userId: callerId,
+        action: "user_create",
+        description: `Created staff ${email}`,
+        resourceType: "user",
+        resourceId: newUser.user._id,
+        userAgent,
+      })
+    }
 
-    return newUser
+    return newUser.user
   },
 })
 
@@ -65,7 +70,7 @@ export const deactivate = zMutation({
     }
 
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner") {
+    if (!caller || caller.role !== "owner" || caller.status !== "active") {
       throw new Error("Only owners can deactivate users")
     }
 
@@ -89,10 +94,12 @@ export const deactivate = zMutation({
 
     await ctx.db.patch(userId, { status: "deactivated" })
 
-    await ctx.db.insert("auditLogs", {
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "user_deactivate",
       description: `Deactivated user ${target.email ?? String(userId)}`,
+      resourceType: "user",
+      resourceId: userId,
       userAgent,
     })
 

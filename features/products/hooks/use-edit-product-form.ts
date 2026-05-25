@@ -1,10 +1,11 @@
 "use client"
 
-import { useConvexAuth, useMutation } from "convex/react"
+import { useMutation } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
 import { SubmitEvent, useEffect, useReducer, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import {
   type ProductUpdateFieldErrors,
   type ProductUpdateFormData,
@@ -33,7 +34,11 @@ type DialogAction =
       imagePreview: string | null
       hasBatches: boolean
     }
-  | { type: "changeField"; field: keyof ProductUpdateFormData; value: string | number | undefined }
+  | {
+      type: "changeField"
+      field: keyof ProductUpdateFormData
+      value: string | number | undefined
+    }
   | { type: "selectImage"; file: File | null }
   | { type: "setImageError"; imageError: string | null }
   | { type: "setErrors"; errors: ProductUpdateFieldErrors }
@@ -77,7 +82,12 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
       return { ...state, formValues: next, dirty: true, errors }
     }
     case "selectImage": {
-      const next = { imagePreview: null, selectedFile: null, imageCleared: false, dirty: true }
+      const next = {
+        imagePreview: null,
+        selectedFile: null,
+        imageCleared: false,
+        dirty: true,
+      }
       if (action.file) {
         return {
           ...state,
@@ -116,7 +126,7 @@ export function useEditProductForm({
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
-  const { isAuthenticated } = useConvexAuth()
+  const { isAuthenticated } = useCurrentUser()
   const detail = useQuery(
     api.products.queries.getEditDetail,
     isAuthenticated ? { productId } : "skip"
@@ -126,8 +136,20 @@ export function useEditProductForm({
   const [internalOpen, setInternalOpen] = useState(false)
   const open = openProp ?? internalOpen
   const setOpen = onOpenChange ?? setInternalOpen
-  const [dialogState, dispatch] = useReducer(dialogReducer, INITIAL_DIALOG_STATE)
-  const { formValues, imagePreview, imageCleared, selectedFile, imageError, lockedFields, dirty, errors } = dialogState
+  const [dialogState, dispatch] = useReducer(
+    dialogReducer,
+    INITIAL_DIALOG_STATE
+  )
+  const {
+    formValues,
+    imagePreview,
+    imageCleared,
+    selectedFile,
+    imageError,
+    lockedFields,
+    dirty,
+    errors,
+  } = dialogState
 
   const hasBatches = (detail?.batchCount ?? 0) > 0
 
@@ -152,11 +174,17 @@ export function useEditProductForm({
   const handleImageSelect = (file: File | null) => {
     if (file) {
       if (!ALLOWED_TYPES.includes(file.type)) {
-        dispatch({ type: "setImageError", imageError: "Only JPEG and PNG files are allowed." })
+        dispatch({
+          type: "setImageError",
+          imageError: "Only JPEG and PNG files are allowed.",
+        })
         return
       }
       if (file.size > MAX_FILE_SIZE) {
-        dispatch({ type: "setImageError", imageError: "File size must be under 5MB." })
+        dispatch({
+          type: "setImageError",
+          imageError: "File size must be under 5MB.",
+        })
         return
       }
     } else if (imagePreview) {
@@ -173,7 +201,10 @@ export function useEditProductForm({
   }
 
   const handleUnlock = (field: string) => {
-    dispatch({ type: "setLockedFields", lockedFields: { ...lockedFields, [field]: false } })
+    dispatch({
+      type: "setLockedFields",
+      lockedFields: { ...lockedFields, [field]: false },
+    })
   }
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
@@ -203,7 +234,10 @@ export function useEditProductForm({
         const { storageId } = await uploadResult.json()
         imageStorageId = storageId as string
       } catch {
-        dispatch({ type: "setImageError", imageError: "Failed to upload image. Please try again." })
+        dispatch({
+          type: "setImageError",
+          imageError: "Failed to upload image. Please try again.",
+        })
         return
       }
     } else if (imageCleared) {
