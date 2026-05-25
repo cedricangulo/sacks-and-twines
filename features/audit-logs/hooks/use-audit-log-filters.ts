@@ -3,6 +3,7 @@
 import { debounce, parseAsString, useQueryState } from "nuqs"
 import { useMemo } from "react"
 import type { Id } from "@/convex/_generated/dataModel"
+import { getTimestampFromPreset } from "@/features/audit-logs/helpers/date-presets"
 import type { AuditLogEntry, AuditLogFilters } from "./use-audit-logs"
 
 export function useAuditLogFilters(logs: AuditLogEntry[] | undefined) {
@@ -54,28 +55,18 @@ export function useAuditLogFilters(logs: AuditLogEntry[] | undefined) {
     dateFrom !== "all" ||
     dateTo !== "all"
 
-  const getTimestampFromPreset = (preset: string): number | undefined => {
-    const now = Date.now()
-    switch (preset) {
-      case "today": {
-        const d = new Date()
-        d.setHours(0, 0, 0, 0)
-        return d.getTime()
-      }
-      case "7d":
-        return now - 7 * 86400000
-      case "30d":
-        return now - 30 * 86400000
-      default:
-        return undefined
-    }
-  }
+  const resolvedDateFrom = useMemo(() => {
+    if (dateFrom === "all") return undefined
+    const asNumber = Number(dateFrom)
+    if (!Number.isNaN(asNumber)) return asNumber
+    return getTimestampFromPreset(dateFrom, Date.now())
+  }, [dateFrom])
 
-  const resolvedDateFrom =
-    dateFrom !== "all"
-      ? Number(dateFrom) || getTimestampFromPreset(dateFrom)
-      : undefined
-  const resolvedDateTo = dateTo !== "all" ? Number(dateTo) : undefined
+  const resolvedDateTo = useMemo(() => {
+    if (dateTo === "all") return undefined
+    const asNumber = Number(dateTo)
+    return Number.isNaN(asNumber) ? undefined : asNumber
+  }, [dateTo])
 
   const filterArgs: AuditLogFilters = useMemo(
     () => ({

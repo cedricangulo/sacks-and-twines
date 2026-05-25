@@ -35,7 +35,12 @@ describe("product queries", () => {
 
   async function createUser(
     t: ReturnType<typeof convexTest>,
-    user: { email: string; name: string; role: "owner" | "staff"; status?: "active" | "deactivated" }
+    user: {
+      email: string
+      name: string
+      role: "owner" | "staff"
+      status?: "active" | "deactivated"
+    }
   ) {
     return await t.run(async (ctx) => {
       return await ctx.db.insert("users", { status: "active", ...user })

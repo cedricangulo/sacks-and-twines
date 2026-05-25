@@ -23,10 +23,8 @@ export default function NotFound() {
             The page you are looking for does not exist.
           </EmptyDescription>
         </EmptyHeader>
-        <Button onClick={() => window.history.back()}>
-          Go Back
-        </Button>
+        <Button onClick={() => window.history.back()}>Go Back</Button>
       </Empty>
     </div>
-  );
-};
+  )
+}

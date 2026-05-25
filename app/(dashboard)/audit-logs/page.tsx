@@ -33,7 +33,7 @@ export default function AuditLogsPage() {
     goPrev,
     hasNext,
     hasPrev,
-  } = useAuditLogs(filterArgs, !isAuthenticated)
+  } = useAuditLogs(filterArgs, search, !isAuthenticated)
 
   return (
     <div className="flex-1 space-y-6">

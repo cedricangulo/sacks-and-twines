@@ -127,7 +127,10 @@ export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
                         <dd>
                           <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
                             {Object.entries(parsedDesc.changes).map(
-                              ([key, change]) => (
+                              ([key, change]: [
+                                string,
+                                { old: unknown; new: unknown },
+                              ]) => (
                                 <ChangeEntry
                                   key={key}
                                   label={formatChangeLabel(key)}

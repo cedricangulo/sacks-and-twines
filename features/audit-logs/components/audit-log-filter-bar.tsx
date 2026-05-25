@@ -1,10 +1,26 @@
 "use client"
 
-import { useQuery } from "convex-helpers/react/cache"
-import { DownloadIcon, SearchIcon, XIcon } from "lucide-react"
-import { useState } from "react"
+import { SearchIcon, UploadIcon, XIcon } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Kbd } from "@/components/ui/kbd"
 import {
   Select,
   SelectContent,
@@ -12,9 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { api } from "@/convex/_generated/api"
-import { useCurrentUser } from "@/features/auth/components/current-user-provider"
+import { formatAction } from "@/features/audit-logs/helpers/format-action"
 import { DATE_PRESETS } from "../constants"
+import { useAuditLogExport } from "../hooks/use-audit-log-export"
 import type { AuditLogFilters } from "../hooks/use-audit-logs"
 
 interface AuditLogFilterBarProps {
@@ -30,58 +46,31 @@ interface AuditLogFilterBarProps {
   onClear: () => void
 }
 
-const formatAction = (action: string) =>
-  action
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ")
-
 export default function AuditLogFilterBar({
   search,
-  onSearchChange,
   action,
   dateFrom,
   disabled,
-  onDatePresetChange,
-  onFilterChange,
   filterArgs,
   hasActiveFilters,
   onClear,
+  onSearchChange,
+  onDatePresetChange,
+  onFilterChange,
 }: AuditLogFilterBarProps) {
-  const { isAuthenticated } = useCurrentUser()
-  const [isExporting, setIsExporting] = useState(false)
-
-  const actions = useQuery(
-    api.auditLogs.queries.listActions,
-    isAuthenticated ? {} : "skip"
-  ) as string[] | undefined
-
-  const csvResult = useQuery(
-    api.auditLogs.queries.exportCsv,
-    isAuthenticated
-      ? {
-          action: filterArgs.action,
-          userId: filterArgs.userId,
-          dateFrom: filterArgs.dateFrom,
-          dateTo: filterArgs.dateTo,
-        }
-      : "skip"
-  )
-
-  const handleExport = () => {
-    if (!csvResult) return
-    setIsExporting(true)
-    const blob = new Blob([csvResult], { type: "text/csv;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    setTimeout(() => setIsExporting(false), 500)
-  }
+  const {
+    actions,
+    isExporting,
+    exportDialogOpen,
+    exportMenuOpen,
+    exportResult,
+    recordCount,
+    summaryLines,
+    handleFormatSelect,
+    handleExportConfirm,
+    setExportMenuOpen,
+    setExportDialogOpen,
+  } = useAuditLogExport(search, filterArgs)
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -98,21 +87,21 @@ export default function AuditLogFilterBar({
       <Select
         disabled={disabled}
         value={action}
-        onValueChange={(v) =>
-          onFilterChange({ action: v === "all" ? undefined : v })
-        }
+        onValueChange={(v) => onFilterChange({ action: v })}
       >
         <SelectTrigger className="w-40">
           <SelectValue placeholder="All Actions" />
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Actions</SelectItem>
-          {actions?.map((a) => (
-            <SelectItem key={a} value={a}>
-              {formatAction(a)}
-            </SelectItem>
-          ))}
-        </SelectContent>
+        {actions !== undefined && (
+          <SelectContent>
+            <SelectItem value="all">All Actions</SelectItem>
+            {actions.map((a) => (
+              <SelectItem key={a} value={a}>
+                {formatAction(a)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        )}
       </Select>
 
       <Select
@@ -132,15 +121,57 @@ export default function AuditLogFilterBar({
         </SelectContent>
       </Select>
 
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={handleExport}
-        disabled={isExporting || !csvResult || disabled}
-      >
-        <DownloadIcon className="text-muted-foreground" />
-        {isExporting ? "Exporting..." : "Export"}
-      </Button>
+      <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isExporting || !exportResult || disabled}
+          >
+            <UploadIcon className="text-muted-foreground" />
+            Export
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => handleFormatSelect("csv")}>
+            CSV <Kbd>.csv</Kbd>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleFormatSelect("json")}>
+            JSON <Kbd>.json</Kbd>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-muted text-muted-foreground">
+              <UploadIcon />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Export Audit Logs</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <div className="mb-3">
+                  Export {recordCount} audit log entr
+                  {recordCount === 1 ? "y" : "ies"} matching your current
+                  filters:
+                </div>
+                <div className="space-y-1 text-left">
+                  {summaryLines.map((line) => (
+                    <div key={line}>• {line}</div>
+                  ))}
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleExportConfirm}>
+              Export
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {hasActiveFilters ? (
         <Button type="button" variant="ghost" onClick={onClear}>

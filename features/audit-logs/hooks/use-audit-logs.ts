@@ -27,7 +27,11 @@ export interface AuditLogFilters {
   dateTo?: number
 }
 
-export function useAuditLogs(filters: AuditLogFilters, skip = false) {
+export function useAuditLogs(
+  filters: AuditLogFilters,
+  search: string,
+  skip = false
+) {
   const [cursor, setCursor] = useState<string | null>(null)
   const [history, setHistory] = useState<string[]>([])
   const [pageNum, setPageNum] = useState(1)
@@ -35,7 +39,9 @@ export function useAuditLogs(filters: AuditLogFilters, skip = false) {
   const [isTransitioning, setIsTransitioning] = useState(false)
 
   const filtersKey =
-    filters.action +
+    search +
+    "|" +
+    (filters.action ?? "") +
     "|" +
     (filters.userId ?? "") +
     "|" +
@@ -44,14 +50,16 @@ export function useAuditLogs(filters: AuditLogFilters, skip = false) {
     (filters.dateTo ?? "")
 
   const prevFiltersKeyRef = useRef(filtersKey)
-  if (filtersKey !== prevFiltersKeyRef.current) {
-    prevFiltersKeyRef.current = filtersKey
-    setCursor(null)
-    setHistory([])
-    setPageNum(1)
-    setMaxPage(1)
-    setIsTransitioning(false)
-  }
+  useEffect(() => {
+    if (filtersKey !== prevFiltersKeyRef.current) {
+      prevFiltersKeyRef.current = filtersKey
+      setCursor(null)
+      setHistory([])
+      setPageNum(1)
+      setMaxPage(1)
+      setIsTransitioning(false)
+    }
+  }, [filtersKey])
 
   const queryArgs = useMemo(
     () =>
@@ -59,6 +67,7 @@ export function useAuditLogs(filters: AuditLogFilters, skip = false) {
         ? ("skip" as const)
         : ({
             paginationOpts: { numItems: ITEMS_PER_PAGE, cursor },
+            search: search || undefined,
             action: filters.action,
             userId: filters.userId,
             dateFrom: filters.dateFrom,
@@ -67,6 +76,7 @@ export function useAuditLogs(filters: AuditLogFilters, skip = false) {
     [
       skip,
       cursor,
+      search,
       filters.action,
       filters.userId,
       filters.dateFrom,

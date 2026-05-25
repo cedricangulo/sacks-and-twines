@@ -57,7 +57,7 @@ export default function ProductsPage() {
       {filtered === undefined ? (
         <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
           <div className="absolute bottom-0 left-0 z-20 w-full h-2/4 bg-linear-to-t from-background to-transparent" />
-          {Array.from({ length: 3 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-81 rounded-4xl" />
           ))}
         </div>

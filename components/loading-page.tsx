@@ -1,4 +1,4 @@
-import { Spinner } from "./ui/spinner";
+import { Spinner } from "./ui/spinner"
 
 export default function LoadingPage() {
   return (
@@ -9,5 +9,5 @@ export default function LoadingPage() {
         <h1 className="type-2xl">Sacks and Twines</h1>
       </div>
     </div>
-  );
-};
+  )
+}

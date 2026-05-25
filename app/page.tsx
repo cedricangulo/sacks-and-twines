@@ -1,8 +1,8 @@
 "use client"
 
-import LoadingPage from "@/components/loading-page"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import LoadingPage from "@/components/loading-page"
 import { Spinner } from "@/components/ui/spinner"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 
@@ -38,7 +38,5 @@ export default function HomePage() {
     // - suppress: nextjs-no-client-side-redirect
   }, [isLoading, isAuthenticated, user, push])
 
-  return (
-    <LoadingPage />
-  )
+  return <LoadingPage />
 }

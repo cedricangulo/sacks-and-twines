@@ -2,7 +2,7 @@
 
 import { useConvexAuth } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
-import { createContext, use, useEffect, useState } from "react"
+import { createContext, use, useMemo, useSyncExternalStore } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Doc } from "@/convex/_generated/dataModel"
 
@@ -21,11 +21,11 @@ export function CurrentUserProvider({
 }: {
   children: React.ReactNode
 }) {
-  const [isHydrating, setIsHydrating] = useState(true)
-
-  useEffect(() => {
-    setIsHydrating(false)
-  }, [])
+  const isHydrating = useSyncExternalStore(
+    () => () => {},
+    () => false,
+    () => true
+  )
 
   const { isLoading: isAuthLoading, isAuthenticated } = useConvexAuth()
   const user = useQuery(
@@ -36,8 +36,13 @@ export function CurrentUserProvider({
   const isLoading =
     isAuthLoading || isHydrating || (user === undefined && isAuthenticated)
 
+  const value = useMemo(
+    () => ({ user, isLoading, isAuthenticated }),
+    [user, isLoading, isAuthenticated]
+  )
+
   return (
-    <CurrentUserContext.Provider value={{ user, isLoading, isAuthenticated }}>
+    <CurrentUserContext.Provider value={value}>
       {children}
     </CurrentUserContext.Provider>
   )
