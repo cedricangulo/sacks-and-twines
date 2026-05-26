@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import {
   Card,
-  CardAction,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -60,17 +59,9 @@ export default function ProductCard({ product }: Props) {
       </div>
       <CardHeader className="p-4">
         {isLowStock ? (
-          <CardAction>
-            <Badge variant="destructive" className="w-fit">
-              Low Stock
-            </Badge>
-          </CardAction>
+          <Badge variant="warning">Low Stock</Badge>
         ) : isOutOfStock ? (
-          <CardAction>
-            <Badge variant="destructive" className="w-fit">
-              Out of Stock
-            </Badge>
-          </CardAction>
+          <Badge variant="destructive">Out of Stock</Badge>
         ) : null}
         <CardTitle>{product.name}</CardTitle>
         <CardDescription>
@@ -90,7 +81,6 @@ export default function ProductCard({ product }: Props) {
             type="button"
             variant="outline"
             size="icon"
-            className="rounded-r-none"
             onClick={decrementQuantity}
             disabled={quantity === 0 || isOutOfStock}
           >
@@ -104,7 +94,7 @@ export default function ProductCard({ product }: Props) {
             value={inputValue}
             min={0}
             max={product.currentQuantity}
-            step={product.category === "twines" ? 0.01 : 1}
+            step={product.category === "twines" ? 0.1 : 1}
             onChange={(e) => setInputValue(e.target.value)}
             onBlur={() => commitInput(inputValue)}
             onKeyDown={(e) => {
@@ -120,7 +110,6 @@ export default function ProductCard({ product }: Props) {
             type="button"
             variant="outline"
             size="icon"
-            className="rounded-l-none"
             onClick={incrementQuantity}
             disabled={isAtMax || isOutOfStock}
           >

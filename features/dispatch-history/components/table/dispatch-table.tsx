@@ -77,6 +77,11 @@ export default function DispatchTable({
         ),
         sortingFn: "alphanumeric",
       }),
+      columnHelper.accessor("userName", {
+        header: "Dispatched By",
+        cell: (info) => info.getValue(),
+        sortingFn: "alphanumeric",
+      }),
       columnHelper.accessor("status", {
         header: "Status",
         cell: (info) => {
@@ -89,14 +94,9 @@ export default function DispatchTable({
         },
         sortingFn: "alphanumeric",
       }),
-      columnHelper.accessor("userName", {
-        header: "User",
-        cell: (info) => info.getValue(),
-        sortingFn: "alphanumeric",
-      }),
       columnHelper.accessor((row) => row.itemCount, {
         id: "itemCount",
-        header: "Items",
+        header: "Total Items",
         cell: (info) => (
           <span className="font-mono tabular-nums">{info.getValue()}</span>
         ),
@@ -105,7 +105,7 @@ export default function DispatchTable({
       }),
       columnHelper.accessor((row) => row.createdAt ?? row._creationTime, {
         id: "createdAt",
-        header: "Date",
+        header: "Dispatched At",
         cell: (info) => (
           <span className="text-muted-foreground">
             {formatDateTime(info.getValue())}

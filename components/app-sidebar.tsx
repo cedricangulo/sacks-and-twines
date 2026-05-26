@@ -3,6 +3,7 @@
 import { useAuthActions } from "@convex-dev/auth/react"
 import {
   BoxIcon,
+  ClipboardList,
   Container,
   LayoutDashboard,
   Logs,
@@ -58,6 +59,17 @@ const data = {
           title: "Suppliers",
           url: "/suppliers",
           icon: Container,
+        },
+      ],
+    },
+    {
+      title: "Insights",
+      url: "#",
+      items: [
+        {
+          title: "Reports",
+          url: "/reports",
+          icon: ClipboardList,
         },
       ],
     },

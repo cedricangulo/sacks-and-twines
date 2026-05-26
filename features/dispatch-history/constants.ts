@@ -5,7 +5,6 @@ export const STATUS_OPTIONS = [
 ] as const
 
 export const DISPATCH_TABLE_COLUMNS = [
-  { id: "customerReference", label: "Customer Ref" },
   { id: "status", label: "Status" },
   { id: "userName", label: "User" },
   { id: "itemCount", label: "Items" },
@@ -15,7 +14,7 @@ export const DISPATCH_TABLE_COLUMNS = [
 export type DispatchColumnId = (typeof DISPATCH_TABLE_COLUMNS)[number]["id"]
 
 export const ITEMS_TABLE_COLUMNS = [
-  { id: "productName", label: "Product Name" },
+  { id: "batchCode", label: "Batch Code" },
   { id: "productSku", label: "SKU Code" },
   { id: "dispatchQuantity", label: "Qty" },
   { id: "quantityDeducted", label: "Qty Deducted" },
