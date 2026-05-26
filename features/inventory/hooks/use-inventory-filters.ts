@@ -9,6 +9,7 @@ import {
 } from "nuqs"
 import { useMemo } from "react"
 import type { Product } from "@/features/inventory/validation"
+import { formatCurrency } from "@/lib/formatters"
 
 const inventoryParsers = {
   status: parseAsStringEnum(["all", "active", "archived"] as const).withDefault(
@@ -59,7 +60,11 @@ export function useInventoryFilters(products: Product[] | undefined) {
       result = result.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.skuCode.toLowerCase().includes(q)
+          p.skuCode.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          p.baseUom.toLowerCase().includes(q) ||
+          p.currentQuantity.toString().toLowerCase().includes(q) ||
+          formatCurrency(p.totalAssetValue).toString().toLowerCase().includes(q)
       )
     }
 

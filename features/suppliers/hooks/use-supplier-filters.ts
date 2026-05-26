@@ -43,7 +43,9 @@ export function useSupplierFilters(suppliers: Supplier[] | undefined) {
       result = result.filter(
         (s) =>
           s.companyName.toLowerCase().includes(q) ||
-          (s.contactPerson ?? "").toLowerCase().includes(q)
+          (s.contactPerson ?? "").toLowerCase().includes(q) ||
+          (s.contactNumber ?? "").toLowerCase().includes(q) ||
+          (s.address ?? "").toLowerCase().includes(q)
       )
     }
 

@@ -42,11 +42,12 @@ export function useDispatchHistoryFilters(dispatches: Dispatch[] | undefined) {
 
     if (search) {
       const q = search.toLowerCase()
-      result = result.filter((d) => {
-        const ref = d.customerReference?.toLowerCase() ?? ""
-        const user = d.userName.toLowerCase()
-        return ref.includes(q) || user.includes(q)
-      })
+      result = result.filter(
+        (d) =>
+          (d.customerReference?.toLowerCase() ?? "").includes(q) ||
+          d.userName.toLowerCase().includes(q) ||
+          d.itemCount.toString().toLowerCase().includes(q)
+      )
     }
 
     if (filters.status !== "all") {
