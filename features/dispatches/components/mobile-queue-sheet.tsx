@@ -18,23 +18,23 @@ export default function MobileQueueSheet() {
   const { itemCount } = useDispatchQueueContext()
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={setOpen} modal={false}>
       <SheetTrigger asChild>
         <Button
-          variant="outline"
-          size="icon"
-          className="relative md:hidden"
+          variant="secondary"
+          className="relative xl:hidden"
           aria-label={`Dispatch queue (${itemCount} items)`}
         >
           <ShoppingBagIcon />
-          {itemCount > 0 && (
+          Queue
+          {itemCount > 0 ? (
             <Badge
-              variant="destructive"
+              variant="success"
               className="absolute -top-2 -right-2 flex size-5 items-center justify-center p-0 text-[10px]"
             >
               {itemCount}
             </Badge>
-          )}
+          ) : null}
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-80 p-0">

@@ -25,10 +25,10 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
   } = useDispatchSubmit(onSuccess)
 
   return (
-    <div className="flex flex-col border-l w-80 bg-background">
-      <div className="flex items-center justify-between p-4">
+    <div className="flex flex-col w-full h-full border-l xl:w-80 bg-background">
+      <div className="flex items-center justify-between p-4 pr-16 xl:pr-4">
         <h3 className="font-medium type-sm">Dispatch Queue</h3>
-        <Badge variant="outline">
+        <Badge variant="success">
           {itemCount} {itemCount === 1 ? "item" : "items"} selected
         </Badge>
       </div>
@@ -50,7 +50,7 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
                   <AvatarFallback>{getInitials(item.name)}</AvatarFallback>
                 </Avatar>
 
-                <div className="flex min-w-0 flex-1 flex-col">
+                <div className="flex flex-col flex-1 min-w-0">
                   <h4 className="truncate font-heading font-seminold type-base">
                     {item.name}
                   </h4>

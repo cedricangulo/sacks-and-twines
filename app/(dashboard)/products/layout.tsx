@@ -22,18 +22,18 @@ export default function ProductsLayout({ children }: Props) {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <MobileQueueSheet />
               <Button variant="outline" asChild>
                 <Link href="/dispatch-history">
                   <History />
                   History
                 </Link>
               </Button>
+              <MobileQueueSheet />
             </div>
           </div>
           {children}
         </div>
-        <div className="hidden md:flex">
+        <div className="hidden xl:flex">
           <DispatchQueueSidebar />
         </div>
       </div>
