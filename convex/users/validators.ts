@@ -1,11 +1,12 @@
 import { zid } from "convex-helpers/server/zod4"
 import { z } from "zod"
-import { normalizedString } from "./helpers"
+import { normalizedString } from "../validators/helpers"
 
 const auditMeta = {
   userAgent: z.optional(z.string()),
 }
 
+/** Arguments for creating a new staff user. */
 export const createUserArgs = {
   name: normalizedString(1, 255),
   email: z.string().email("Enter a valid email address."),
@@ -13,6 +14,7 @@ export const createUserArgs = {
   ...auditMeta,
 }
 
+/** Arguments for deactivating a staff user. */
 export const deactivateUserArgs = {
   userId: zid("users"),
   ...auditMeta,

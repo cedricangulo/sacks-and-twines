@@ -8,6 +8,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 
+/** Props for the audit log pagination controls. */
 interface AuditLogPaginationProps {
   pageNum: number
   hasNext: boolean
@@ -17,6 +18,7 @@ interface AuditLogPaginationProps {
   isLoading: boolean
 }
 
+/** Previous/next pagination controls for the audit log list. */
 export default function AuditLogPagination({
   pageNum,
   hasNext,

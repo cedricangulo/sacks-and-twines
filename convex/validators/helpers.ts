@@ -1,5 +1,8 @@
 import { z } from "zod"
 
+/**
+ * Strips control characters, HTML tags, and collapses whitespace.
+ */
 const normalizeText = (value: unknown) => {
   const text = String(value ?? "")
   let clean = text.trim()
@@ -9,6 +12,14 @@ const normalizeText = (value: unknown) => {
   return clean
 }
 
+/**
+ * Creates a zod preprocess chain that sanitizes input text and enforces
+ * length constraints.
+ *
+ * @param min - Minimum character length (after normalization).
+ * @param max - Maximum character length (after normalization).
+ * @param message - Optional custom validation message.
+ */
 export const normalizedString = (min: number, max: number, message?: string) =>
   z.preprocess(
     normalizeText,
@@ -18,6 +29,10 @@ export const normalizedString = (min: number, max: number, message?: string) =>
       .max(max, message ?? `Must be at most ${max} characters`)
   )
 
+/**
+ * Validates and normalizes Philippine phone numbers (mobile or landline).
+ * Strips non-digit characters and enforces standard PH formats.
+ */
 export const contactNumberSchema = z
   .string()
   .transform((value) => {

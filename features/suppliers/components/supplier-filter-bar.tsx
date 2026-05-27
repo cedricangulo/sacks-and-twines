@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select"
 import { STATUS_OPTIONS, SUPPLIER_TABLE_COLUMNS } from "../constants"
 
+/** Props for the supplier filter bar. */
 interface Props {
   search: string
   onSearchChange: (value: string) => void
@@ -34,6 +35,7 @@ interface Props {
   onColumnVisibilityChange: Dispatch<SetStateAction<Record<string, boolean>>>
 }
 
+/** Search, status filter, and column visibility controls for the supplier table. */
 export default function SupplierFilterBar({
   search,
   onSearchChange,

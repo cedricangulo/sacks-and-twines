@@ -2,8 +2,18 @@ import { createAccount, getAuthUserId } from "@convex-dev/auth/server"
 import { internal } from "../_generated/api"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
-import { createUserArgs, deactivateUserArgs } from "../validators/users"
+import { createUserArgs, deactivateUserArgs } from "./validators"
 
+/**
+ * Creates a new staff user account. Enforces unique email.
+ * Only active owners may create staff users.
+ *
+ * @param name - Staff member's display name.
+ * @param email - Staff member's email (used as login).
+ * @param password - Initial password (min 8 characters).
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns The created user object.
+ */
 export const create = zMutation({
   args: createUserArgs,
   handler: async (ctx, { name, email, password, userAgent }) => {
@@ -61,6 +71,14 @@ export const create = zMutation({
   },
 })
 
+/**
+ * Deactivates a staff user. Owners cannot deactivate themselves.
+ * Only active owners may deactivate users.
+ *
+ * @param userId - ID of the staff user to deactivate.
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns `true` on success.
+ */
 export const deactivate = zMutation({
   args: deactivateUserArgs,
   handler: async (ctx, { userId, userAgent }) => {

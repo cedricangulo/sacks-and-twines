@@ -4,20 +4,24 @@ import { internalMutation } from "./_generated/server"
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
+/** Returns a random element from an array. */
 function rnd<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
+/** Returns a random integer in [min, max]. */
 function rndInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
+/** Returns a random Date between start and end. */
 function randDate(start: Date, end: Date): Date {
   return new Date(
     start.getTime() + Math.random() * (end.getTime() - start.getTime())
   )
 }
 
+/** Rounds a number to the given decimal places. */
 function toFloat(n: number, decimals = 2): number {
   return parseFloat(n.toFixed(decimals))
 }
@@ -150,6 +154,11 @@ const PRODUCT_IMAGE_MAP: Record<string, string> = {
 
 // ─── Internal Mutation: writeAll ───────────────────────────────────────────
 
+/**
+ * Writes sample suppliers, products, batches, dispatches, stock adjustments,
+ * and audit logs. Clears existing data before seeding.
+ * Internal mutation — called by `seedAll` action.
+ */
 export const writeAll = internalMutation({
   args: {
     ownerId: v.id("users"),

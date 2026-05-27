@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useAddSupplierForm } from "../hooks/use-add-supplier-form"
 
+/** Dialog form for creating a new supplier with company name, contact, and address fields. */
 export default function AddSupplierDialog() {
   const { open, setOpen, formValues, handleChange, errors, handleSubmit } =
     useAddSupplierForm()

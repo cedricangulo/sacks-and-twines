@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table"
 import type { Id } from "@/convex/_generated/dataModel"
 
+/** A staff user record as displayed in the table. */
 export interface StaffUser {
   _id: Id<"users">
   _creationTime: number
@@ -21,10 +22,12 @@ export interface StaffUser {
   status?: "active" | "deactivated"
 }
 
+/** Props for the staff table component. */
 interface StaffTableProps {
   table: ReactTable<StaffUser>
 }
 
+/** Renders the staff user table from a TanStack table instance with sortable headers. */
 export default function StaffTable({ table }: StaffTableProps) {
   const rows = table.getRowModel().rows
 

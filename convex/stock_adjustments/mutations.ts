@@ -4,6 +4,19 @@ import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { createStockAdjustmentArgs } from "./validators"
 
+/**
+ * Creates a manual stock adjustment (add or deduct) for a specific batch.
+ * Updates both batch remaining quantity and product totals accordingly.
+ * Only active owners may adjust stock.
+ *
+ * @param batchId - ID of the batch to adjust.
+ * @param productId - ID of the associated product.
+ * @param direction - "add" to increase stock, "deduct" to decrease.
+ * @param quantity - Quantity to adjust.
+ * @param reason - Reason code (damaged, lost, recount, system_reversal).
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns `true` on success.
+ */
 export const create = zMutation({
   args: createStockAdjustmentArgs,
   handler: async (

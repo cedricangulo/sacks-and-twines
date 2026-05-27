@@ -6,6 +6,10 @@ import type { Id } from "../_generated/dataModel"
 import type { QueryCtx } from "../_generated/server"
 import { query } from "../_generated/server"
 
+/**
+ * Paginated audit log listing with optional filters (search, action, user, date range).
+ * Enriches each log with the acting user's name. Owner-only access.
+ */
 export const list = query({
   args: {
     paginationOpts: paginationOptsValidator,
@@ -80,6 +84,10 @@ export const list = query({
   },
 })
 
+/**
+ * Fetches a single audit log entry with full user details.
+ * Owner-only access.
+ */
 export const getById = query({
   args: { logId: v.id("auditLogs") },
   handler: async (ctx, { logId }) => {
@@ -108,6 +116,10 @@ export const getById = query({
   },
 })
 
+/**
+ * Fetches an audit log entry owned by the current user.
+ * Users can only view their own logs.
+ */
 export const getPersonalById = query({
   args: { logId: v.id("auditLogs") },
   handler: async (ctx, { logId }) => {
@@ -129,6 +141,10 @@ export const getPersonalById = query({
   },
 })
 
+/**
+ * Paginated audit log listing filtered to the current user's own actions.
+ * Any active user can view their own audit trail.
+ */
 export const listByUser = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, { paginationOpts }) => {
@@ -160,6 +176,10 @@ export const listByUser = query({
   },
 })
 
+/**
+ * Returns the distinct set of audit action types that exist in the logs.
+ * Owner-only access.
+ */
 export const listActions = query({
   args: {},
   handler: async (ctx) => {
@@ -175,6 +195,10 @@ export const listActions = query({
   },
 })
 
+/**
+ * Shared helper that fetches filtered audit logs with user enrichment.
+ * Used by both `exportData` and `exportCsv` queries.
+ */
 async function fetchExportLogs(
   ctx: QueryCtx,
   args: {
@@ -249,6 +273,10 @@ async function fetchExportLogs(
   )
 }
 
+/**
+ * Exports filtered audit logs as a JSON-friendly array of enriched records.
+ * Owner-only access.
+ */
 export const exportData = query({
   args: {
     search: v.optional(v.string()),
@@ -262,6 +290,11 @@ export const exportData = query({
   },
 })
 
+/**
+ * Exports filtered audit logs as a CSV string (UTF-8 BOM prefixed).
+ * Includes timestamp, user, action, resource, and description columns.
+ * Owner-only access.
+ */
 export const exportCsv = query({
   args: {
     search: v.optional(v.string()),

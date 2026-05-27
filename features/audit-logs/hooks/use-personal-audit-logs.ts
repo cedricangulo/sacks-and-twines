@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api"
 import { ITEMS_PER_PAGE } from "../constants"
 import type { AuditLogEntry } from "./use-audit-logs"
 
+/** Fetches paginated audit logs scoped to the current user (for staff users) with cursor-based navigation. */
 export function usePersonalAuditLogs(skip = false) {
   const [cursor, setCursor] = useState<string | null>(null)
   const [history, setHistory] = useState<string[]>([])

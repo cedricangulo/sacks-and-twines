@@ -2,6 +2,7 @@ import { z } from "zod"
 import type { Id } from "@/convex/_generated/dataModel"
 import { formatZodErrors } from "@/lib/validation"
 
+/** A batch available for dispatch with remaining quantity and cost info. */
 export interface DispatchBatch {
   _id: Id<"batches">
   batchCode: string
@@ -10,6 +11,7 @@ export interface DispatchBatch {
   _creationTime: number
 }
 
+/** A product ready for dispatch with stock details and available batches. */
 export interface DispatchReadyProduct {
   _id: Id<"products">
   _creationTime: number
@@ -28,6 +30,7 @@ export interface DispatchReadyProduct {
   availableBatches: DispatchBatch[]
 }
 
+/** Zod schema for product update form data. */
 const ProductUpdateSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   category: z.union([z.literal("sacks"), z.literal("twines")]),
@@ -42,6 +45,7 @@ export type ProductUpdateFieldErrors = Partial<
   Record<keyof ProductUpdateFormData, string>
 >
 
+/** Validates product update input and returns typed errors or parsed data. */
 export function validateProductUpdate(values: unknown) {
   const result = ProductUpdateSchema.safeParse(values)
   if (result.success) {

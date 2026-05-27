@@ -15,6 +15,7 @@ interface Props {
   onSuccess?: () => void
 }
 
+/** Desktop sidebar showing selected dispatch items, customer reference input, and a submit button. */
 export default function DispatchQueueSidebar({ onSuccess }: Props) {
   const { items, itemCount, removeFromQueue } = useDispatchQueueContext()
   const {

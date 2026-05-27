@@ -16,6 +16,7 @@ import { useUpdateProduct } from "./use-update-product"
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ALLOWED_TYPES = ["image/jpeg", "image/png"]
 
+/** Current state of the edit-product dialog. */
 type DialogState = {
   formValues: ProductUpdateFormData | null
   imagePreview: string | null
@@ -27,6 +28,7 @@ type DialogState = {
   errors: ProductUpdateFieldErrors
 }
 
+/** Actions that drive the edit-product dialog reducer. */
 type DialogAction =
   | {
       type: "open"
@@ -46,6 +48,7 @@ type DialogAction =
   | { type: "setLockedFields"; lockedFields: Record<string, boolean> }
   | { type: "setDirty" }
 
+/** Default state for the edit-product reducer. */
 const INITIAL_DIALOG_STATE: DialogState = {
   formValues: null,
   imagePreview: null,
@@ -57,6 +60,7 @@ const INITIAL_DIALOG_STATE: DialogState = {
   errors: {},
 }
 
+/** Reducer managing edit-product dialog state: form values, validation errors, image upload, locked fields. */
 function dialogReducer(state: DialogState, action: DialogAction): DialogState {
   switch (action.type) {
     case "open":
@@ -117,6 +121,7 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
   }
 }
 
+/** Manages the edit-product dialog lifecycle: fetches detail on open, validates input, handles image upload, and submits to Convex. */
 export function useEditProductForm({
   productId,
   open: openProp,

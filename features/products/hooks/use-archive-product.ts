@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { handleConvexError } from "@/lib/error-handler"
 
+/** Calls the Convex archive mutation with sileo toast feedback. */
 export function useArchiveProduct() {
   const archiveProduct = useMutation(api.products.mutations.archive)
 
@@ -25,6 +26,7 @@ export function useArchiveProduct() {
   return { submit }
 }
 
+/** Calls the Convex unarchive mutation with sileo toast feedback. */
 export function useUnarchiveProduct() {
   const unarchiveProduct = useMutation(api.products.mutations.unarchive)
 

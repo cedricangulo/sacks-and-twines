@@ -24,6 +24,7 @@ import { Id } from "@/convex/_generated/dataModel"
 import SupplierCombobox from "@/features/suppliers/components/supplier-combobox"
 import type { StockInFieldErrors } from "../validation"
 
+/** Form state passed into the field card. */
 interface FieldCardState {
   fields: {
     category: string
@@ -37,6 +38,7 @@ interface FieldCardState {
   supplierOptions: { id: Id<"suppliers">; name: string }[] | null
 }
 
+/** Actions exposed to the field card for modifying form state. */
 interface FieldCardActions {
   onFieldChange: (field: string, value: string) => void
   onUnlock: (field: string) => void
@@ -44,6 +46,7 @@ interface FieldCardActions {
   clearFieldError: (field: keyof StockInFieldErrors) => void
 }
 
+/** Props for the field card component. */
 interface FieldCardProps {
   mode: "existing" | "new"
   draftSku: string
@@ -52,6 +55,7 @@ interface FieldCardProps {
   formActions: FieldCardActions
 }
 
+/** Renders a labeled form field with optional lock/unlock toggle and error display. */
 function RenderInput({
   field,
   label,
@@ -100,6 +104,7 @@ function RenderInput({
   )
 }
 
+/** Card containing product fields (category, UoM, weight, supplier, threshold) and batch entry fields. */
 const FieldCard = memo(function FieldCard({
   mode,
   draftSku,

@@ -2,6 +2,10 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { query } from "../_generated/server"
 
+/**
+ * Lists dispatches within a date range, optionally filtered by creator.
+ * Enriches each dispatch with the user's display name and item count.
+ */
 export const list = query({
   args: {
     startMs: v.number(),
@@ -54,6 +58,10 @@ export const list = query({
   },
 })
 
+/**
+ * Fetches all line items for a specific dispatch, enriched with
+ * product name, SKU, batch code, and line total.
+ */
 export const getItemsByDispatch = query({
   args: { dispatchId: v.id("dispatches") },
   handler: async (ctx, { dispatchId }) => {

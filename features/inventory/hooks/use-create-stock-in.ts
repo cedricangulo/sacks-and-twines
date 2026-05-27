@@ -7,11 +7,13 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { handleConvexError } from "@/lib/error-handler"
 import type { StockInFormData } from "../validation"
 
+/** Return type from the stock-in mutation. */
 type StockInResult = {
   productId: Id<"products">
   batchCode: string
 }
 
+/** Calls the Convex stock-in mutation with sileo toast feedback. */
 export function useCreateStockIn() {
   const stockIn = useMutation(api.batches.mutations.stockIn)
 

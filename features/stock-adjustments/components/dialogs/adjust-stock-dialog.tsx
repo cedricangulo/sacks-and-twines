@@ -30,44 +30,10 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import { formatNumber } from "@/lib/formatters"
+import { REASONS_BY_DIRECTION } from "../../constants"
 import { useStockAdjustForm } from "../../hooks/use-stock-adjust-form"
 
-const REASONS_BY_DIRECTION: Record<
-  "add" | "deduct",
-  { value: string; label: string; description: string }[]
-> = {
-  add: [
-    {
-      value: "recount",
-      label: "Recount",
-      description: "Inventory recount correction",
-    },
-    {
-      value: "system_reversal",
-      label: "System Reversal",
-      description: "Reversal of system error",
-    },
-  ],
-  deduct: [
-    {
-      value: "damaged",
-      label: "Damaged",
-      description: "Products damaged in storage",
-    },
-    { value: "lost", label: "Lost", description: "Products lost or missing" },
-    {
-      value: "recount",
-      label: "Recount",
-      description: "Inventory recount correction",
-    },
-    {
-      value: "system_reversal",
-      label: "System Reversal",
-      description: "Reversal of system error",
-    },
-  ],
-}
-
+/** Dialog form for recording a stock adjustment (add/deduct) on a specific batch with reason and quantity. */
 export default function AdjustStockDialog({
   batchId,
   productId,

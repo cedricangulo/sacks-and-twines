@@ -33,11 +33,11 @@ import type * as stock_adjustments_mutations from "../stock_adjustments/mutation
 import type * as stock_adjustments_validators from "../stock_adjustments/validators.js";
 import type * as suppliers_mutations from "../suppliers/mutations.js";
 import type * as suppliers_queries from "../suppliers/queries.js";
+import type * as suppliers_validators from "../suppliers/validators.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
+import type * as users_validators from "../users/validators.js";
 import type * as validators_helpers from "../validators/helpers.js";
-import type * as validators_suppliers from "../validators/suppliers.js";
-import type * as validators_users from "../validators/users.js";
 
 import type {
   ApiFromModules,
@@ -71,11 +71,11 @@ declare const fullApi: ApiFromModules<{
   "stock_adjustments/validators": typeof stock_adjustments_validators;
   "suppliers/mutations": typeof suppliers_mutations;
   "suppliers/queries": typeof suppliers_queries;
+  "suppliers/validators": typeof suppliers_validators;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;
+  "users/validators": typeof users_validators;
   "validators/helpers": typeof validators_helpers;
-  "validators/suppliers": typeof validators_suppliers;
-  "validators/users": typeof validators_users;
 }>;
 
 /**

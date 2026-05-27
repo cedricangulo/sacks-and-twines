@@ -5,6 +5,11 @@ import { internalAction } from "./_generated/server"
 const OWNER_EMAIL = process.env.OWNER_EMAIL!
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD!
 
+/**
+ * Seeds the initial owner account on first deployment.
+ * Skips if an owner with the configured email already exists.
+ * Uses `OWNER_EMAIL` and `OWNER_PASSWORD` environment variables.
+ */
 export const seedOwner = internalAction({
   args: {},
   handler: async (ctx) => {

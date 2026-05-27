@@ -8,8 +8,19 @@ import {
   createSupplierArgs,
   unarchiveSupplierArgs,
   updateSupplierArgs,
-} from "../validators/suppliers"
+} from "./validators"
 
+/**
+ * Creates a new supplier. Enforces unique company name.
+ * Only active owners may create suppliers.
+ *
+ * @param companyName - Supplier company name.
+ * @param contactPerson - Name of the primary contact.
+ * @param contactNumber - Philippine phone number (mobile or landline).
+ * @param address - Supplier address.
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns The newly created supplier ID (`Id<"suppliers">`).
+ */
 export const create = zMutation({
   args: createSupplierArgs,
   handler: async (
@@ -55,6 +66,18 @@ export const create = zMutation({
   },
 })
 
+/**
+ * Updates an existing supplier's details. Enforces unique company name.
+ * Only active owners may update suppliers.
+ *
+ * @param supplierId - ID of the supplier to update.
+ * @param companyName - Updated company name.
+ * @param contactPerson - Updated contact person.
+ * @param contactNumber - Updated phone number.
+ * @param address - Updated address.
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns `true` on success.
+ */
 export const update = zMutation({
   args: updateSupplierArgs,
   handler: async (
@@ -133,6 +156,14 @@ export const update = zMutation({
   },
 })
 
+/**
+ * Archives a supplier (soft-delete). Blocks if the supplier has
+ * existing batch records. Only active owners may archive suppliers.
+ *
+ * @param supplierId - ID of the supplier to archive.
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns `true` on success.
+ */
 export const archive = zMutation({
   args: archiveSupplierArgs,
   handler: async (ctx, { supplierId, userAgent }) => {
@@ -178,6 +209,14 @@ export const archive = zMutation({
   },
 })
 
+/**
+ * Unarchives a previously archived supplier.
+ * Only active owners may unarchive suppliers.
+ *
+ * @param supplierId - ID of the supplier to unarchive.
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns `true` on success.
+ */
 export const unarchive = zMutation({
   args: unarchiveSupplierArgs,
   handler: async (ctx, { supplierId, userAgent }) => {

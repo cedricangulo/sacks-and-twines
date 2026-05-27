@@ -1,6 +1,10 @@
 import { v } from "convex/values"
 import { internalMutation } from "../_generated/server"
 
+/**
+ * Records an audit log entry. Internal mutation — called by other
+ * mutations after state changes. Captures the request IP automatically.
+ */
 export const log = internalMutation({
   args: {
     userId: v.optional(v.id("users")),

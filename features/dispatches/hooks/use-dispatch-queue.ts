@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react"
 import type { DispatchReadyProduct } from "@/features/products/validation"
 
+/** A product entry in the dispatch queue with quantity and UoM tracking. */
 export interface QueueItem {
   productId: string
   name: string
@@ -14,6 +15,7 @@ export interface QueueItem {
   dispatchUom: "piece" | "roll" | "kilo"
 }
 
+/** Builds a QueueItem from a DispatchReadyProduct with the given quantity. */
 function createQueueItem(
   product: DispatchReadyProduct,
   quantity: number
@@ -30,6 +32,7 @@ function createQueueItem(
   }
 }
 
+/** Manages the in-memory dispatch queue: add/remove items, adjust quantities, toggle dispatch UoM. */
 export function useDispatchQueue() {
   const [items, setItems] = useState<QueueItem[]>([])
 

@@ -17,11 +17,13 @@ import {
 import { useAuditLogDetail } from "../hooks/use-audit-log-detail"
 import type { AuditLogEntry } from "../hooks/use-audit-logs"
 
+/** Props for the audit log accordion item. */
 interface AuditLogItemProps {
   log: AuditLogEntry
   isExpanded: boolean
 }
 
+/** Accordion item showing a single audit log entry with expandable detail panel. */
 export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
   const detail = useAuditLogDetail(log._id, isExpanded)
   const isLoading = isExpanded && detail === undefined
@@ -161,6 +163,7 @@ export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
   )
 }
 
+/** Renders a key-value row inside the audit log detail panel. */
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <>
@@ -170,6 +173,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** Renders a grouped field label-value pair inside nested detail sections. */
 function GroupedField({ label, value }: { label: string; value: string }) {
   return (
     <>
@@ -179,6 +183,7 @@ function GroupedField({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** Renders a change entry showing old → new values with strikethrough styling. */
 function ChangeEntry({
   label,
   oldVal,

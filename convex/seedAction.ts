@@ -14,6 +14,11 @@ interface SeedResult {
   auditLogCount: number
 }
 
+/**
+ * Full database seed action. Creates a staff user (if not exists),
+ * finds the owner user, then calls `seed.writeAll` to populate all
+ * tables with sample data for development/demo.
+ */
 export const seedAll = internalAction({
   args: {},
   handler: async (ctx): Promise<SeedResult> => {

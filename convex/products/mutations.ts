@@ -9,6 +9,18 @@ import {
   updateProductArgs,
 } from "./validators"
 
+/**
+ * Creates a new product with a unique SKU and logs the creation.
+ * Only active owners may create products.
+ *
+ * @param name - Product display name.
+ * @param category - Either "sacks" or "twines".
+ * @param baseUom - Base unit of measure ("piece" or "roll").
+ * @param weightPerUnit - Weight per unit for kg conversions (optional).
+ * @param lowStockThreshold - Quantity threshold for low-stock alerts (optional).
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns The newly created product ID (`Id<"products">`).
+ */
 export const create = zMutation({
   args: createProductArgs,
   handler: async (
@@ -73,6 +85,21 @@ export const create = zMutation({
   },
 })
 
+/**
+ * Updates an existing product. Blocks category/baseUom changes if the
+ * product already has stock records (batches).
+ * Only active owners may update products.
+ *
+ * @param productId - ID of the product to update.
+ * @param name - New display name.
+ * @param category - New category ("sacks" or "twines").
+ * @param baseUom - New base unit ("piece" or "roll").
+ * @param weightPerUnit - Updated weight per unit.
+ * @param lowStockThreshold - Updated low-stock threshold.
+ * @param imageStorageId - New image storage ID (or null to clear).
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns `true` on success.
+ */
 export const update = zMutation({
   args: updateProductArgs,
   handler: async (
@@ -183,6 +210,13 @@ export const update = zMutation({
   },
 })
 
+/**
+ * Archives a product (soft-delete). Only active owners may archive products.
+ *
+ * @param productId - ID of the product to archive.
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns `true` on success.
+ */
 export const archive = zMutation({
   args: archiveProductArgs,
   handler: async (ctx, { productId, userAgent }) => {
@@ -218,6 +252,14 @@ export const archive = zMutation({
   },
 })
 
+/**
+ * Unarchives a previously archived product.
+ * Only active owners may unarchive products.
+ *
+ * @param productId - ID of the product to unarchive.
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns `true` on success.
+ */
 export const unarchive = zMutation({
   args: unarchiveProductArgs,
   handler: async (ctx, { productId, userAgent }) => {

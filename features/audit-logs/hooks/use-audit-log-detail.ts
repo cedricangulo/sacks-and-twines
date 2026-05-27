@@ -6,6 +6,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import type { AuditLogEntry } from "./use-audit-logs"
 
+/** Shape of the audit log detail returned by the hook, including optional user email and role for owners. */
 type AuditLogDetail =
   | (AuditLogEntry & {
       userEmail?: string | null
@@ -14,6 +15,7 @@ type AuditLogDetail =
   | null
   | undefined
 
+/** Fetches a single audit log's detailed fields. Uses the personal or admin query depending on the user's role. */
 export function useAuditLogDetail(
   logId: Id<"auditLogs">,
   enabled: boolean

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useDeactivateStaff } from "../hooks/use-deactivate-staff"
 
+/** Shape of a staff user row for the actions component. */
 type StaffUser = {
   _id: Id<"users">
   name?: string
@@ -25,6 +26,7 @@ type StaffUser = {
   status?: "active" | "deactivated"
 }
 
+/** Deactivate button with confirmation dialog for a staff user row. */
 export default function StaffTableActions({ user }: { user: StaffUser }) {
   const deactivate = useDeactivateStaff()
   const [open, setOpen] = useState(false)

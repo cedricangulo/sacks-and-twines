@@ -26,6 +26,7 @@ import {
   STOCK_OPTIONS,
 } from "../constants"
 
+/** Props for the inventory filter bar. */
 interface Props {
   search: string
   onSearchChange: (value: string) => void
@@ -47,6 +48,7 @@ interface Props {
   onBatchVisibilityChange: Dispatch<SetStateAction<Record<string, boolean>>>
 }
 
+/** Search, status, category, stock, and column visibility controls for the inventory table. */
 export default function InventoryFilterBar({
   search,
   onSearchChange,

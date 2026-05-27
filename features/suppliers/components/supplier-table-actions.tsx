@@ -30,6 +30,7 @@ import { useUnarchiveSupplier } from "../hooks/use-unarchive-supplier"
 import { type Supplier } from "../validation"
 import EditSupplierDialog from "./edit-supplier-dialog"
 
+/** Popover menu with edit, archive, and unarchive actions for a supplier row. */
 export default function SupplierTableActions({
   supplier,
 }: {

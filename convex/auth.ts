@@ -5,6 +5,10 @@ import type { Id } from "./_generated/dataModel"
 import { ERROR_MESSAGES, verifyCredentials } from "./auth/verify"
 import { rateLimiter } from "./rate_limiter"
 
+/**
+ * Password-based auth provider with Scrypt hashing and rate-limited
+ * credential verification.
+ */
 const passwordProvider = ConvexCredentials({
   id: "password",
   crypto: {
@@ -51,6 +55,11 @@ const passwordProvider = ConvexCredentials({
   },
 })
 
+/**
+ * Convex auth instance configured with a single password provider.
+ * Exports `auth`, `signIn`, `signOut`, `store`, and `isAuthenticated` helpers.
+ * JWT custom claims include the user role for middleware-based access control.
+ */
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [passwordProvider],
   jwt: {

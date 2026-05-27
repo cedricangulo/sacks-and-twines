@@ -12,6 +12,13 @@
  * ──────────────────────────────────────────────────────────────
  */
 
+/**
+ * Rate limiter configuration using token-bucket algorithm.
+ * All values are intentionally loose — tighten after observing real usage.
+ *
+ * Per-user limits (key = userId) apply to individual operators.
+ * Global limits (no key) apply cluster-wide as safety valves.
+ */
 import { HOUR, MINUTE, RateLimiter } from "@convex-dev/rate-limiter"
 import { components } from "./_generated/api"
 

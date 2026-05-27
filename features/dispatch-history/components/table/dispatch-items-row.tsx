@@ -27,6 +27,7 @@ import type { DispatchItem } from "../../validation"
 
 const columnHelper = createColumnHelper<DispatchItem>()
 
+/** Dispatched-items table for a single dispatch, shown in an expandable row with sorting and column toggling. */
 export default function DispatchItemsRow({
   dispatchId,
   columnVisibility,

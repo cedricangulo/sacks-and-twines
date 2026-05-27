@@ -1,6 +1,10 @@
 import { v } from "convex/values"
 import { mutation } from "../_generated/server"
 
+/**
+ * Records an authentication attempt (success or failure) in the audit log.
+ * Looks up the user by email and captures the request IP for audit trail.
+ */
 export const logAttempt = mutation({
   args: {
     action: v.string(),

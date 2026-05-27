@@ -2,6 +2,9 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { internalQuery, query } from "../_generated/server"
 
+/**
+ * Returns the currently authenticated user, or `null` if not logged in.
+ */
 export const currentUser = query({
   args: {},
   handler: async (ctx) => {
@@ -14,6 +17,9 @@ export const currentUser = query({
   },
 })
 
+/**
+ * Lists all staff users. Owner-only access.
+ */
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -30,6 +36,9 @@ export const list = query({
   },
 })
 
+/**
+ * Lists all users with their ID and name for selection dropdowns.
+ */
 export const listNames = query({
   args: {},
   handler: async (ctx) => {
@@ -41,6 +50,9 @@ export const listNames = query({
   },
 })
 
+/**
+ * Looks up a user by email. Internal query (not exposed to clients).
+ */
 export const getByEmail = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
@@ -51,6 +63,9 @@ export const getByEmail = internalQuery({
   },
 })
 
+/**
+ * Looks up the owner user by email. Internal query (not exposed to clients).
+ */
 export const getOwnerByEmail = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {

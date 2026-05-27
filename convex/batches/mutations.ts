@@ -4,6 +4,10 @@ import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { stockInArgs, updateBatchArgs, voidBatchArgs } from "./validators"
 
+/**
+ * Generates a pre-signed upload URL for product images.
+ * Only active owners may generate upload URLs.
+ */
 export const generateUploadUrl = zMutation({
   args: {},
   handler: async (ctx) => {
@@ -23,6 +27,26 @@ export const generateUploadUrl = zMutation({
   },
 })
 
+/**
+ * Stocks inventory in by creating a new batch. Supports two modes:
+ * - "existing": adds stock to an existing product.
+ * - "new": creates a product and its first batch simultaneously.
+ * Only active owners may stock in.
+ *
+ * @param mode - Whether to use an existing product or create a new one.
+ * @param productId - Product ID (required for "existing" mode).
+ * @param name - Product name (required for "new" mode).
+ * @param category - Product category (required for "new" mode).
+ * @param baseUom - Base unit (required for "new" mode).
+ * @param weightPerUnit - Weight per unit for kg conversions.
+ * @param supplierId - Supplier for this batch.
+ * @param quantityReceived - Received quantity.
+ * @param totalProcurementCost - Total cost of procurement.
+ * @param lowStockThreshold - Low-stock alert threshold for new products.
+ * @param imageStorageId - Storage ID for product image (new products only).
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns Object containing `productId` and `batchCode`.
+ */
 export const stockIn = zMutation({
   args: stockInArgs,
   handler: async (
@@ -183,6 +207,24 @@ export const stockIn = zMutation({
   },
 })
 
+/**
+ * Updates an existing batch. Blocks quantity/cost changes if the batch
+ * already has dispatch or adjustment history. Adjusts product totals
+ * when quantity or cost changes on a clean batch.
+ * Only active owners may update batches.
+ *
+ * @param batchId - ID of the batch to update.
+ * @param productId - Associated product ID.
+ * @param supplierId - Updated supplier ID.
+ * @param quantityReceived - Updated received quantity.
+ * @param totalProcurementCost - Updated total cost.
+ * @param category - Updated product category.
+ * @param baseUom - Updated product base unit.
+ * @param weightPerUnit - Updated weight per unit.
+ * @param lowStockThreshold - Updated low-stock threshold.
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns `true` on success.
+ */
 export const update = zMutation({
   args: updateBatchArgs,
   handler: async (
@@ -353,6 +395,17 @@ export const update = zMutation({
   },
 })
 
+/**
+ * Voids an active batch, reversing its quantity and cost from the
+ * associated product. Also voids any applied stock adjustments for this batch.
+ * Cannot void a batch that has been used in dispatches.
+ * Only active owners may void batches.
+ *
+ * @param batchId - ID of the batch to void.
+ * @param reason - Optional reason for voiding.
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns Object containing the count of voided adjustments.
+ */
 export const voidBatch = zMutation({
   args: voidBatchArgs,
   handler: async (ctx, { batchId, reason, userAgent }) => {

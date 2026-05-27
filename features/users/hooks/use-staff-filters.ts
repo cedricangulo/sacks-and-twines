@@ -10,6 +10,7 @@ import {
 import { useMemo } from "react"
 import type { StaffUser } from "@/features/users/components/staff-table"
 
+/** URL query-state parsers for staff filters. */
 const staffParsers = {
   status: parseAsStringEnum([
     "all",
@@ -18,6 +19,7 @@ const staffParsers = {
   ] as const).withDefault("all"),
 }
 
+/** Search and status filter state synced to URL query params with client-side filtering of the staff list. */
 export function useStaffFilters(staff: StaffUser[] | undefined) {
   const [search, setSearch] = useQueryState(
     "search",

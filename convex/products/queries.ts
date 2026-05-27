@@ -2,6 +2,10 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { query } from "../_generated/server"
 
+/**
+ * Lists all products with their last supplier and image URL.
+ * Owner-only access.
+ */
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -41,6 +45,10 @@ export const list = query({
   },
 })
 
+/**
+ * Lists only active (non-archived) products with their last supplier and image URL.
+ * Owner-only access.
+ */
 export const listActive = query({
   args: {},
   handler: async (ctx) => {
@@ -83,6 +91,10 @@ export const listActive = query({
   },
 })
 
+/**
+ * Lists active products with their available (FIFO-ordered) batches for dispatch.
+ * Accessible to any active user (owner or staff).
+ */
 export const listDispatchReady = query({
   args: {},
   handler: async (ctx) => {
@@ -143,6 +155,9 @@ export const listDispatchReady = query({
   },
 })
 
+/**
+ * Fetches a single product by ID. Accessible to any authenticated user.
+ */
 export const getById = query({
   args: { productId: v.id("products") },
   handler: async (ctx, { productId }) => {
@@ -153,6 +168,10 @@ export const getById = query({
   },
 })
 
+/**
+ * Fetches a product with additional edit context (image URL, batch count).
+ * Owner-only access.
+ */
 export const getEditDetail = query({
   args: { productId: v.id("products") },
   handler: async (ctx, { productId }) => {

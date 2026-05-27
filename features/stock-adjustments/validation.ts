@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { formatZodErrors } from "@/lib/validation"
 
+/** Zod schema for stock adjustment form data: direction (add/deduct), quantity (> 0), and reason enum. */
 const StockAdjustmentSchema = z.object({
   direction: z.union([z.literal("add"), z.literal("deduct")]),
   quantity: z.number().min(0.01, "Quantity must be greater than zero"),
@@ -18,6 +19,7 @@ export type StockAdjustmentFieldErrors = Partial<
   Record<keyof StockAdjustmentFormData, string>
 >
 
+/** Validates raw stock-adjustment input against the schema and returns typed errors or the parsed data. */
 export function validateStockAdjustment(values: unknown) {
   const result = StockAdjustmentSchema.safeParse(values)
   if (result.success) {

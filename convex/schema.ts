@@ -1,3 +1,16 @@
+/**
+ * Convex database schema for Sacks & Twines inventory management.
+ *
+ * Tables:
+ * - `users` — Staff and owner accounts (extended from auth tables).
+ * - `products` — Inventory items (sacks or twines) with SKU tracking.
+ * - `suppliers` — Vendor/supplier companies.
+ * - `batches` — Stock-in records linked to a product and supplier.
+ * - `dispatches` — Stock-out orders (one dispatch = many items).
+ * - `dispatchItems` — Line items within a dispatch.
+ * - `stockAdjustments` — Manual inventory corrections.
+ * - `auditLogs` — Immutable change history for compliance.
+ */
 import { authTables } from "@convex-dev/auth/server"
 import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
@@ -5,8 +18,6 @@ import { v } from "convex/values"
 export default defineSchema({
   ...authTables,
 
-  // Minimal users table: only the fields we use in the app.
-  // Make these optional to accommodate different auth flows and migrations.
   users: defineTable({
     email: v.string(),
     name: v.optional(v.string()),
@@ -17,14 +28,14 @@ export default defineSchema({
     .index("by_role", ["role"]),
 
   products: defineTable({
-    skuCode: v.string(), // Unique identifier for stock
+    skuCode: v.string(),
     name: v.string(),
     category: v.union(v.literal("sacks"), v.literal("twines")),
-    baseUom: v.union(v.literal("piece"), v.literal("roll")), // Unit of measure
+    baseUom: v.union(v.literal("piece"), v.literal("roll")),
     weightPerUnit: v.optional(v.number()),
     currentQuantity: v.number(),
     totalAssetValue: v.number(),
-    lowStockThreshold: v.number(), // Point where alert triggers
+    lowStockThreshold: v.number(),
     status: v.union(v.literal("active"), v.literal("archived")),
     imagePath: v.optional(v.string()),
   })
@@ -42,9 +53,9 @@ export default defineSchema({
   }).index("by_company", ["companyName"]),
 
   batches: defineTable({
-    productId: v.id("products"), // Reference to the products table
-    supplierId: v.id("suppliers"), // Reference to the suppliers table
-    userId: v.id("users"), // Who received this batch
+    productId: v.id("products"),
+    supplierId: v.id("suppliers"),
+    userId: v.id("users"),
     batchCode: v.string(),
     totalProcurementCost: v.number(),
     unitCost: v.number(),

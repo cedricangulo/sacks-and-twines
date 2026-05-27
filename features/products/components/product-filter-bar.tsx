@@ -1,5 +1,4 @@
 import { SearchIcon, XIcon } from "lucide-react"
-import type { parseAsStringEnum } from "nuqs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -9,27 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { CATEGORY_OPTIONS, SORT_OPTIONS, STOCK_OPTIONS } from "./../constants"
 
-const CATEGORY_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "sacks", label: "Sacks" },
-  { value: "twines", label: "Twines" },
-] as const
-
-const STOCK_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "in_stock", label: "In Stock" },
-  { value: "low_stock", label: "Low Stock" },
-  { value: "out_of_stock", label: "Out of Stock" },
-] as const
-
-const SORT_OPTIONS = [
-  { value: "name_asc", label: "Name A-Z" },
-  { value: "name_desc", label: "Name Z-A" },
-  { value: "stock_desc", label: "Stock High-Low" },
-  { value: "stock_asc", label: "Stock Low-High" },
-] as const
-
+/** Props for the product filter bar. */
 interface Props {
   search: string
   onSearchChange: (value: string) => void
@@ -47,6 +28,7 @@ interface Props {
   onClear: () => void
 }
 
+/** Filters, sort, and search controls for the product catalog. */
 export default function ProductFilterBar({
   search,
   onSearchChange,

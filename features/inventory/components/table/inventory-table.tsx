@@ -43,6 +43,7 @@ import ProductTableActions from "./product-table-actions"
 
 const columnHelper = createColumnHelper<Product>()
 
+/** Props for the inventory table. */
 interface InventoryTableProps {
   products: Product[]
   columnVisibility: VisibilityState
@@ -51,6 +52,7 @@ interface InventoryTableProps {
   onBatchColumnVisibilityChange: Dispatch<SetStateAction<VisibilityState>>
 }
 
+/** Full inventory table with expandable product rows, batch detail sub-rows, sorting, and column visibility. */
 export default function InventoryTable({
   products,
   columnVisibility,

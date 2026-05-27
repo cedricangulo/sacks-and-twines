@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 
+/** Fetches a single batch's detail via Convex query. */
 export function useBatchDetail(batchId: Id<"batches"> | null) {
   const { isAuthenticated } = useCurrentUser()
 

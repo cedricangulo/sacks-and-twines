@@ -6,12 +6,14 @@ import { TableCell, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import type { Product } from "../../validation"
 
+/** Props for the inventory table row. */
 interface InventoryTableRowProps {
   row: Row<Product>
   isExpanded: boolean
   onToggle: () => void
 }
 
+/** Single product row with click-to-expand toggle. */
 export default function InventoryTableRow({
   row,
   isExpanded,

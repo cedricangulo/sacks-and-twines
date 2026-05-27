@@ -23,6 +23,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import SupplierCombobox from "@/features/suppliers/components/supplier-combobox"
 import { useEditBatchForm } from "../../hooks/use-edit-batch-form"
 
+/** Dialog form for editing a batch's supplier, quantity received, and procurement cost. */
 export default function EditBatchDialog({
   batchId,
   children,

@@ -9,11 +9,13 @@ import {
 } from "../validation"
 import { useCreateStockAdjustment } from "./use-create-stock-adjustment"
 
+/** Valid reason values for each adjustment direction, used to preserve the selected reason when switching direction. */
 const VALID_REASONS: Record<"add" | "deduct", Set<string>> = {
   add: new Set(["recount", "system_reversal"]),
   deduct: new Set(["damaged", "lost", "recount", "system_reversal"]),
 }
 
+/** Manages the stock adjustment dialog form state: direction, quantity, reason, validation, and submission. */
 export function useStockAdjustForm({
   batchId,
   productId,

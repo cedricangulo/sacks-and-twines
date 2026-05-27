@@ -4,8 +4,13 @@ import { DataModel } from "./_generated/dataModel"
 
 export const migrations = new Migrations<DataModel>(components.migrations)
 
+/** Migration runner — call to execute pending migrations. */
 export const run = migrations.runner()
 
+/**
+ * Backfills user profiles with default `role` ("staff") and `status` ("active")
+ * where they are missing.
+ */
 export const createUserProfiles = migrations.define({
   table: "users",
   migrateOne: async (ctx, user) => {
@@ -21,6 +26,10 @@ export const createUserProfiles = migrations.define({
   },
 })
 
+/**
+ * Sets the initial developer email as owner with active status.
+ * One-time migration for existing deployments.
+ */
 export const setOwnerProfile = migrations.define({
   table: "users",
   migrateOne: async (ctx, user) => {
@@ -30,6 +39,10 @@ export const setOwnerProfile = migrations.define({
   },
 })
 
+/**
+ * Backfills `userName` and `itemCount` fields on existing dispatch records
+ * for denormalized display performance.
+ */
 export const backfillDispatches = migrations.define({
   table: "dispatches",
   migrateOne: async (ctx, dispatch) => {
@@ -49,6 +62,9 @@ export const backfillDispatches = migrations.define({
   },
 })
 
+/**
+ * Backfills `batchCount` on supplier records for denormalized display.
+ */
 export const backfillSuppliers = migrations.define({
   table: "suppliers",
   migrateOne: async (ctx, supplier) => {

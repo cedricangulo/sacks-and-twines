@@ -2,6 +2,9 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { query } from "../_generated/server"
 
+/**
+ * Lists all batches for a product, ordered newest-first.
+ */
 export const listByProduct = query({
   args: { productId: v.id("products") },
   handler: async (ctx, { productId }) => {
@@ -16,6 +19,10 @@ export const listByProduct = query({
   },
 })
 
+/**
+ * Fetches a single batch with enriched data: product/supplier names,
+ * dispatch count, adjustment count, and whether quantities are editable.
+ */
 export const getById = query({
   args: { batchId: v.id("batches") },
   handler: async (ctx, { batchId }) => {
@@ -59,6 +66,9 @@ export const getById = query({
   },
 })
 
+/**
+ * Returns the total number of batches for a given product.
+ */
 export const getCountByProduct = query({
   args: { productId: v.id("products") },
   handler: async (ctx, { productId }) => {
@@ -74,6 +84,10 @@ export const getCountByProduct = query({
   },
 })
 
+/**
+ * Lists active batches with remaining stock for a product, ordered FIFO.
+ * Used by the dispatch UI to select which batches to draw from.
+ */
 export const listForDispatch = query({
   args: { productId: v.id("products") },
   handler: async (ctx, { productId }) => {

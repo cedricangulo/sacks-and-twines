@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { useSubmitSignIn } from "@/features/auth/hooks/submit"
 
+/** Email/password sign-in form with validation, rate-limit feedback, and error display. */
 export default function SignInForm() {
   const { error, pending, submitSignIn } = useSubmitSignIn()
 

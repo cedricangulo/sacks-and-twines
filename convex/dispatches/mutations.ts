@@ -4,6 +4,17 @@ import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { submitDispatchArgs } from "./validators"
 
+/**
+ * Submits a dispatch order, deducting stock from batches using FIFO ordering.
+ * Supports dispatch in pieces, rolls, or kilos (with weight conversion).
+ * Sacks can only be dispatched in whole units.
+ * Accessible to any active user (owner or staff).
+ *
+ * @param customerReference - Optional customer PO/SO reference.
+ * @param items - Array of dispatch line items (product, quantity, UOM).
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns Object containing `dispatchId` and `itemCount`.
+ */
 export const submit = zMutation({
   args: submitDispatchArgs,
   handler: async (ctx, { customerReference, items, userAgent }) => {

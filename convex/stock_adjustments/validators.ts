@@ -1,6 +1,7 @@
 import { zid } from "convex-helpers/server/zod4"
 import { z } from "zod"
 
+/** Arguments for creating a manual stock adjustment. */
 export const createStockAdjustmentArgs = {
   batchId: zid("batches"),
   productId: zid("products"),

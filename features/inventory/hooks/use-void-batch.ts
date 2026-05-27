@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { handleConvexError } from "@/lib/error-handler"
 
+/** Calls the Convex void-batch mutation with sileo toast feedback. */
 export function useVoidBatch() {
   const voidBatch = useMutation(api.batches.mutations.voidBatch)
 

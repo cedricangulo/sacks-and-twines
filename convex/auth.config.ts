@@ -1,3 +1,4 @@
+/** Auth provider configuration pointing to the Convex site URL. */
 export default {
   providers: [
     {

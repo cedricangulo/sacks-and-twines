@@ -8,6 +8,7 @@ import {
 } from "../validation"
 import { useCreateStaff } from "./use-create-staff"
 
+/** Manages the add-staff dialog form state: fields, validation, and submission. */
 export function useAddStaffForm() {
   const create = useCreateStaff()
   const [open, setOpen] = useState(false)

@@ -29,6 +29,7 @@ import BatchActionsMenu from "./batch-actions-menu"
 
 const columnHelper = createColumnHelper<Batch>()
 
+/** Batches table for a single product, shown in an expandable row with sorting and column toggling. */
 export default function BatchDetailsRow({
   productId,
   columnVisibility,

@@ -7,6 +7,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { handleConvexError } from "@/lib/error-handler"
 import type { BatchUpdateFormData } from "../validation"
 
+/** Calls the Convex update-batch mutation with sileo toast feedback. */
 export function useUpdateBatch() {
   const updateBatch = useMutation(api.batches.mutations.update)
 

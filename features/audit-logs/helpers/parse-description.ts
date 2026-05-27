@@ -1,3 +1,4 @@
+/** Parses a JSON-encoded audit log description into a summary, optional changes diff, and optional details object. Falls back to the raw string on parse failure. */
 export function parseDescription(description: string): {
   summary: string
   changes: Record<string, { old: unknown; new: unknown }> | null
@@ -44,6 +45,7 @@ export function parseDescription(description: string): {
   return { summary: description, changes: null, details: null, isFlat: true }
 }
 
+/** Converts a snake_case field name to Title Case for display in change diffs (e.g. "unit_cost" → "Unit Cost"). */
 export function formatChangeLabel(key: string): string {
   return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }

@@ -2,6 +2,9 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { query } from "../_generated/server"
 
+/**
+ * Lists all suppliers with their batch counts.
+ */
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -25,6 +28,9 @@ export const list = query({
   },
 })
 
+/**
+ * Lists non-archived suppliers as simple id/name pairs for dropdown options.
+ */
 export const listActiveOptions = query({
   args: {},
   handler: async (ctx) => {
@@ -39,6 +45,9 @@ export const listActiveOptions = query({
   },
 })
 
+/**
+ * Fetches a single supplier by ID.
+ */
 export const getById = query({
   args: { supplierId: v.id("suppliers") },
   handler: async (ctx, { supplierId }) => {

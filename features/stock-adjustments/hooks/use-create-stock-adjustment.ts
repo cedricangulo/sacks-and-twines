@@ -7,6 +7,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { handleConvexError } from "@/lib/error-handler"
 import type { StockAdjustmentFormData } from "../validation"
 
+/** Calls the Convex stock-adjustment mutation with sileo toast feedback. */
 export function useCreateStockAdjustment() {
   const createAdjustment = useMutation(api.stock_adjustments.mutations.create)
 
