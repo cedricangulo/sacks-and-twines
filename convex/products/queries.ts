@@ -147,7 +147,6 @@ export const listDispatchReady = query({
             quantityRemaining: b.quantityRemaining,
             unitCost: b.unitCost,
             _creationTime: b._creationTime,
-            createdAt: b.createdAt,
           })),
         }
       })

@@ -34,7 +34,6 @@ export const submit = zMutation({
       userId: callerId,
       customerReference: customerReference ?? undefined,
       status: "completed",
-      createdAt: Date.now(),
       userName: caller?.name ?? "Unknown",
     })
 

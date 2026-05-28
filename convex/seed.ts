@@ -4,24 +4,20 @@ import { internalMutation } from "./_generated/server"
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-/** Returns a random element from an array. */
 function rnd<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
-/** Returns a random integer in [min, max]. */
 function rndInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
-/** Returns a random Date between start and end. */
 function randDate(start: Date, end: Date): Date {
   return new Date(
     start.getTime() + Math.random() * (end.getTime() - start.getTime())
   )
 }
 
-/** Rounds a number to the given decimal places. */
 function toFloat(n: number, decimals = 2): number {
   return parseFloat(n.toFixed(decimals))
 }
@@ -32,8 +28,7 @@ const DATE_END = new Date("2026-05-10T00:00:00+08:00")
 let skuCounter = 0
 function nextSkuCode(): string {
   skuCounter++
-  const now = new Date()
-  const ds = now.toISOString().slice(0, 10).replace(/-/g, "")
+  const ds = "20250501"
   const suffix = String(skuCounter).padStart(4, "0")
   return `SKU-${ds}-${suffix}`
 }
@@ -41,8 +36,7 @@ function nextSkuCode(): string {
 let batchCounter = 0
 function nextBatchCode(): string {
   batchCounter++
-  const now = new Date()
-  const ds = now.toISOString().slice(0, 10).replace(/-/g, "")
+  const ds = "20250501"
   const suffix = String(batchCounter).padStart(4, "0")
   return `BAT-${ds}-${suffix}`
 }
@@ -156,7 +150,8 @@ const PRODUCT_IMAGE_MAP: Record<string, string> = {
 
 /**
  * Writes sample suppliers, products, batches, dispatches, stock adjustments,
- * and audit logs. Clears existing data before seeding.
+ * and audit logs with historical `createdAt` timestamps.
+ * Clears existing data before seeding.
  * Internal mutation — called by `seedAll` action.
  */
 export const writeAll = internalMutation({
@@ -206,6 +201,7 @@ export const writeAll = internalMutation({
       Promise.all(SUPPLIER_DEFS.map((def) => ctx.db.insert("suppliers", def))),
       Promise.all(
         PRODUCT_DEFS.map(async (def) => {
+          const productCreatedAt = randDate(DATE_BASE, DATE_END)
           const id = await ctx.db.insert("products", {
             skuCode: nextSkuCode(),
             name: def.name,
@@ -217,12 +213,12 @@ export const writeAll = internalMutation({
             lowStockThreshold: def.lowStockThreshold,
             status: "active",
             imagePath: PRODUCT_IMAGE_MAP[def.name],
+            createdAt: productCreatedAt.getTime(),
           })
           return { id, def }
         })
       ),
     ])
-    const productIds = productResults.map((r) => r.id)
     const productMap: Record<string, { id: Id<"products">; def: ProductDef }> =
       {}
     for (const { id, def } of productResults) {
@@ -474,8 +470,9 @@ export const writeAll = internalMutation({
 
     for (const { id: pId, def } of productList) {
       const numAdjustments = rndInt(1, 2)
-      const reasons: Array<"damaged" | "lost" | "recount" | "system_reversal"> =
-        ["recount", "damaged", "lost", "system_reversal"]
+      const reasons: Array<
+        "damaged" | "lost" | "recount" | "system_reversal"
+      > = ["recount", "damaged", "lost", "system_reversal"]
 
       for (let i = 0; i < numAdjustments; i++) {
         const activeBatches = batchRecords.filter(
@@ -753,7 +750,7 @@ export const writeAll = internalMutation({
     // ═══════════════════════════════════════════════════════════════════════
     return {
       supplierCount: supplierIds.length,
-      productCount: productIds.length,
+      productCount: productList.length,
       batchCount: batchRecords.length,
       dispatchCount: dispatchRecords.length,
       dispatchItemCount: dispatchItemsToInsert.length,

@@ -13,6 +13,7 @@ export const log = internalMutation({
     resourceType: v.optional(v.string()),
     resourceId: v.optional(v.string()),
     userAgent: v.optional(v.string()),
+    createdAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     let ip: string | undefined | null

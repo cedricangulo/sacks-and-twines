@@ -5,6 +5,7 @@ import { query } from "../_generated/server"
 /**
  * Lists dispatches within a date range, optionally filtered by creator.
  * Enriches each dispatch with the user's display name and item count.
+ * Uses `by_userId` index when filtering by user; default ordering otherwise.
  */
 export const list = query({
   args: {
@@ -16,18 +17,24 @@ export const list = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    let q = ctx.db
-      .query("dispatches")
-      .withIndex("by_createdAt", (q) =>
-        q.gte("createdAt", startMs).lte("createdAt", endMs)
-      )
-      .order("desc")
+    const q = createdByUserId
+      ? ctx.db
+          .query("dispatches")
+          .withIndex("by_userId", (q) =>
+            q
+              .eq("userId", createdByUserId)
+              .gte("_creationTime", startMs)
+              .lte("_creationTime", endMs)
+          )
+          .order("desc")
+      : ctx.db.query("dispatches").order("desc")
 
-    if (createdByUserId) {
-      q = q.filter((f) => f.eq(f.field("userId"), createdByUserId))
-    }
-
-    const dispatches = await q.collect()
+    const allDispatches = await q.take(500)
+    const dispatches = createdByUserId
+      ? allDispatches
+      : allDispatches.filter(
+          (d) => d._creationTime >= startMs && d._creationTime <= endMs
+        )
 
     return await Promise.all(
       dispatches.map(async (dispatch) => {

@@ -62,7 +62,6 @@ describe("dispatch queries", () => {
             userId,
             customerReference: i === 0 ? "Walk-in" : undefined,
             status: i === 4 ? "voided" : "completed",
-            createdAt: Date.now(),
           })
         })
       })
