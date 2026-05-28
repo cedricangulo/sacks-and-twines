@@ -60,7 +60,7 @@ const formatAsCsv = (
 
   const rows = data.map((log) =>
     [
-      log._creationTime,
+      log.createdAt ?? log._creationTime,
       log.userName,
       log.userEmail,
       log.userRole,
@@ -89,7 +89,7 @@ const formatAsJson = (
   >
 ) => {
   const pick = (log: (typeof data)[number]): Record<string, unknown> => ({
-    timestamp: log._creationTime,
+    timestamp: log.createdAt ?? log._creationTime,
     user: log.userName,
     email: log.userEmail,
     role: log.userRole,

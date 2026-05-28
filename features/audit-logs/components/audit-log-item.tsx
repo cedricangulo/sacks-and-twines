@@ -29,8 +29,9 @@ export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
   const isLoading = isExpanded && detail === undefined
 
   const displayName = log.userName ?? "Unknown"
-  const relativeTime = formatRelativeTime(log._creationTime)
-  const formattedTimestamp = formatDateTime(log._creationTime)
+  const logDate = log.createdAt ?? log._creationTime
+  const relativeTime = formatRelativeTime(logDate)
+  const formattedTimestamp = formatDateTime(logDate)
 
   const parsedDesc = parseDescription(log.description)
 

@@ -129,7 +129,7 @@ export default function InventoryTable({
         ),
         sortingFn: "basic",
       }),
-      columnHelper.accessor((row) => row._creationTime, {
+      columnHelper.accessor((row) => row.createdAt ?? row._creationTime, {
         id: "createdAt",
         header: "Created",
         cell: (info) => (

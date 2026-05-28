@@ -10,6 +10,7 @@ import { ITEMS_PER_PAGE } from "../constants"
 export interface AuditLogEntry {
   _id: Id<"auditLogs">
   _creationTime: number
+  createdAt?: number
   userId?: Id<"users">
   action: string
   description: string
@@ -17,7 +18,6 @@ export interface AuditLogEntry {
   resourceId?: string
   ipAddress?: string
   userAgent?: string
-  createdAt?: number
   userName: string | null
 }
 

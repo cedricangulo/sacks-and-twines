@@ -6,6 +6,7 @@ import { formatZodErrors } from "@/lib/validation"
 export interface Product {
   _id: Id<"products">
   _creationTime: number
+  createdAt?: number
   skuCode: string
   name: string
   category: "sacks" | "twines"
