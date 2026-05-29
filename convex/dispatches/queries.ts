@@ -30,11 +30,10 @@ export const list = query({
       : ctx.db.query("dispatches").order("desc")
 
     const allDispatches = await q.take(500)
-    const dispatches = createdByUserId
-      ? allDispatches
-      : allDispatches.filter(
-          (d) => d._creationTime >= startMs && d._creationTime <= endMs
-        )
+    const dispatches = allDispatches.filter((d) => {
+      const date = d.createdAt ?? d._creationTime
+      return date >= startMs && date <= endMs
+    })
 
     return await Promise.all(
       dispatches.map(async (dispatch) => {
@@ -59,6 +58,53 @@ export const list = query({
           ...dispatch,
           userName: user?.name ?? "Unknown",
           itemCount: items.length,
+        }
+      })
+    )
+  },
+})
+
+/**
+ * Lists dispatches within a date range for the reports detail panel.
+ * Enriches each dispatch with user name, item count, and total value.
+ */
+export const listByDateRange = query({
+  args: {
+    startMs: v.number(),
+    endMs: v.number(),
+  },
+  handler: async (ctx, { startMs, endMs }) => {
+    const userId = await getAuthUserId(ctx)
+    if (userId === null) throw new Error("Unauthorized")
+
+    const dispatches = await ctx.db
+      .query("dispatches")
+      .withIndex("by_creation_time", (q) =>
+        q.gte("_creationTime", startMs).lte("_creationTime", endMs)
+      )
+      .order("desc")
+      .collect()
+
+    return await Promise.all(
+      dispatches.map(async (dispatch) => {
+        const [user, items] = await Promise.all([
+          ctx.db.get(dispatch.userId),
+          ctx.db
+            .query("dispatchItems")
+            .withIndex("by_dispatch", (q) => q.eq("dispatchId", dispatch._id))
+            .collect(),
+        ])
+
+        const totalValue = items.reduce(
+          (sum, item) => sum + item.quantityDeducted * item.unitCost,
+          0
+        )
+
+        return {
+          ...dispatch,
+          userName: user?.name ?? "Unknown",
+          itemCount: items.length,
+          totalValue,
         }
       })
     )

@@ -3,9 +3,9 @@ import { v } from "convex/values"
 import { query } from "../_generated/server"
 
 /**
- * Returns daily transaction counts for a given month range.
- * Used by the calendar view to render dispatch/adjustment count badges.
- * Uses default ordering (by _creationTime) with in-code date filtering.
+ * Returns dispatch and adjustment timestamps within a date range.
+ * Uses the built-in `by_creation_time` index so only relevant records
+ * are scanned. The frontend buckets by day using its local timezone.
  */
 export const calendarSummary = query({
   args: {
@@ -16,40 +16,23 @@ export const calendarSummary = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const [allDispatches, allAdjustments] = await Promise.all([
-      ctx.db.query("dispatches").order("desc").take(1000),
-      ctx.db.query("stockAdjustments").order("desc").take(1000),
+    const [dispatchTimestamps, adjustmentTimestamps] = await Promise.all([
+      ctx.db
+        .query("dispatches")
+        .withIndex("by_creation_time", (q) =>
+          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
+        )
+        .collect()
+        .then((rows) => rows.map((d) => d.createdAt ?? d._creationTime)),
+      ctx.db
+        .query("stockAdjustments")
+        .withIndex("by_creation_time", (q) =>
+          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
+        )
+        .collect()
+        .then((rows) => rows.map((a) => a.createdAt ?? a._creationTime)),
     ])
 
-    const dispatches = allDispatches.filter(
-      (d) => d._creationTime >= startMs && d._creationTime <= endMs
-    )
-    const adjustments = allAdjustments.filter(
-      (a) => a._creationTime >= startMs && a._creationTime <= endMs
-    )
-
-    const dayBuckets: Record<
-      number,
-      { dispatchCount: number; adjustmentCount: number }
-    > = {}
-
-    for (const d of dispatches) {
-      const day = Math.floor(d._creationTime / 86400000)
-      if (!dayBuckets[day])
-        dayBuckets[day] = { dispatchCount: 0, adjustmentCount: 0 }
-      dayBuckets[day].dispatchCount++
-    }
-
-    for (const a of adjustments) {
-      const day = Math.floor(a._creationTime / 86400000)
-      if (!dayBuckets[day])
-        dayBuckets[day] = { dispatchCount: 0, adjustmentCount: 0 }
-      dayBuckets[day].adjustmentCount++
-    }
-
-    return Object.entries(dayBuckets).map(([day, counts]) => ({
-      day: Number(day),
-      ...counts,
-    }))
+    return { dispatchTimestamps, adjustmentTimestamps }
   },
 })

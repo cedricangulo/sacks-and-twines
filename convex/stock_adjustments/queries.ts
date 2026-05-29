@@ -17,27 +17,22 @@ export const listByDateRange = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const q = createdByUserId
-      ? ctx.db
-          .query("stockAdjustments")
-          .withIndex("by_userId", (q) =>
-            q
-              .eq("userId", createdByUserId)
-              .gte("_creationTime", startMs)
-              .lte("_creationTime", endMs)
-          )
-          .order("desc")
-      : ctx.db.query("stockAdjustments").order("desc")
+    const adjustments = await ctx.db
+      .query("stockAdjustments")
+      .withIndex("by_creation_time", (q) =>
+        q.gte("_creationTime", startMs).lte("_creationTime", endMs)
+      )
+      .order("desc")
+      .collect()
 
-    const allAdjustments = await q.take(500)
-    const adjustments = createdByUserId
-      ? allAdjustments
-      : allAdjustments.filter(
-          (a) => a._creationTime >= startMs && a._creationTime <= endMs
-        )
+    // Keep the userId index path only when filtering by user
+    // (applied as an additional in-memory filter on the already-bounded set)
+    const filtered = createdByUserId
+      ? adjustments.filter((a) => a.userId === createdByUserId)
+      : adjustments
 
     return await Promise.all(
-      adjustments.map(async (adjustment) => {
+      filtered.map(async (adjustment) => {
         const [product, batch, user] = await Promise.all([
           ctx.db.get(adjustment.productId),
           ctx.db.get(adjustment.batchId),
