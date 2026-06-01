@@ -18,7 +18,7 @@ interface Props {
   initialRole?: string
 }
 
-const OWNER_ONLY_ROOTS = ["/inventory", "/suppliers", "/users", "/dashboard"]
+const OWNER_ONLY_ROOTS = ["/inventory", "/suppliers", "/users", "/dashboard", "/reports"]
 
 function isOwnerOnlyPath(pathname: string): boolean {
   if (pathname === "/audit-logs" || pathname === "/audit-logs/") return true
