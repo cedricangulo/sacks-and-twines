@@ -23,7 +23,7 @@ interface Props {
   product: DispatchReadyProduct
 }
 
-/** Card displaying a product for dispatch selection with quantity controls and unit toggle. */
+// Card displaying a product for dispatch selection with quantity controls and unit toggle.
 export default function ProductCard({ product }: Props) {
   const {
     quantity,

@@ -2,7 +2,7 @@ import { z } from "zod"
 import type { Id } from "@/convex/_generated/dataModel"
 import { formatZodErrors } from "@/lib/validation"
 
-/** A product record as displayed in the inventory table. */
+// A product record as displayed in the inventory table.
 export interface Product {
   _id: Id<"products">
   _creationTime: number
@@ -21,7 +21,7 @@ export interface Product {
   lastSupplierId?: Id<"suppliers">
 }
 
-/** A batch record as displayed in the batch sub-table. */
+// A batch record as displayed in the batch sub-table.
 export interface Batch {
   _id: Id<"batches">
   _creationTime: number
@@ -37,7 +37,7 @@ export interface Batch {
   status: "active" | "depleted" | "voided"
 }
 
-/** A batch record enriched with product info, supplier name, and editability flags. */
+// A batch record enriched with product info, supplier name, and editability flags.
 export interface BatchDetail extends Batch {
   productName: string | null
   category: string | null
@@ -53,7 +53,7 @@ export interface BatchDetail extends Batch {
 
 const positiveNumber = z.number().min(0.01, "Must be greater than zero")
 
-/** Zod schema for stock-in form data: mode, product selection, category, batch quantities, etc. */
+// Zod schema for stock-in form data: mode, product selection, category, batch quantities, etc.
 const StockInSchema = z.object({
   mode: z.union([z.literal("existing"), z.literal("new")]),
   productId: z.optional(z.string().min(1)),
@@ -72,7 +72,7 @@ export type StockInFormData = z.infer<typeof StockInSchema>
 
 export type StockInFieldErrors = Partial<Record<keyof StockInFormData, string>>
 
-/** Validates stock-in form input and returns typed errors or parsed data. */
+// Validates stock-in form input and returns typed errors or parsed data.
 export function validateStockIn(values: unknown) {
   const result = StockInSchema.safeParse(values)
   if (result.success) {
@@ -89,7 +89,7 @@ export function validateStockIn(values: unknown) {
   }
 }
 
-/** Zod schema for batch update form data: supplier, quantities, and optional product fields. */
+// Zod schema for batch update form data: supplier, quantities, and optional product fields.
 const BatchUpdateSchema = z.object({
   supplierId: z.string().min(1, "Supplier is required"),
   quantityReceived: positiveNumber,
@@ -106,7 +106,7 @@ export type BatchUpdateFieldErrors = Partial<
   Record<keyof BatchUpdateFormData, string>
 >
 
-/** Validates batch update form input and returns typed errors or parsed data. */
+// Validates batch update form input and returns typed errors or parsed data.
 export function validateBatchUpdate(values: unknown) {
   const result = BatchUpdateSchema.safeParse(values)
   if (result.success) {

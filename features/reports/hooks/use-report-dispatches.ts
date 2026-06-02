@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 
-/** A single dispatch entry as returned by the reports query. */
+// A single dispatch entry as returned by the reports query.
 export interface ReportDispatch {
   _id: Id<"dispatches">
   _creationTime: number
@@ -19,7 +19,8 @@ export interface ReportDispatch {
   totalValue: number
 }
 
-/** Fetches dispatches for a specific day range.
+/**
+ * Fetches dispatches for a specific day range.
  * @param startMs - Start of the day range in milliseconds, or null to skip.
  * @param endMs - End of the day range in milliseconds, or null to skip.
  */

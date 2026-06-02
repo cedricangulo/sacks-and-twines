@@ -8,6 +8,9 @@ import { query } from "../_generated/server"
  * Queries both `by_creation_time` (production records) and `by_createdAt`
  * (seed records), merges, and deduplicates. When createdByUserId is provided,
  * filters in memory after the merge — no compound index exists yet.
+ * @param startMs - Start of the date range in milliseconds.
+ * @param endMs - End of the date range in milliseconds.
+ * @param createdByUserId - Optional user ID to filter by creator.
  */
 export const listByDateRange = query({
   args: {

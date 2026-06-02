@@ -7,13 +7,13 @@ import { SubmitEvent, useState } from "react"
 import { z } from "zod"
 import { api } from "@/convex/_generated/api"
 
-/** Validates sign-in form payload before submission. */
+// Validates sign-in form payload before submission.
 const SignInSchema = z.object({
   email: z.email(),
   password: z.string().min(1),
 })
 
-/** Manages sign-in form state: submitted credentials, pending flag, and error display. Submits the password flow via Convex auth and logs the attempt. */
+// Manages sign-in form state: submitted credentials, pending flag, and error display. Submits the password flow via Convex auth and logs the attempt.
 function useSubmitSignIn() {
   const { signIn } = useAuthActions()
   const router = useRouter()

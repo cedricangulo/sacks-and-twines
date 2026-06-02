@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from "react"
 import { ITEMS_PER_PAGE } from "../constants"
 
-/** Pagination state and controls for a table. */
+// Pagination state and controls for a table.
 export interface ReportPagination {
   page: number
   totalPages: number

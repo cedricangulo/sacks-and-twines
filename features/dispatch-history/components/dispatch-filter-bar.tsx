@@ -47,7 +47,7 @@ interface Props {
   onItemsVisibilityChange: Dispatch<SetStateAction<Record<string, boolean>>>
 }
 
-/** Filters and column visibility controls for the dispatch history page. */
+// Filters and column visibility controls for the dispatch history page.
 export default function DispatchFilterBar({
   search,
   onSearchChange,

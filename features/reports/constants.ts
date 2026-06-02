@@ -1,9 +1,9 @@
 export type TimeRange = "month" | "year" | "all"
 
-/** Number of items per page in detail panel tables. */
+// Number of items per page in detail panel tables.
 export const ITEMS_PER_PAGE = 20
 
-/** Month names for calendar display. */
+// Month names for calendar display.
 export const MONTH_NAMES = [
   "January",
   "February",
@@ -19,7 +19,7 @@ export const MONTH_NAMES = [
   "December",
 ] as const
 
-/** Day names for calendar header. */
+// Day names for calendar header.
 export const DAY_NAMES = [
   "Sun",
   "Mon",
@@ -30,7 +30,7 @@ export const DAY_NAMES = [
   "Sat",
 ] as const
 
-/** Computes start/end timestamps for the stats bar based on range and selection state. */
+// Computes start/end timestamps for the stats bar based on range and selection state.
 export function getStatsRange(
   range: TimeRange,
   filters: {

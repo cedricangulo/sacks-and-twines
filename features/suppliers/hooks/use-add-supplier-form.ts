@@ -8,7 +8,7 @@ import {
 } from "../validation"
 import { useCreateSupplier } from "./use-create-supplier"
 
-/** Manages the add-supplier dialog form state: fields, validation, and submission. */
+// Manages the add-supplier dialog form state: fields, validation, and submission.
 export function useAddSupplierForm() {
   const create = useCreateSupplier()
   const [open, setOpen] = useState(false)

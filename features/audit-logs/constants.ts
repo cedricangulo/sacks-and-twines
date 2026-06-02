@@ -1,4 +1,4 @@
-/** Human-readable labels mapped to audit log field keys. */
+// Human-readable labels mapped to audit log field keys.
 export const FIELD_LABELS: Record<string, string> = {
   timestamp: "timestamp",
   action: "action",
@@ -14,7 +14,7 @@ export const FIELD_LABELS: Record<string, string> = {
   userAgent: "user_agent",
 }
 
-/** Fields displayed in the audit log detail panel. */
+// Fields displayed in the audit log detail panel.
 export const AUDIT_LOG_DETAIL_FIELDS = [
   "timestamp",
   "action",
@@ -28,10 +28,10 @@ export const AUDIT_LOG_DETAIL_FIELDS = [
   "userAgent",
 ] as const
 
-/** Static action filter options (dynamic options come from the Convex query). */
+// Static action filter options (dynamic options come from the Convex query).
 export const ACTION_OPTIONS = [{ value: "all", label: "All Actions" }]
 
-/** Quick-select date preset options for the audit log filter. */
+// Quick-select date preset options for the audit log filter.
 export const DATE_PRESETS = [
   { value: "all", label: "All Time" },
   { value: "today", label: "Today" },
@@ -39,5 +39,5 @@ export const DATE_PRESETS = [
   { value: "30d", label: "Last 30 Days" },
 ] as const
 
-/** Number of audit log entries per page. */
+// Number of audit log entries per page.
 export const ITEMS_PER_PAGE = 30

@@ -9,7 +9,7 @@ import {
 } from "../validation"
 import { useUpdateSupplier } from "./use-update-supplier"
 
-/** Manages the edit-supplier dialog form state: pre-populated fields, dirty tracking, validation, and submission. */
+// Manages the edit-supplier dialog form state: pre-populated fields, dirty tracking, validation, and submission.
 export function useEditSupplierForm({
   supplier,
   open: openProp,

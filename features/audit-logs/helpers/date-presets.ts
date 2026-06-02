@@ -1,4 +1,4 @@
-/** Converts a date preset string ("today", "7d", "30d") to a Unix timestamp in milliseconds, or undefined for "all". */
+// Converts a date preset string ("today", "7d", "30d") to a Unix timestamp in milliseconds, or undefined for "all".
 export function getTimestampFromPreset(
   preset: string,
   now: number

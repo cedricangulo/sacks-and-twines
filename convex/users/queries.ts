@@ -52,6 +52,7 @@ export const listNames = query({
 
 /**
  * Looks up a user by email. Internal query (not exposed to clients).
+ * @param email - Email address to look up.
  */
 export const getByEmail = internalQuery({
   args: { email: v.string() },
@@ -65,6 +66,7 @@ export const getByEmail = internalQuery({
 
 /**
  * Looks up the owner user by email. Internal query (not exposed to clients).
+ * @param email - Email address to look up.
  */
 export const getOwnerByEmail = internalQuery({
   args: { email: v.string() },

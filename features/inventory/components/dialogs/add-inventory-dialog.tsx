@@ -22,7 +22,7 @@ import ProductCombobox from "@/features/products/components/product-combobox"
 import { useInventoryDialog } from "../../hooks/use-inventory-dialog"
 import FieldCard from "../field-card"
 
-/** Dialog for adding inventory — select an existing product or create a new one inline with batch and supplier details. */
+// Dialog for adding inventory — select an existing product or create a new one inline with batch and supplier details.
 export default function AddInventoryDialog() {
   const {
     products,

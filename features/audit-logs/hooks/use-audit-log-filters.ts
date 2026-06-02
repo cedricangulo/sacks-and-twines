@@ -6,7 +6,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { getTimestampFromPreset } from "@/features/audit-logs/helpers/date-presets"
 import type { AuditLogEntry, AuditLogFilters } from "./use-audit-logs"
 
-/** URL-synced search, action, user, and date range filters for the audit log list with client-side filtering. */
+// URL-synced search, action, user, and date range filters for the audit log list with client-side filtering.
 export function useAuditLogFilters(logs: AuditLogEntry[] | undefined) {
   const [search, setSearch] = useQueryState(
     "search",

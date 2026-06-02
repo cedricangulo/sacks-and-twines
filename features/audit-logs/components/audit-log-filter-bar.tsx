@@ -33,7 +33,7 @@ import { DATE_PRESETS } from "../constants"
 import { useAuditLogExport } from "../hooks/use-audit-log-export"
 import type { AuditLogFilters } from "../hooks/use-audit-logs"
 
-/** Props for the audit log filter bar. */
+// Props for the audit log filter bar.
 interface AuditLogFilterBarProps {
   search: string
   onSearchChange: (value: string) => void
@@ -47,7 +47,7 @@ interface AuditLogFilterBarProps {
   onClear: () => void
 }
 
-/** Search, action type, date preset, and export controls for the audit log list. */
+// Search, action type, date preset, and export controls for the audit log list.
 export default function AuditLogFilterBar({
   search,
   action,

@@ -9,7 +9,7 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox"
 
-/** Props for the supplier combobox. */
+// Props for the supplier combobox.
 interface SupplierComboboxProps {
   suppliers: Array<{ id: string; name: string }>
   value: string
@@ -17,7 +17,7 @@ interface SupplierComboboxProps {
   disabled?: boolean
 }
 
-/** Searchable combobox for selecting a supplier. */
+// Searchable combobox for selecting a supplier.
 export default function SupplierCombobox({
   suppliers,
   value,

@@ -24,12 +24,12 @@ import type { ReportAdjustment } from "../../hooks/use-report-adjustments"
 
 const columnHelper = createColumnHelper<ReportAdjustment>()
 
-/** Props for the report adjustment table. */
+// Props for the report adjustment table.
 interface ReportAdjustmentTableProps {
   adjustments: ReportAdjustment[]
 }
 
-/** Simple stock adjustment table for the reports detail panel. */
+// Simple stock adjustment table for the reports detail panel.
 export default function ReportAdjustmentTable({
   adjustments,
 }: ReportAdjustmentTableProps) {

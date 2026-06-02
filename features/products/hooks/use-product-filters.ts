@@ -12,7 +12,7 @@ import type { DispatchReadyProduct } from "@/features/products/validation"
 
 const DEFAULT_STOCK = "in_stock"
 
-/** URL query-state parsers for product catalog filters. */
+// URL query-state parsers for product catalog filters.
 const categoryParsers = {
   category: parseAsStringEnum(["all", "sacks", "twines"] as const).withDefault(
     "all"
@@ -31,7 +31,7 @@ const categoryParsers = {
   ] as const).withDefault("name_asc"),
 }
 
-/** Search, category, stock-status, and sort state synced to URL query params with client-side filtering. */
+// Search, category, stock-status, and sort state synced to URL query params with client-side filtering.
 export function useProductFilters(
   products: DispatchReadyProduct[] | undefined
 ) {

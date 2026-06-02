@@ -7,7 +7,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import type { Dispatch } from "../validation"
 
-/** Returns start/end timestamps for the current calendar day. */
+// Returns start/end timestamps for the current calendar day.
 function todayRange() {
   const now = new Date()
   const startMs = new Date(
@@ -19,12 +19,12 @@ function todayRange() {
   return { startMs, endMs }
 }
 
-/** Arguments for the useDispatches hook. */
+// Arguments for the useDispatches hook.
 interface UseDispatchesArgs {
   createdByUserId?: string
 }
 
-/** Fetches dispatches for the current day with optional user filter. */
+// Fetches dispatches for the current day with optional user filter.
 export function useDispatches(args: UseDispatchesArgs) {
   const { isAuthenticated } = useCurrentUser()
 

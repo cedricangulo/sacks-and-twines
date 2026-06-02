@@ -12,12 +12,12 @@ import {
 } from "@/components/ui/table"
 import { type Supplier } from "../validation"
 
-/** Props for the supplier table component. */
+// Props for the supplier table component.
 interface SupplierTableProps {
   table: ReactTable<Supplier>
 }
 
-/** Renders the supplier table from a TanStack table instance with sortable headers. */
+// Renders the supplier table from a TanStack table instance with sortable headers.
 export default function SupplierTable({ table }: SupplierTableProps) {
   const rows = table.getRowModel().rows
 

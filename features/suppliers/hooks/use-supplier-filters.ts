@@ -10,14 +10,14 @@ import {
 import { useMemo } from "react"
 import type { Supplier } from "@/features/suppliers/validation"
 
-/** URL query-state parsers for supplier filters. */
+// URL query-state parsers for supplier filters.
 const supplierParsers = {
   status: parseAsStringEnum(["all", "active", "archived"] as const).withDefault(
     "all"
   ),
 }
 
-/** Search and status filter state synced to URL query params with client-side filtering of the supplier list. */
+// Search and status filter state synced to URL query params with client-side filtering of the supplier list.
 export function useSupplierFilters(suppliers: Supplier[] | undefined) {
   const [search, setSearch] = useQueryState(
     "search",

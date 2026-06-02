@@ -8,7 +8,7 @@ import { useImageUpload } from "@/lib/hooks/use-image-upload"
 import { type StockInFieldErrors, validateStockIn } from "../validation"
 import { useCreateStockIn } from "./use-create-stock-in"
 
-/** Generates a draft SKU or batch code with date and random suffix. */
+// Generates a draft SKU or batch code with date and random suffix.
 function generateDraftCode(prefix: string) {
   const now = new Date()
   const datePart = [
@@ -22,7 +22,7 @@ function generateDraftCode(prefix: string) {
 
 type FieldLockState = Record<string, boolean>
 
-/** Fields that become "locked" (pre-filled) when selecting an existing product. */
+// Fields that become "locked" (pre-filled) when selecting an existing product.
 const LOCKED_FIELDS = [
   "category",
   "baseUom",
@@ -31,12 +31,12 @@ const LOCKED_FIELDS = [
   "lowStockThreshold",
 ] as const
 
-/** All locked fields start locked when a product is selected. */
+// All locked fields start locked when a product is selected.
 const INITIAL_LOCKED_STATE = Object.fromEntries(
   LOCKED_FIELDS.map((f) => [f, true])
 )
 
-/** Current values for all product/field inputs in the inventory dialog. */
+// Current values for all product/field inputs in the inventory dialog.
 interface FieldValues {
   category: string
   baseUom: string
@@ -45,7 +45,7 @@ interface FieldValues {
   lowStockThreshold: string
 }
 
-/** Default empty field values when creating a new product. */
+// Default empty field values when creating a new product.
 const EMPTY_FIELDS: FieldValues = {
   category: "",
   baseUom: "",
@@ -54,7 +54,7 @@ const EMPTY_FIELDS: FieldValues = {
   lowStockThreshold: "",
 }
 
-/** Manages the add-inventory dialog state: existing/new product selection, field locking, draft codes, validation, and submission. */
+// Manages the add-inventory dialog state: existing/new product selection, field locking, draft codes, validation, and submission.
 export function useInventoryDialog() {
   const products = useActiveProducts()
   const supplierOptions = useSupplierOptions()

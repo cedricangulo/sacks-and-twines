@@ -9,6 +9,12 @@ import { query } from "../_generated/server"
 /**
  * Paginated audit log listing with optional filters (search, action, user, date range).
  * Enriches each log with the acting user's name. Owner-only access.
+ * @param paginationOpts - Pagination options for cursor-based navigation.
+ * @param search - Optional search string to filter by action or description.
+ * @param action - Optional action type to filter by.
+ * @param userId - Optional user ID to filter by.
+ * @param dateFrom - Optional start of date range in milliseconds.
+ * @param dateTo - Optional end of date range in milliseconds.
  */
 export const list = query({
   args: {
@@ -87,6 +93,7 @@ export const list = query({
 /**
  * Fetches a single audit log entry with full user details.
  * Owner-only access.
+ * @param logId - ID of the audit log entry to fetch.
  */
 export const getById = query({
   args: { logId: v.id("auditLogs") },
@@ -119,6 +126,7 @@ export const getById = query({
 /**
  * Fetches an audit log entry owned by the current user.
  * Users can only view their own logs.
+ * @param logId - ID of the audit log entry to fetch.
  */
 export const getPersonalById = query({
   args: { logId: v.id("auditLogs") },
@@ -144,6 +152,7 @@ export const getPersonalById = query({
 /**
  * Paginated audit log listing filtered to the current user's own actions.
  * Any active user can view their own audit trail.
+ * @param paginationOpts - Pagination options for cursor-based navigation.
  */
 export const listByUser = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -198,6 +207,12 @@ export const listActions = query({
 /**
  * Shared helper that fetches filtered audit logs with user enrichment.
  * Used by both `exportData` and `exportCsv` queries.
+ * @param ctx - Query context.
+ * @param search - Optional search string to filter by action or description.
+ * @param action - Optional action type to filter by.
+ * @param userId - Optional user ID to filter by.
+ * @param dateFrom - Optional start of date range in milliseconds.
+ * @param dateTo - Optional end of date range in milliseconds.
  */
 async function fetchExportLogs(
   ctx: QueryCtx,
@@ -276,6 +291,11 @@ async function fetchExportLogs(
 /**
  * Exports filtered audit logs as a JSON-friendly array of enriched records.
  * Owner-only access.
+ * @param search - Optional search string to filter by action or description.
+ * @param action - Optional action type to filter by.
+ * @param userId - Optional user ID to filter by.
+ * @param dateFrom - Optional start of date range in milliseconds.
+ * @param dateTo - Optional end of date range in milliseconds.
  */
 export const exportData = query({
   args: {
@@ -294,6 +314,11 @@ export const exportData = query({
  * Exports filtered audit logs as a CSV string (UTF-8 BOM prefixed).
  * Includes timestamp, user, action, resource, and description columns.
  * Owner-only access.
+ * @param search - Optional search string to filter by action or description.
+ * @param action - Optional action type to filter by.
+ * @param userId - Optional user ID to filter by.
+ * @param dateFrom - Optional start of date range in milliseconds.
+ * @param dateTo - Optional end of date range in milliseconds.
  */
 export const exportCsv = query({
   args: {

@@ -13,7 +13,7 @@ import {
 import { useDispatchQueueContext } from "../hooks/dispatch-queue-context"
 import DispatchQueueSidebar from "./dispatch-queue-sidebar"
 
-/** Mobile slide-over sheet that wraps DispatchQueueSidebar, hidden on xl+ screens. */
+// Mobile slide-over sheet that wraps DispatchQueueSidebar, hidden on xl+ screens.
 export default function MobileQueueSheet() {
   const [open, setOpen] = useState(false)
   const { itemCount } = useDispatchQueueContext()

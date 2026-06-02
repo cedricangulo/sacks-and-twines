@@ -1,11 +1,11 @@
-/** Filter options for staff user status. */
+// Filter options for staff user status.
 export const STATUS_OPTIONS = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
   { value: "deactivated", label: "Deactivated" },
 ] as const
 
-/** Column definitions for the staff table. */
+// Column definitions for the staff table.
 export const STAFF_TABLE_COLUMNS = [
   { id: "email", label: "Email" },
   { id: "status", label: "Status" },

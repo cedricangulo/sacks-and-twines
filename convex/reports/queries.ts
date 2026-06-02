@@ -7,6 +7,8 @@ import { query } from "../_generated/server"
  * Queries both `by_creation_time` (production records) and
  * `by_createdAt` (seed/manual records) indexes and merges results.
  * The frontend buckets by day using its local timezone.
+ * @param startMs - Start of the date range in milliseconds.
+ * @param endMs - End of the date range in milliseconds.
  */
 export const calendarSummary = query({
   args: {
@@ -74,6 +76,8 @@ export const calendarSummary = query({
 /**
  * Returns aggregate counts and totals for dispatches and adjustments
  * within a date range. Used by the monthly stats bar.
+ * @param startMs - Start of the date range in milliseconds.
+ * @param endMs - End of the date range in milliseconds.
  */
 export const monthlyAggregates = query({
   args: {

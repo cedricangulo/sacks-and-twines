@@ -13,7 +13,7 @@ import type { Batch } from "../../validation"
 import EditBatchDialog from "../dialogs/edit-batch-dialog"
 import VoidBatchDialog from "../dialogs/void-batch-dialog"
 
-/** Popover menu with edit, adjust, and void actions for a batch row. */
+// Popover menu with edit, adjust, and void actions for a batch row.
 export default function BatchActionsMenu({ batch }: { batch: Batch }) {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)

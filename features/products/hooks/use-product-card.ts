@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useDispatchQueueContext } from "@/features/dispatches/hooks/dispatch-queue-context"
 import type { DispatchReadyProduct } from "@/features/products/validation"
 
-/** Manages a single product card's quantity input, dispatch UoM toggle, and stock-status indicators. */
+// Manages a single product card's quantity input, dispatch UoM toggle, and stock-status indicators.
 export function useProductCard(product: DispatchReadyProduct) {
   const {
     items,

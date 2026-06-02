@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useAddStaffForm } from "../hooks/use-add-staff-form"
 
-/** Dialog form for creating a new staff user with name, email, and password fields. */
+// Dialog form for creating a new staff user with name, email, and password fields.
 export default function AddStaffDialog() {
   const { open, setOpen, formValues, handleChange, errors, handleSubmit } =
     useAddStaffForm()

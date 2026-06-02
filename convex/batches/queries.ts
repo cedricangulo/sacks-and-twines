@@ -4,6 +4,7 @@ import { query } from "../_generated/server"
 
 /**
  * Lists all batches for a product, ordered newest-first.
+ * @param productId - ID of the product to list batches for.
  */
 export const listByProduct = query({
   args: { productId: v.id("products") },
@@ -22,6 +23,7 @@ export const listByProduct = query({
 /**
  * Fetches a single batch with enriched data: product/supplier names,
  * dispatch count, adjustment count, and whether quantities are editable.
+ * @param batchId - ID of the batch to fetch.
  */
 export const getById = query({
   args: { batchId: v.id("batches") },
@@ -68,6 +70,7 @@ export const getById = query({
 
 /**
  * Returns the total number of batches for a given product.
+ * @param productId - ID of the product to count batches for.
  */
 export const getCountByProduct = query({
   args: { productId: v.id("products") },
@@ -87,6 +90,7 @@ export const getCountByProduct = query({
 /**
  * Lists active batches with remaining stock for a product, ordered FIFO.
  * Used by the dispatch UI to select which batches to draw from.
+ * @param productId - ID of the product to list batches for.
  */
 export const listForDispatch = query({
   args: { productId: v.id("products") },

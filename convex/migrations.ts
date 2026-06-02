@@ -4,7 +4,7 @@ import { DataModel } from "./_generated/dataModel"
 
 export const migrations = new Migrations<DataModel>(components.migrations)
 
-/** Migration runner — call to execute pending migrations. */
+// Migration runner — call to execute pending migrations.
 export const run = migrations.runner()
 
 /**

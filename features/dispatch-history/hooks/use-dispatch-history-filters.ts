@@ -10,7 +10,7 @@ import {
 import { useMemo } from "react"
 import type { Dispatch } from "../validation"
 
-/** URL query-state parsers for dispatch-history filters. */
+// URL query-state parsers for dispatch-history filters.
 const filterParsers = {
   status: parseAsStringEnum([
     "all",
@@ -19,7 +19,7 @@ const filterParsers = {
   ] as const).withDefault("all"),
 }
 
-/** Search/filter state synced to URL query params with client-side filtering of the dispatches list. */
+// Search/filter state synced to URL query params with client-side filtering of the dispatches list.
 export function useDispatchHistoryFilters(dispatches: Dispatch[] | undefined) {
   const [search, setSearch] = useQueryState(
     "search",

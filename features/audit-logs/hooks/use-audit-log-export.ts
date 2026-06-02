@@ -7,7 +7,7 @@ import type { Doc } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import type { AuditLogFilters } from "./use-audit-logs"
 
-/** Extracts the "summary" field from a JSON-encoded description string. */
+// Extracts the "summary" field from a JSON-encoded description string.
 const extractSummary = (description: string | null | undefined): string => {
   if (!description) return ""
   try {
@@ -25,7 +25,7 @@ const extractSummary = (description: string | null | undefined): string => {
   return description
 }
 
-/** Escapes a value for CSV output (handles commas, quotes, newlines). */
+// Escapes a value for CSV output (handles commas, quotes, newlines).
 const escapeCsv = (val: string | number | null | undefined): string => {
   if (val === null || val === undefined) return ""
   const s = String(val)
@@ -35,7 +35,7 @@ const escapeCsv = (val: string | number | null | undefined): string => {
   return s
 }
 
-/** Formats audit log data as a CSV string with a BOM for Excel compatibility. */
+// Formats audit log data as a CSV string with a BOM for Excel compatibility.
 const formatAsCsv = (
   data: Array<
     Doc<"auditLogs"> & {
@@ -78,7 +78,7 @@ const formatAsCsv = (
   return "\uFEFF" + header.join(",") + "\n" + rows.join("\n")
 }
 
-/** Formats audit log data as a formatted JSON string. */
+// Formats audit log data as a formatted JSON string.
 const formatAsJson = (
   data: Array<
     Doc<"auditLogs"> & {
@@ -105,7 +105,7 @@ const formatAsJson = (
 
 type ExportFormat = "csv" | "json"
 
-/** Manages audit log export: fetches filtered data from Convex, formats as CSV/JSON, and triggers a browser download. */
+// Manages audit log export: fetches filtered data from Convex, formats as CSV/JSON, and triggers a browser download.
 export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
   const { isAuthenticated } = useCurrentUser()
   const [isExporting, setIsExporting] = useState(false)

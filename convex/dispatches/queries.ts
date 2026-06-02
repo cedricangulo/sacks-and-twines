@@ -6,6 +6,9 @@ import { query } from "../_generated/server"
  * Lists dispatches within a date range, optionally filtered by creator.
  * Enriches each dispatch with the user's display name and item count.
  * Uses `by_userId` index when filtering by user; default ordering otherwise.
+ * @param startMs - Start of the date range in milliseconds.
+ * @param endMs - End of the date range in milliseconds.
+ * @param createdByUserId - Optional user ID to filter by creator.
  */
 export const list = query({
   args: {
@@ -67,6 +70,8 @@ export const list = query({
 /**
  * Lists dispatches within a date range for the reports detail panel.
  * Enriches each dispatch with user name, item count, and total value.
+ * @param startMs - Start of the date range in milliseconds.
+ * @param endMs - End of the date range in milliseconds.
  */
 export const listByDateRange = query({
   args: {
@@ -136,6 +141,7 @@ export const listByDateRange = query({
 /**
  * Fetches all line items for a specific dispatch, enriched with
  * product name, SKU, batch code, and line total.
+ * @param dispatchId - ID of the dispatch to fetch items for.
  */
 export const getItemsByDispatch = query({
   args: { dispatchId: v.id("dispatches") },

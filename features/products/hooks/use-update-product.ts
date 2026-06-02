@@ -7,7 +7,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { handleConvexError } from "@/lib/error-handler"
 import type { ProductUpdateFormData } from "../validation"
 
-/** Calls the Convex product update mutation with sileo toast feedback and optional image upload. */
+// Calls the Convex product update mutation with sileo toast feedback and optional image upload.
 export function useUpdateProduct() {
   const updateProduct = useMutation(api.products.mutations.update)
 

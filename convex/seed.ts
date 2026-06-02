@@ -153,6 +153,8 @@ const PRODUCT_IMAGE_MAP: Record<string, string> = {
  * and audit logs with historical `createdAt` timestamps.
  * Clears existing data before seeding.
  * Internal mutation — called by `seedAll` action.
+ * @param ownerId - ID of the owner user for seeding audit logs.
+ * @param staffId - ID of the staff user for seeding dispatches and adjustments.
  */
 export const writeAll = internalMutation({
   args: {

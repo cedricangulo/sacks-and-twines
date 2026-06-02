@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { ITEMS_PER_PAGE } from "../constants"
 
-/** A single audit log entry as returned by the Convex paginated query. */
+// A single audit log entry as returned by the Convex paginated query.
 export interface AuditLogEntry {
   _id: Id<"auditLogs">
   _creationTime: number
@@ -21,7 +21,7 @@ export interface AuditLogEntry {
   userName: string | null
 }
 
-/** Filter parameters passed to the Convex audit log query. */
+// Filter parameters passed to the Convex audit log query.
 export interface AuditLogFilters {
   action?: string
   userId?: Id<"users">
@@ -29,7 +29,7 @@ export interface AuditLogFilters {
   dateTo?: number
 }
 
-/** Fetches paginated audit logs with filters and cursor-based navigation (next/prev). */
+// Fetches paginated audit logs with filters and cursor-based navigation (next/prev).
 export function useAuditLogs(
   filters: AuditLogFilters,
   search: string,

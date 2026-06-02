@@ -7,7 +7,7 @@ const auditMeta = {
 
 const positiveNumber = z.number().min(0.01, "Must be greater than zero")
 
-/** Arguments for stocking inventory in (either into an existing product or a new one). */
+// Arguments for stocking inventory in (either into an existing product or a new one).
 export const stockInArgs = {
   mode: z.union([z.literal("existing"), z.literal("new")]),
   productId: z.optional(zid("products")),
@@ -23,7 +23,7 @@ export const stockInArgs = {
   ...auditMeta,
 }
 
-/** Arguments for updating an existing batch. */
+// Arguments for updating an existing batch.
 export const updateBatchArgs = {
   batchId: zid("batches"),
   productId: zid("products"),
@@ -37,7 +37,7 @@ export const updateBatchArgs = {
   ...auditMeta,
 }
 
-/** Arguments for voiding a batch. */
+// Arguments for voiding a batch.
 export const voidBatchArgs = {
   batchId: zid("batches"),
   reason: z.optional(z.string().max(500)),

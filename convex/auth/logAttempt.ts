@@ -4,6 +4,10 @@ import { mutation } from "../_generated/server"
 /**
  * Records an authentication attempt (success or failure) in the audit log.
  * Looks up the user by email and captures the request IP for audit trail.
+ * @param action - The action name (e.g. "auth_sign_in").
+ * @param email - The email address of the user attempting to sign in.
+ * @param resourceType - Optional type of resource affected.
+ * @param userAgent - Optional browser user agent string.
  */
 export const logAttempt = mutation({
   args: {

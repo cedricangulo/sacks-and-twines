@@ -11,12 +11,12 @@ import {
 } from "@/components/ui/pagination"
 import type { ReportPagination as PaginationState } from "@/features/reports/hooks/use-report-pagination"
 
-/** Props for the report pagination component. */
+// Props for the report pagination component.
 interface ReportPaginationProps {
   pagination: PaginationState
 }
 
-/** Simple pagination controls for the reports detail panel tables. */
+// Simple pagination controls for the reports detail panel tables.
 export default function ReportPagination({
   pagination,
 }: ReportPaginationProps) {

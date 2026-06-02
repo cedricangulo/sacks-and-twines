@@ -35,7 +35,7 @@ import DispatchTableRow from "./dispatch-table-row"
 
 const columnHelper = createColumnHelper<DispatchType>()
 
-/** Props for the dispatch history table. */
+// Props for the dispatch history table.
 interface DispatchTableProps {
   dispatches: DispatchType[]
   columnVisibility: VisibilityState
@@ -44,7 +44,7 @@ interface DispatchTableProps {
   onItemsColumnVisibilityChange: Dispatch<SetStateAction<VisibilityState>>
 }
 
-/** Full dispatch history table with expandable rows, sorting, and column visibility controls. */
+// Full dispatch history table with expandable rows, sorting, and column visibility controls.
 export default function DispatchTable({
   dispatches,
   columnVisibility,

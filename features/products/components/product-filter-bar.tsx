@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select"
 import { CATEGORY_OPTIONS, SORT_OPTIONS, STOCK_OPTIONS } from "./../constants"
 
-/** Props for the product filter bar. */
+// Props for the product filter bar.
 interface Props {
   search: string
   onSearchChange: (value: string) => void
@@ -28,7 +28,7 @@ interface Props {
   onClear: () => void
 }
 
-/** Filters, sort, and search controls for the product catalog. */
+// Filters, sort, and search controls for the product catalog.
 export default function ProductFilterBar({
   search,
   onSearchChange,

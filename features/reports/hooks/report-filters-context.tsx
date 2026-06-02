@@ -7,7 +7,7 @@ type ReportFiltersValue = ReturnType<typeof useReportFilters>
 
 const ReportFiltersContext = createContext<ReportFiltersValue | null>(null)
 
-/** Provides report filter state to all child components. */
+// Provides report filter state to all child components.
 export function ReportFiltersProvider({
   children,
 }: {
@@ -21,7 +21,7 @@ export function ReportFiltersProvider({
   )
 }
 
-/** Reads report filter context. Must be used inside ReportFiltersProvider. */
+// Reads report filter context. Must be used inside ReportFiltersProvider.
 export function useReportFiltersContext(): ReportFiltersValue {
   const context = use(ReportFiltersContext)
   if (context === null) {

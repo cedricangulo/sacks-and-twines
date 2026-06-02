@@ -33,7 +33,7 @@ import { formatNumber } from "@/lib/formatters"
 import { REASONS_BY_DIRECTION } from "../../constants"
 import { useStockAdjustForm } from "../../hooks/use-stock-adjust-form"
 
-/** Dialog form for recording a stock adjustment (add/deduct) on a specific batch with reason and quantity. */
+// Dialog form for recording a stock adjustment (add/deduct) on a specific batch with reason and quantity.
 export default function AdjustStockDialog({
   batchId,
   productId,

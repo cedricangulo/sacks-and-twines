@@ -22,7 +22,7 @@ import {
 import SupplierTable, { type Supplier } from "./supplier-table"
 import SupplierTableActions from "./supplier-table-actions"
 
-/** Props for the supplier table container. */
+// Props for the supplier table container.
 type SupplierTableContainerProps = {
   suppliers: Supplier[]
   columnVisibility: VisibilityState
@@ -31,7 +31,7 @@ type SupplierTableContainerProps = {
 
 const columnHelper = createColumnHelper<Supplier>()
 
-/** Full supplier table with columns definition, sorting, column visibility, and empty state. */
+// Full supplier table with columns definition, sorting, column visibility, and empty state.
 export default function SupplierTableContainer({
   suppliers,
   columnVisibility,

@@ -6,7 +6,7 @@ import { createContext, use, useMemo, useSyncExternalStore } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Doc } from "@/convex/_generated/dataModel"
 
-/** Shape of the current user context exposed to consumers. */
+// Shape of the current user context exposed to consumers.
 type CurrentUserContextValue = {
   user: Doc<"users"> | null | undefined
   isLoading: boolean
@@ -17,7 +17,7 @@ const CurrentUserContext = createContext<CurrentUserContextValue | undefined>(
   undefined
 )
 
-/** Wraps the app tree, fetches the authenticated user from Convex, and provides it via context. */
+// Wraps the app tree, fetches the authenticated user from Convex, and provides it via context.
 export function CurrentUserProvider({
   children,
 }: {
@@ -50,7 +50,7 @@ export function CurrentUserProvider({
   )
 }
 
-/** Reads the current user context. Throws if used outside CurrentUserProvider. */
+// Reads the current user context. Throws if used outside CurrentUserProvider.
 export function useCurrentUser(): CurrentUserContextValue {
   const context = use(CurrentUserContext)
   if (context === undefined) {
