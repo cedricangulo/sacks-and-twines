@@ -42,7 +42,7 @@ export default function ReportDispatchTable({
       columnHelper.accessor("customerReference", {
         header: "Ref",
         cell: (info) => (
-          <span className="italic font-medium">{info.getValue() ?? null}</span>
+          <span className="italic font-medium">{info.getValue() ?? "-"}</span>
         ),
         sortingFn: "alphanumeric",
       }),

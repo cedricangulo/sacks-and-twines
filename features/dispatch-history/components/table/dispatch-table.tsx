@@ -71,11 +71,7 @@ export default function DispatchTable({
       columnHelper.accessor("customerReference", {
         header: "Customer Ref",
         cell: (info) => (
-          <span className="font-medium">
-            {info.getValue() ?? (
-              <span className="text-muted-foreground italic">-</span>
-            )}
-          </span>
+          <span className="italic font-medium">{info.getValue() ?? "-"}</span>
         ),
         sortingFn: "alphanumeric",
       }),
