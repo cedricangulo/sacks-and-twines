@@ -26,3 +26,8 @@ export function formatQuantity(value: number) {
   // default quantity formatting used in tables/UI that expect up to 4 fractional digits
   return formatNumber(value, { locale: "en-PH", maximumFractionDigits: 4 })
 }
+
+export function formatCompact(value: number) {
+  if (value === 0) return "0"
+  return new Intl.NumberFormat("en-US", { notation: "compact" }).format(value)
+}
