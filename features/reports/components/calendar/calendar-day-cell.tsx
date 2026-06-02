@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -7,32 +8,35 @@ import { cn } from "@/lib/utils"
 
 // Props for the calendar day cell component
 interface CalendarDayCellProps {
-  isLoading?: boolean
   day: number
   dispatchCount: number
   adjustmentCount: number
   hasActivity: boolean
   onClick: () => void
+  isSelected?: boolean
+  isLoading?: boolean
 }
 
 // A single day cell in the calendar grid with activity badges
-export function CalendarDayCell({
+const CalendarDayCellImpl = ({
   day,
   dispatchCount,
   adjustmentCount,
   hasActivity,
   onClick,
+  isSelected,
   isLoading,
-}: CalendarDayCellProps) {
+}: CalendarDayCellProps) => {
   return (
     <Button
       type="button"
       disabled={!hasActivity || isLoading}
       className={cn(
-        "relative flex h-20 flex-col items-start rounded-none justify-start gap-1 p-1 pt-7 border-b!",
+        "relative flex h-20 flex-col items-start rounded-none justify-start gap-1 p-1 pt-7",
         hasActivity
           ? "cursor-pointer!"
-          : "cursor-not-allowed! text-muted-foreground"
+          : "cursor-not-allowed! text-muted-foreground",
+        isSelected ? "bg-primary/30" : ""
       )}
       onClick={hasActivity ? onClick : undefined}
       variant="ghost"
@@ -66,3 +70,15 @@ export function CalendarDayCell({
     </Button>
   )
 }
+
+// Memoized version of the CalendarDayCell to prevent unnecessary re-renders
+export const CalendarDayCell = memo(
+  CalendarDayCellImpl,
+  (prev, next) =>
+    prev.day === next.day &&
+    prev.dispatchCount === next.dispatchCount &&
+    prev.adjustmentCount === next.adjustmentCount &&
+    prev.hasActivity === next.hasActivity &&
+    prev.isSelected === next.isSelected &&
+    prev.isLoading === next.isLoading
+)

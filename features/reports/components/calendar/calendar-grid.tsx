@@ -1,7 +1,7 @@
 "use client"
 
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { useMemo } from "react"
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group"
 import {
@@ -34,6 +34,7 @@ export default function CalendarGrid() {
     goPrevMonth,
     goNextMonth,
     selectDay,
+    selectedDay,
     setMonthValue,
     setYearValue,
   } = useReportFiltersContext()
@@ -45,6 +46,8 @@ export default function CalendarGrid() {
     summary
   )
 
+  const [calendarVisible, setCalendarVisible] = useState(true)
+
   const availableMonths = useMemo(() => {
     if (year < currentYear) return MONTH_NAMES
     return MONTH_NAMES.slice(0, currentMonth + 1)
@@ -54,7 +57,7 @@ export default function CalendarGrid() {
 
   return (
     <>
-      <div className="flex items-center justify-end gap-6">
+      <div className="flex items-center justify-end gap-2">
         <ButtonGroup>
           <Combobox
             items={availableMonths}
@@ -98,7 +101,17 @@ export default function CalendarGrid() {
             </ComboboxContent>
           </Combobox>
         </ButtonGroup>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Button
+            aria-label={calendarVisible ? "Hide calendar" : "Show calendar"}
+            aria-expanded={calendarVisible}
+            disabled={selectedDay === null}
+            onClick={() => setCalendarVisible((v) => !v)}
+            variant="secondary"
+          >
+            {calendarVisible ? <ChevronUp /> : <ChevronDown />}
+            {calendarVisible ? "Hide calendar" : "Show calendar"}
+          </Button>
           <Button
             aria-label="Previous month"
             onClick={goPrevMonth}
@@ -121,39 +134,47 @@ export default function CalendarGrid() {
         </div>
       </div>
 
-      <div className="grid grid-cols-7">
-        {DAY_NAMES.map((name) => (
-          <div
-            key={name}
-            className="py-2 text-sm font-medium text-center border-b text-muted-foreground"
-          >
-            {name}
+      <div
+        className="grid transition-all duration-200"
+        style={{ gridTemplateRows: calendarVisible ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden min-h-0">
+          <div className="grid grid-cols-7">
+            {DAY_NAMES.map((name) => (
+              <div
+                key={name}
+                className="py-2 text-sm font-medium text-center border-b text-muted-foreground"
+              >
+                {name}
+              </div>
+            ))}
+
+            {emptyCellsBefore.map((i) => {
+              const prevDay = prevMonthDays - emptyCellsBefore.length + i + 1
+              return (
+                <div
+                  key={`prev-${prevDay}`}
+                  className="flex items-start justify-end h-16 p-1 text-sm text-muted-foreground/50"
+                >
+                  {prevDay}
+                </div>
+              )
+            })}
+
+            {days.map((dayInfo) => (
+              <CalendarDayCell
+                key={dayInfo.day}
+                day={dayInfo.day}
+                isLoading={isLoading}
+                isSelected={selectedDay === dayInfo.day}
+                dispatchCount={dayInfo.dispatchCount}
+                adjustmentCount={dayInfo.adjustmentCount}
+                hasActivity={dayInfo.hasActivity}
+                onClick={() => selectDay(dayInfo.day)}
+              />
+            ))}
           </div>
-        ))}
-
-        {emptyCellsBefore.map((i) => {
-          const prevDay = prevMonthDays - emptyCellsBefore.length + i + 1
-          return (
-            <div
-              key={`prev-${prevDay}`}
-              className="flex items-start justify-end h-16 p-1 text-sm text-muted-foreground/50"
-            >
-              {prevDay}
-            </div>
-          )
-        })}
-
-        {days.map((dayInfo) => (
-          <CalendarDayCell
-            key={dayInfo.day}
-            day={dayInfo.day}
-            isLoading={isLoading}
-            dispatchCount={dayInfo.dispatchCount}
-            adjustmentCount={dayInfo.adjustmentCount}
-            hasActivity={dayInfo.hasActivity}
-            onClick={() => selectDay(dayInfo.day)}
-          />
-        ))}
+        </div>
       </div>
     </>
   )

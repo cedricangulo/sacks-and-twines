@@ -7,6 +7,16 @@ const now = new Date()
 const CURRENT_MONTH = now.getMonth()
 const CURRENT_YEAR = now.getFullYear()
 
+function getDaysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate()
+}
+
+function clampDay(day: number | null, year: number, month: number) {
+  if (day === null) return null
+  const max = getDaysInMonth(year, month)
+  return Math.min(day, max)
+}
+
 const calendarParsers = {
   month: parseAsInteger.withDefault(CURRENT_MONTH),
   year: parseAsInteger.withDefault(CURRENT_YEAR),
@@ -64,13 +74,23 @@ export function useReportFilters() {
   const goPrevMonth = () => {
     const newMonth = month === 0 ? 11 : month - 1
     const newYear = month === 0 ? year - 1 : year
-    setQueries({ month: newMonth, year: newYear, day: null, page: 1 })
+    setQueries({
+      month: newMonth,
+      year: newYear,
+      day: clampDay(day, newYear, newMonth),
+      page: 1,
+    })
   }
 
   const goNextMonth = () => {
     const newMonth = month === 11 ? 0 : month + 1
     const newYear = month === 11 ? year + 1 : year
-    setQueries({ month: newMonth, year: newYear, day: null, page: 1 })
+    setQueries({
+      month: newMonth,
+      year: newYear,
+      day: clampDay(day, newYear, newMonth),
+      page: 1,
+    })
   }
 
   const selectDay = (target: number) => {
@@ -78,11 +98,11 @@ export function useReportFilters() {
   }
 
   const setMonthValue = (newMonth: number) => {
-    setQueries({ month: newMonth, day: null, page: 1 })
+    setQueries({ month: newMonth, day: clampDay(day, year, newMonth), page: 1 })
   }
 
   const setYearValue = (newYear: number) => {
-    setQueries({ year: newYear, day: null, page: 1 })
+    setQueries({ year: newYear, day: clampDay(day, newYear, month), page: 1 })
   }
 
   const setPageValue = (newPage: number) => {
