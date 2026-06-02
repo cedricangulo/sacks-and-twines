@@ -161,41 +161,10 @@ export const writeAll = internalMutation({
   },
   handler: async (ctx, { ownerId, staffId }) => {
     // ═══════════════════════════════════════════════════════════════════════
-    // 1. Clear existing data (children before parents)
-    // ═══════════════════════════════════════════════════════════════════════
-    const [
-      allDispatchItems,
-      allAdjustments,
-      allLogs,
-      allDispatches,
-      allBatches,
-      allProducts,
-      allSuppliers,
-    ] = await Promise.all([
-      ctx.db.query("dispatchItems").collect(),
-      ctx.db.query("stockAdjustments").collect(),
-      ctx.db.query("auditLogs").collect(),
-      ctx.db.query("dispatches").collect(),
-      ctx.db.query("batches").collect(),
-      ctx.db.query("products").collect(),
-      ctx.db.query("suppliers").collect(),
-    ])
-
-    await Promise.all([
-      ...allDispatchItems.map((d) => ctx.db.delete(d._id)),
-      ...allAdjustments.map((a) => ctx.db.delete(a._id)),
-      ...allLogs.map((l) => ctx.db.delete(l._id)),
-      ...allDispatches.map((d) => ctx.db.delete(d._id)),
-      ...allBatches.map((b) => ctx.db.delete(b._id)),
-      ...allProducts.map((p) => ctx.db.delete(p._id)),
-      ...allSuppliers.map((s) => ctx.db.delete(s._id)),
-    ])
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // 2. Insert suppliers
+    // 1. Insert suppliers
     // ═══════════════════════════════════════════════════════════════════════
     // ═══════════════════════════════════════════════════════════════════════
-    // 3. Insert products
+    // 2. Insert products
     // ═══════════════════════════════════════════════════════════════════════
     const [supplierIds, productResults] = await Promise.all([
       Promise.all(SUPPLIER_DEFS.map((def) => ctx.db.insert("suppliers", def))),
@@ -243,7 +212,7 @@ export const writeAll = internalMutation({
     }> = []
 
     for (const { id: pId, def } of productList) {
-      const numBatches = rndInt(1, 5)
+      const numBatches = rndInt(5, 12)
       let lastDate = DATE_BASE
 
       for (let i = 0; i < numBatches; i++) {
@@ -262,8 +231,8 @@ export const writeAll = internalMutation({
 
         const qty =
           def.baseUom === "piece"
-            ? rndInt(200, 400)
-            : toFloat(rndInt(100, 300) + Math.random())
+            ? rndInt(2000, 8000)
+            : toFloat(rndInt(5000, 15000) + Math.random())
 
         const batchCode = nextBatchCode()
         const batchId = await ctx.db.insert("batches", {
@@ -297,7 +266,7 @@ export const writeAll = internalMutation({
     // ═══════════════════════════════════════════════════════════════════════
     // 5. Insert dispatches + items (~100 dispatches, peak-weighted)
     // ═══════════════════════════════════════════════════════════════════════
-    const NUM_DISPATCHES = 100
+    const NUM_DISPATCHES = 1000
     const dispatchRecords: Array<{
       id: Id<"dispatches">
       userId: Id<"users">
@@ -361,8 +330,8 @@ export const writeAll = internalMutation({
 
       const productBatches = activeBatchesByProduct
 
-      // 1-3 items per dispatch
-      const numItems = rndInt(1, 3)
+      // 1-5 items per dispatch
+      const numItems = rndInt(1, 5)
       const usedProducts = new Set<Id<"products">>()
 
       for (let j = 0; j < numItems; j++) {
@@ -377,7 +346,12 @@ export const writeAll = internalMutation({
             ? rndInt(5, 50)
             : toFloat(rndInt(2, 30) + Math.random())
 
-        const qtyDeducted = toFloat(dispatchQty * product.def.weightPerUnit, 4)
+        const qtyDeducted = toFloat(
+          product.def.baseUom === "piece"
+            ? dispatchQty
+            : dispatchQty * product.def.weightPerUnit,
+          4
+        )
 
         // Find an active batch with enough remaining
         const productBatchesList = (
@@ -432,6 +406,48 @@ export const writeAll = internalMutation({
       }
     }
 
+    // ── Post-process dispatches ──
+    const itemCountMap = new Map<string, number>()
+    for (const item of dispatchItemsToInsert) {
+      itemCountMap.set(
+        item.dispatchId,
+        (itemCountMap.get(item.dispatchId) ?? 0) + 1
+      )
+    }
+
+    const nonEmptyDispatches: typeof dispatchRecords = []
+    const emptyDispatchIds: Array<Id<"dispatches">> = []
+    for (const d of dispatchRecords) {
+      const count = itemCountMap.get(d.id) ?? 0
+      if (count === 0) {
+        emptyDispatchIds.push(d.id)
+      } else {
+        nonEmptyDispatches.push(d)
+      }
+    }
+
+    dispatchRecords.length = 0
+    dispatchRecords.push(...nonEmptyDispatches)
+
+    const [ownerUser, staffUser] = await Promise.all([
+      ctx.db.get(ownerId),
+      ctx.db.get(staffId),
+    ])
+    const userNameMap: Record<string, string> = {
+      [ownerId]: ownerUser?.name ?? "Owner",
+      [staffId]: staffUser?.name ?? "Staff",
+    }
+
+    await Promise.all([
+      ...emptyDispatchIds.map((id) => ctx.db.delete(id)),
+      ...nonEmptyDispatches.map((d) =>
+        ctx.db.patch(d.id, {
+          itemCount: itemCountMap.get(d.id),
+          userName: userNameMap[d.userId],
+        })
+      ),
+    ])
+
     // Insert dispatch items
     await Promise.all(
       dispatchItemsToInsert.map((item) => ctx.db.insert("dispatchItems", item))
@@ -469,10 +485,9 @@ export const writeAll = internalMutation({
     }> = []
 
     for (const { id: pId, def } of productList) {
-      const numAdjustments = rndInt(1, 2)
-      const reasons: Array<
-        "damaged" | "lost" | "recount" | "system_reversal"
-      > = ["recount", "damaged", "lost", "system_reversal"]
+      const numAdjustments = rndInt(3, 5)
+      const reasons: Array<"damaged" | "lost" | "recount" | "system_reversal"> =
+        ["recount", "damaged", "lost", "system_reversal"]
 
       for (let i = 0; i < numAdjustments; i++) {
         const activeBatches = batchRecords.filter(
@@ -757,5 +772,56 @@ export const writeAll = internalMutation({
       adjustmentCount: adjustmentRecords.length,
       auditLogCount: (await ctx.db.query("auditLogs").collect()).length,
     }
+  },
+})
+
+// ─── Clear mutations (each runs in its own 4096-read budget) ─────────────
+
+/**
+ * Clears the largest table (dispatchItems) in its own execution budget.
+ * Dispatch items are children of dispatches — deleted first.
+ */
+export const clearDispatchItems = internalMutation({
+  handler: async (ctx) => {
+    const docs = await ctx.db.query("dispatchItems").collect()
+    await Promise.all(docs.map((d) => ctx.db.delete(d._id)))
+  },
+})
+
+/**
+ * Clears audit logs, stock adjustments, and dispatches.
+ * These are mid-tier tables referenced by items but parents to nothing.
+ */
+export const clearDispatchesAndRelated = internalMutation({
+  handler: async (ctx) => {
+    const [logs, adjustments, dispatches] = await Promise.all([
+      ctx.db.query("auditLogs").collect(),
+      ctx.db.query("stockAdjustments").collect(),
+      ctx.db.query("dispatches").collect(),
+    ])
+    await Promise.all([
+      ...logs.map((l) => ctx.db.delete(l._id)),
+      ...adjustments.map((a) => ctx.db.delete(a._id)),
+      ...dispatches.map((d) => ctx.db.delete(d._id)),
+    ])
+  },
+})
+
+/**
+ * Clears batches, products, and suppliers — the smallest tables and
+ * the last to delete (parent tables).
+ */
+export const clearBatchesAndRest = internalMutation({
+  handler: async (ctx) => {
+    const [batches, products, suppliers] = await Promise.all([
+      ctx.db.query("batches").collect(),
+      ctx.db.query("products").collect(),
+      ctx.db.query("suppliers").collect(),
+    ])
+    await Promise.all([
+      ...batches.map((b) => ctx.db.delete(b._id)),
+      ...products.map((p) => ctx.db.delete(p._id)),
+      ...suppliers.map((s) => ctx.db.delete(s._id)),
+    ])
   },
 })

@@ -5,7 +5,9 @@ import { query } from "../_generated/server"
 /**
  * Lists stock adjustments within a date range, optionally filtered by creator.
  * Enriches each adjustment with product name, batch code, and user name.
- * Uses `by_userId` index when filtering by user; default ordering otherwise.
+ * Queries both `by_creation_time` (production records) and `by_createdAt`
+ * (seed records), merges, and deduplicates. When createdByUserId is provided,
+ * filters in memory after the merge — no compound index exists yet.
  */
 export const listByDateRange = query({
   args: {
@@ -17,34 +19,61 @@ export const listByDateRange = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const adjustments = await ctx.db
-      .query("stockAdjustments")
-      .withIndex("by_creation_time", (q) =>
-        q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-      )
-      .order("desc")
-      .collect()
+    const [byCreationTime, byCreatedAt] = await Promise.all([
+      ctx.db
+        .query("stockAdjustments")
+        .withIndex("by_creation_time", (q) =>
+          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
+        )
+        .order("desc")
+        .collect(),
+      ctx.db
+        .query("stockAdjustments")
+        .withIndex("by_createdAt", (q) =>
+          q.gte("createdAt", startMs).lte("createdAt", endMs)
+        )
+        .order("desc")
+        .collect(),
+    ])
 
-    // Keep the userId index path only when filtering by user
-    // (applied as an additional in-memory filter on the already-bounded set)
-    const filtered = createdByUserId
-      ? adjustments.filter((a) => a.userId === createdByUserId)
-      : adjustments
-
-    return await Promise.all(
-      filtered.map(async (adjustment) => {
-        const [product, batch, user] = await Promise.all([
-          ctx.db.get(adjustment.productId),
-          ctx.db.get(adjustment.batchId),
-          ctx.db.get(adjustment.userId),
-        ])
-        return {
-          ...adjustment,
-          productName: product?.name ?? "Unknown",
-          batchCode: batch?.batchCode ?? "Unknown",
-          userName: user?.name ?? "Unknown",
-        }
-      })
+    // Production records from by_creation_time, seed records from by_createdAt
+    const productionRecords = byCreationTime.filter(
+      (a) => a.createdAt === undefined
     )
+
+    // Merge and dedup by _id
+    const seen = new Set<string>()
+    const merged = [...productionRecords, ...byCreatedAt].filter((a) => {
+      if (seen.has(a._id)) return false
+      seen.add(a._id)
+      return true
+    })
+
+    const filtered = createdByUserId
+      ? merged.filter((a) => a.userId === createdByUserId)
+      : merged
+
+    const uniqueProductIds = [...new Set(filtered.map((a) => a.productId))]
+    const uniqueBatchIds = [...new Set(filtered.map((a) => a.batchId))]
+    const uniqueUserIds = [...new Set(filtered.map((a) => a.userId))]
+
+    const [productMap, batchMap, userMap] = await Promise.all([
+      Promise.all(
+        uniqueProductIds.map(async (id) => [id, await ctx.db.get(id)] as const)
+      ).then(Object.fromEntries),
+      Promise.all(
+        uniqueBatchIds.map(async (id) => [id, await ctx.db.get(id)] as const)
+      ).then(Object.fromEntries),
+      Promise.all(
+        uniqueUserIds.map(async (id) => [id, await ctx.db.get(id)] as const)
+      ).then(Object.fromEntries),
+    ])
+
+    return filtered.map((adjustment) => ({
+      ...adjustment,
+      productName: productMap[adjustment.productId]?.name ?? "Unknown",
+      batchCode: batchMap[adjustment.batchId]?.batchCode ?? "Unknown",
+      userName: userMap[adjustment.userId]?.name ?? "Unknown",
+    }))
   },
 })

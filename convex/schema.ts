@@ -81,7 +81,9 @@ export default defineSchema({
     userName: v.optional(v.string()),
     itemCount: v.optional(v.number()),
     createdAt: v.optional(v.number()),
-  }).index("by_userId", ["userId"]),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_createdAt", ["createdAt"]),
 
   dispatchItems: defineTable({
     dispatchId: v.id("dispatches"),
@@ -115,7 +117,8 @@ export default defineSchema({
     createdAt: v.optional(v.number()),
   })
     .index("by_batch", ["batchId"])
-    .index("by_userId", ["userId"]),
+    .index("by_userId", ["userId"])
+    .index("by_createdAt", ["createdAt"]),
 
   auditLogs: defineTable({
     userId: v.optional(v.id("users")),

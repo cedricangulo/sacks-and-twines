@@ -77,13 +77,35 @@ export const listByDateRange = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const dispatches = await ctx.db
-      .query("dispatches")
-      .withIndex("by_creation_time", (q) =>
-        q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-      )
-      .order("desc")
-      .collect()
+    const [byCreationTime, byCreatedAt] = await Promise.all([
+      ctx.db
+        .query("dispatches")
+        .withIndex("by_creation_time", (q) =>
+          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
+        )
+        .order("desc")
+        .collect(),
+      ctx.db
+        .query("dispatches")
+        .withIndex("by_createdAt", (q) =>
+          q.gte("createdAt", startMs).lte("createdAt", endMs)
+        )
+        .order("desc")
+        .collect(),
+    ])
+
+    // Production records from by_creation_time, seed records from by_createdAt
+    const productionRecords = byCreationTime.filter(
+      (d) => d.createdAt === undefined
+    )
+
+    // Merge and dedup by _id — production first preserves time order
+    const seen = new Set<string>()
+    const dispatches = [...productionRecords, ...byCreatedAt].filter((d) => {
+      if (seen.has(d._id)) return false
+      seen.add(d._id)
+      return true
+    })
 
     return await Promise.all(
       dispatches.map(async (dispatch) => {
