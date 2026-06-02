@@ -1,4 +1,4 @@
-/** Converts a snake_case action string to Title Case (e.g. "stock_adjusted" → "Stock Adjusted"). */
+// Converts a snake_case action string to Title Case (e.g. "stock_adjusted" → "Stock Adjusted").
 export function formatAction(action: string): string {
   if (!action) return action
   return action

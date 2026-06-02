@@ -11,7 +11,7 @@ import { useMemo } from "react"
 import type { Product } from "@/features/inventory/validation"
 import { formatCurrency } from "@/lib/formatters"
 
-/** URL query-state parsers for inventory filters. */
+// URL query-state parsers for inventory filters.
 const inventoryParsers = {
   status: parseAsStringEnum(["all", "active", "archived"] as const).withDefault(
     "active"
@@ -29,7 +29,7 @@ const inventoryParsers = {
 
 const DEFAULT_STATUS = "active"
 
-/** Search, status, category, and stock filter state synced to URL query params with client-side filtering. */
+// Search, status, category, and stock filter state synced to URL query params with client-side filtering.
 export function useInventoryFilters(products: Product[] | undefined) {
   const [search, setSearch] = useQueryState(
     "search",

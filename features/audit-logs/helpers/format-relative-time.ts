@@ -1,4 +1,4 @@
-/** Short-form abbreviations for time units (year → "y", etc.). */
+// Short-form abbreviations for time units (year → "y", etc.).
 const abbreviations: Record<string, string> = {
   year: "y",
   month: "mo",
@@ -8,7 +8,7 @@ const abbreviations: Record<string, string> = {
   minute: "m",
 }
 
-/** Ordered time-unit definitions for computing relative time. */
+// Ordered time-unit definitions for computing relative time.
 const units: [string, number][] = [
   ["year", 31536000],
   ["month", 2592000],
@@ -18,7 +18,7 @@ const units: [string, number][] = [
   ["minute", 60],
 ]
 
-/** Formats a Unix timestamp as a human-readable relative time string (e.g. "Just now", "3h ago", "2d ago"). */
+// Formats a Unix timestamp as a human-readable relative time string (e.g. "Just now", "3h ago", "2d ago").
 export function formatRelativeTime(timestamp: number): string {
   const diffSeconds = Math.floor((Date.now() - timestamp) / 1000)
 

@@ -31,7 +31,7 @@ import UploadDropzone from "@/components/ui/upload-dropzone"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useEditProductForm } from "../../hooks/use-edit-product-form"
 
-/** Dialog form for editing a product's name, category, UoM, weight, low-stock threshold, and image. */
+// Dialog form for editing a product's name, category, UoM, weight, low-stock threshold, and image.
 export default function EditProductDialog({
   productId,
   children,

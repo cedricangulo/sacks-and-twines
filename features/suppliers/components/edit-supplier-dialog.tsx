@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useEditSupplierForm } from "../hooks/use-edit-supplier-form"
 import { type Supplier } from "../validation"
 
-/** Dialog form for editing an existing supplier's details. */
+// Dialog form for editing an existing supplier's details.
 export default function EditSupplierDialog({
   supplier,
   open: openProp,

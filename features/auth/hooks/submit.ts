@@ -7,13 +7,13 @@ import { SubmitEvent, useState } from "react"
 import { z } from "zod"
 import { api } from "@/convex/_generated/api"
 
-/** Validates sign-in form payload before submission. */
+// Validates sign-in form payload before submission.
 const SignInSchema = z.object({
   email: z.email(),
   password: z.string().min(1),
 })
 
-/** Manages sign-in form state: submitted credentials, pending flag, and error display. Submits the password flow via Convex auth and logs the attempt. */
+// Manages sign-in form state: submitted credentials, pending flag, and error display. Submits the password flow via Convex auth and logs the attempt.
 function useSubmitSignIn() {
   const { signIn } = useAuthActions()
   const router = useRouter()
@@ -68,16 +68,31 @@ function useSubmitSignIn() {
         userAgent: navigator.userAgent,
       }).catch(() => {})
 
+      const errorMessage = err instanceof Error ? err.message : ""
+      const errorCause =
+        err instanceof Error && err.cause instanceof Error
+          ? err.cause
+          : undefined
+      const causeCode =
+        errorCause && "code" in errorCause ? String(errorCause.code) : ""
       const isRateLimited =
-        err instanceof Error &&
-        (err.message.includes("RateLimited") ||
-          err.message.includes("rate limit") ||
-          err.message.includes("Too many sign-in"))
+        errorMessage.includes("RateLimited") ||
+        errorMessage.includes("rate limit") ||
+        errorMessage.includes("Too many sign-in")
+      const isNetworkError =
+        errorMessage.includes("fetch failed") ||
+        causeCode.includes("UND_ERR_CONNECT_TIMEOUT") ||
+        causeCode.includes("ECONNREFUSED") ||
+        causeCode.includes("ECONNRESET") ||
+        causeCode.includes("ENOTFOUND") ||
+        causeCode.includes("NetworkError")
 
       setError(
         isRateLimited
           ? "Too many sign-in attempts. Please try again later."
-          : "Invalid email or password. Please try again."
+          : isNetworkError
+            ? "Unable to connect. Please check your connection and try again."
+            : "Invalid email or password. Please try again."
       )
 
       if (!isRateLimited) {

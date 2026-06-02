@@ -147,7 +147,6 @@ export const listDispatchReady = query({
             quantityRemaining: b.quantityRemaining,
             unitCost: b.unitCost,
             _creationTime: b._creationTime,
-            createdAt: b.createdAt,
           })),
         }
       })
@@ -157,6 +156,7 @@ export const listDispatchReady = query({
 
 /**
  * Fetches a single product by ID. Accessible to any authenticated user.
+ * @param productId - ID of the product to fetch.
  */
 export const getById = query({
   args: { productId: v.id("products") },
@@ -171,6 +171,7 @@ export const getById = query({
 /**
  * Fetches a product with additional edit context (image URL, batch count).
  * Owner-only access.
+ * @param productId - ID of the product to fetch.
  */
 export const getEditDetail = query({
   args: { productId: v.id("products") },

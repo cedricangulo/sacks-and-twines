@@ -7,7 +7,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { handleConvexError } from "@/lib/error-handler"
 import type { SupplierFormData } from "../validation"
 
-/** Calls the Convex update-supplier mutation with sileo toast feedback. */
+// Calls the Convex update-supplier mutation with sileo toast feedback.
 export function useUpdateSupplier() {
   const updateSupplier = useMutation(api.suppliers.mutations.update)
 

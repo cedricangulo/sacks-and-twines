@@ -12,7 +12,7 @@ interface Props {
   onToggle: () => void
 }
 
-/** Single dispatch row with click-to-expand toggle and inline actions. */
+// Single dispatch row with click-to-expand toggle and inline actions.
 export default function DispatchTableRow({ row, isExpanded, onToggle }: Props) {
   return (
     <TableRow

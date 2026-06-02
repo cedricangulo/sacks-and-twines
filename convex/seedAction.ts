@@ -79,6 +79,11 @@ export const seedAll = internalAction({
       console.log("  ⚠ OWNER_EMAIL not set — using staff as fallback")
     }
 
+    // ── Clear existing data ──────────────────────────────────────────────
+    await ctx.runMutation(internal.seed.clearDispatchItems, {})
+    await ctx.runMutation(internal.seed.clearDispatchesAndRelated, {})
+    await ctx.runMutation(internal.seed.clearBatchesAndRest, {})
+
     // ── Run the write mutation ───────────────────────────────────────────
     const result = await ctx.runMutation(internal.seed.writeAll, {
       ownerId: ownerId as never,

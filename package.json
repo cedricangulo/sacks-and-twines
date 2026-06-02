@@ -18,7 +18,8 @@
     "convex:dev": "convex dev",
     "convex:once": "convex dev --once",
     "convex:deploy": "convex deploy",
-    "convex:dashboard": "convex dashboard"
+    "convex:dashboard": "convex dashboard",
+    "seed": "convex run seedAction:seedAll"
   },
   "dependencies": {
     "@auth/core": "0.37.0",

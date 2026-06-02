@@ -23,7 +23,7 @@ import { formatDate } from "../helpers/format-date"
 import StaffTable, { type StaffUser } from "./staff-table"
 import StaffTableActions from "./staff-table-actions"
 
-/** Props for the staff table container. */
+// Props for the staff table container.
 type StaffTableContainerProps = {
   staff: StaffUser[]
   columnVisibility: VisibilityState
@@ -32,7 +32,7 @@ type StaffTableContainerProps = {
 
 const columnHelper = createColumnHelper<StaffUser>()
 
-/** Full staff table with columns definition, sorting, column visibility, and empty state. */
+// Full staff table with columns definition, sorting, column visibility, and empty state.
 export default function StaffTableContainer({
   staff,
   columnVisibility,

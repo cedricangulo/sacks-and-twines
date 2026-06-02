@@ -6,7 +6,7 @@ import {
   normalizedString,
 } from "@/lib/validation"
 
-/** Zod schema arguments for supplier form validation. */
+// Zod schema arguments for supplier form validation.
 export const createSupplierArgs = {
   companyName: normalizedString(2, 255, "Enter a valid company name."),
   contactPerson: normalizedString(2, 255, "Enter a valid contact person name."),
@@ -14,7 +14,7 @@ export const createSupplierArgs = {
   address: normalizedString(10, 500, "Enter a valid address."),
 }
 
-/** Zod schema for supplier form data. */
+// Zod schema for supplier form data.
 export const SupplierSchema = z.object(createSupplierArgs)
 
 export type SupplierFormData = z.infer<typeof SupplierSchema>
@@ -23,7 +23,7 @@ export type SupplierFieldErrors = Partial<
   Record<keyof SupplierFormData, string>
 >
 
-/** A supplier record with optional archive timestamp and batch count. */
+// A supplier record with optional archive timestamp and batch count.
 export interface Supplier {
   _id: Id<"suppliers">
   _creationTime: number
@@ -35,7 +35,7 @@ export interface Supplier {
   batchCount?: number
 }
 
-/** Validates supplier form input and returns typed errors or parsed data. */
+// Validates supplier form input and returns typed errors or parsed data.
 export function validateSupplier(values: unknown) {
   const result = SupplierSchema.safeParse(values)
   if (result.success) {

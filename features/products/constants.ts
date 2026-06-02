@@ -1,11 +1,11 @@
-/** Category filter options for the product catalog. */
+// Category filter options for the product catalog.
 export const CATEGORY_OPTIONS = [
   { value: "all", label: "All" },
   { value: "sacks", label: "Sacks" },
   { value: "twines", label: "Twines" },
 ] as const
 
-/** Stock-status filter options for the product catalog. */
+// Stock-status filter options for the product catalog.
 export const STOCK_OPTIONS = [
   { value: "all", label: "All" },
   { value: "in_stock", label: "In Stock" },
@@ -13,7 +13,7 @@ export const STOCK_OPTIONS = [
   { value: "out_of_stock", label: "Out of Stock" },
 ] as const
 
-/** Sort options for the product catalog. */
+// Sort options for the product catalog.
 export const SORT_OPTIONS = [
   { value: "name_asc", label: "Name A-Z" },
   { value: "name_desc", label: "Name Z-A" },

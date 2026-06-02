@@ -4,7 +4,7 @@ import { createContext, type ReactNode, use } from "react"
 import type { DispatchReadyProduct } from "@/features/products/validation"
 import { type QueueItem, useDispatchQueue } from "./use-dispatch-queue"
 
-/** Shape of the dispatch queue context exposed to consumers. */
+// Shape of the dispatch queue context exposed to consumers.
 interface DispatchQueueContextValue {
   items: QueueItem[]
   itemCount: number
@@ -21,7 +21,7 @@ const DispatchQueueContext = createContext<DispatchQueueContextValue | null>(
   null
 )
 
-/** Provides dispatch queue state (items, quantities, UoM, actions) to the component tree. */
+// Provides dispatch queue state (items, quantities, UoM, actions) to the component tree.
 export function DispatchQueueProvider({ children }: { children: ReactNode }) {
   const queue = useDispatchQueue()
 
@@ -32,7 +32,7 @@ export function DispatchQueueProvider({ children }: { children: ReactNode }) {
   )
 }
 
-/** Reads the dispatch queue context. Throws if used outside DispatchQueueProvider. */
+// Reads the dispatch queue context. Throws if used outside DispatchQueueProvider.
 export function useDispatchQueueContext() {
   const ctx = use(DispatchQueueContext)
   if (!ctx) {

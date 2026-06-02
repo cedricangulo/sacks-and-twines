@@ -8,7 +8,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { handleConvexError } from "@/lib/error-handler"
 import { useDispatchQueueContext } from "./dispatch-queue-context"
 
-/** Submits the dispatch queue to Convex with sileo toast feedback and customer reference. */
+// Submits the dispatch queue to Convex with sileo toast feedback and customer reference.
 export function useDispatchSubmit(onSuccess?: () => void) {
   const { items, itemCount, removeFromQueue, clearQueue } =
     useDispatchQueueContext()

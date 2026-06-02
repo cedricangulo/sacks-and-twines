@@ -1,4 +1,4 @@
-/** Maps each adjustment direction to the set of valid reason options the user can pick from. */
+// Maps each adjustment direction to the set of valid reason options the user can pick from.
 export const REASONS_BY_DIRECTION: Record<
   "add" | "deduct",
   { value: string; label: string; description: string }[]

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { Product } from "../../inventory/validation"
 
-/** Props for the product combobox component. */
+// Props for the product combobox component.
 interface ProductComboboxProps {
   products: Product[]
   value: string | null
@@ -16,7 +16,7 @@ interface ProductComboboxProps {
   onAddNew: () => void
 }
 
-/** Searchable combobox for selecting a product or triggering "add new item". */
+// Searchable combobox for selecting a product or triggering "add new item".
 export default function ProductCombobox({
   products,
   value,

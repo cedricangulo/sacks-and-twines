@@ -32,7 +32,7 @@ import {
 } from "@/features/products/hooks/use-archive-product"
 import type { Product } from "../../validation"
 
-/** Popover menu with edit, archive, and unarchive actions for a product row. */
+// Popover menu with edit, archive, and unarchive actions for a product row.
 export default function ProductTableActions({ product }: { product: Product }) {
   const archive = useArchiveProduct()
   const unarchive = useUnarchiveProduct()

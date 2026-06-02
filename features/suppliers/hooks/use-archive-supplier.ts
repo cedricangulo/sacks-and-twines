@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { handleConvexError } from "@/lib/error-handler"
 
-/** Calls the Convex archive-supplier mutation with sileo toast feedback. */
+// Calls the Convex archive-supplier mutation with sileo toast feedback.
 export function useArchiveSupplier() {
   const archiveSupplier = useMutation(api.suppliers.mutations.archive)
 

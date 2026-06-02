@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import type { AuditLogEntry } from "../hooks/use-audit-logs"
 import AuditLogItem from "./audit-log-item"
 
-/** Props for the audit log accordion. */
+// Props for the audit log accordion.
 interface AuditLogAccordionProps {
   page: AuditLogEntry[]
   isLoading: boolean
@@ -22,7 +22,7 @@ interface AuditLogAccordionProps {
   search?: string
 }
 
-/** Accordion list of audit log entries with loading skeleton and empty state. */
+// Accordion list of audit log entries with loading skeleton and empty state.
 export default function AuditLogAccordion({
   page,
   isLoading,

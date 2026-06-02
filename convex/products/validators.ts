@@ -6,7 +6,7 @@ const auditMeta = {
   userAgent: z.optional(z.string()),
 }
 
-/** Arguments for creating a product. */
+// Arguments for creating a product.
 export const createProductArgs = {
   name: normalizedString(1, 255),
   category: z.union([z.literal("sacks"), z.literal("twines")]),
@@ -16,20 +16,20 @@ export const createProductArgs = {
   ...auditMeta,
 }
 
-/** Arguments for updating an existing product (extends create args with ID). */
+// Arguments for updating an existing product (extends create args with ID).
 export const updateProductArgs = {
   productId: zid("products"),
   imageStorageId: z.optional(z.union([z.string(), z.null()])),
   ...createProductArgs,
 }
 
-/** Arguments for archiving a product. */
+// Arguments for archiving a product.
 export const archiveProductArgs = {
   productId: zid("products"),
   ...auditMeta,
 }
 
-/** Arguments for unarchiving a product. */
+// Arguments for unarchiving a product.
 export const unarchiveProductArgs = {
   productId: zid("products"),
   ...auditMeta,

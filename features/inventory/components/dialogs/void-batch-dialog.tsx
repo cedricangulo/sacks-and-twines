@@ -23,7 +23,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { formatCurrency, formatNumber } from "@/lib/formatters"
 import { useVoidBatchDialog } from "../../hooks/use-void-batch-dialog"
 
-/** Dialog with batch details preview and reason input for voiding a batch. */
+// Dialog with batch details preview and reason input for voiding a batch.
 export default function VoidBatchDialog({
   batchId,
   children,

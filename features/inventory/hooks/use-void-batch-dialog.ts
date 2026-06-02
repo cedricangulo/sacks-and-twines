@@ -5,7 +5,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { useBatchDetail } from "./use-batch-detail"
 import { useVoidBatch } from "./use-void-batch"
 
-/** Manages the void-batch dialog state: fetches batch detail, tracks reason input, and handles submission. */
+// Manages the void-batch dialog state: fetches batch detail, tracks reason input, and handles submission.
 export function useVoidBatchDialog({
   batchId,
   open: openProp,

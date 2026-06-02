@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api"
 import { handleConvexError } from "@/lib/error-handler"
 import type { SupplierFormData } from "../validation"
 
-/** Calls the Convex create-supplier mutation with sileo toast feedback. */
+// Calls the Convex create-supplier mutation with sileo toast feedback.
 export function useCreateSupplier() {
   const createSupplier = useMutation(api.suppliers.mutations.create)
 

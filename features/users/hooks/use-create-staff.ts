@@ -5,14 +5,14 @@ import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import { handleConvexError } from "@/lib/error-handler"
 
-/** Data required to create a staff user account. */
+// Data required to create a staff user account.
 export type CreateStaffData = {
   name: string
   email: string
   password: string
 }
 
-/** Calls the Convex create-staff mutation with sileo toast feedback. */
+// Calls the Convex create-staff mutation with sileo toast feedback.
 export function useCreateStaff() {
   const createStaff = useMutation(api.users.mutations.create)
 

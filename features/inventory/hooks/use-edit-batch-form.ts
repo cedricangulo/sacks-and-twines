@@ -7,7 +7,7 @@ import { type BatchUpdateFieldErrors, validateBatchUpdate } from "../validation"
 import { useBatchDetail } from "./use-batch-detail"
 import { useUpdateBatch } from "./use-update-batch"
 
-/** Manages the edit-batch dialog lifecycle: fetches detail on open, validates input, and submits to Convex. */
+// Manages the edit-batch dialog lifecycle: fetches detail on open, validates input, and submits to Convex.
 export function useEditBatchForm({
   batchId,
   open: openProp,

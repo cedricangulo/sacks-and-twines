@@ -38,6 +38,7 @@ export default defineSchema({
     lowStockThreshold: v.number(),
     status: v.union(v.literal("active"), v.literal("archived")),
     imagePath: v.optional(v.string()),
+    createdAt: v.optional(v.number()),
   })
     .index("by_sku", ["skuCode"])
     .index("by_name", ["name"])
@@ -77,10 +78,12 @@ export default defineSchema({
     userId: v.id("users"),
     customerReference: v.optional(v.string()),
     status: v.union(v.literal("completed"), v.literal("voided")),
-    createdAt: v.optional(v.number()),
     userName: v.optional(v.string()),
     itemCount: v.optional(v.number()),
-  }).index("by_createdAt", ["createdAt"]),
+    createdAt: v.optional(v.number()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_createdAt", ["createdAt"]),
 
   dispatchItems: defineTable({
     dispatchId: v.id("dispatches"),
@@ -112,7 +115,10 @@ export default defineSchema({
     ),
     status: v.union(v.literal("applied"), v.literal("voided")),
     createdAt: v.optional(v.number()),
-  }).index("by_batch", ["batchId"]),
+  })
+    .index("by_batch", ["batchId"])
+    .index("by_userId", ["userId"])
+    .index("by_createdAt", ["createdAt"]),
 
   auditLogs: defineTable({
     userId: v.optional(v.id("users")),

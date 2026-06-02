@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select"
 import { STAFF_TABLE_COLUMNS, STATUS_OPTIONS } from "../constants"
 
-/** Props for the staff filter bar. */
+// Props for the staff filter bar.
 interface Props {
   search: string
   onSearchChange: (value: string) => void
@@ -35,7 +35,7 @@ interface Props {
   onColumnVisibilityChange: Dispatch<SetStateAction<Record<string, boolean>>>
 }
 
-/** Search, status filter, and column visibility controls for the staff table. */
+// Search, status filter, and column visibility controls for the staff table.
 export default function StaffFilterBar({
   search,
   onSearchChange,

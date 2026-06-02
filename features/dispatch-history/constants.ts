@@ -1,11 +1,11 @@
-/** Filter options for dispatch status. */
+// Filter options for dispatch status.
 export const STATUS_OPTIONS = [
   { value: "all", label: "All" },
   { value: "completed", label: "Completed" },
   { value: "voided", label: "Voided" },
 ] as const
 
-/** Column definitions for the dispatch-level table. */
+// Column definitions for the dispatch-level table.
 export const DISPATCH_TABLE_COLUMNS = [
   { id: "status", label: "Status" },
   { id: "userName", label: "User" },
@@ -15,7 +15,7 @@ export const DISPATCH_TABLE_COLUMNS = [
 
 export type DispatchColumnId = (typeof DISPATCH_TABLE_COLUMNS)[number]["id"]
 
-/** Column definitions for the dispatch-items sub-table. */
+// Column definitions for the dispatch-items sub-table.
 export const ITEMS_TABLE_COLUMNS = [
   { id: "batchCode", label: "Batch Code" },
   { id: "productSku", label: "SKU Code" },

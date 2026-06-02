@@ -5,6 +5,10 @@ import { query } from "../_generated/server"
 /**
  * Lists dispatches within a date range, optionally filtered by creator.
  * Enriches each dispatch with the user's display name and item count.
+ * Uses `by_userId` index when filtering by user; default ordering otherwise.
+ * @param startMs - Start of the date range in milliseconds.
+ * @param endMs - End of the date range in milliseconds.
+ * @param createdByUserId - Optional user ID to filter by creator.
  */
 export const list = query({
   args: {
@@ -16,18 +20,23 @@ export const list = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    let q = ctx.db
-      .query("dispatches")
-      .withIndex("by_createdAt", (q) =>
-        q.gte("createdAt", startMs).lte("createdAt", endMs)
-      )
-      .order("desc")
+    const q = createdByUserId
+      ? ctx.db
+          .query("dispatches")
+          .withIndex("by_userId", (q) =>
+            q
+              .eq("userId", createdByUserId)
+              .gte("_creationTime", startMs)
+              .lte("_creationTime", endMs)
+          )
+          .order("desc")
+      : ctx.db.query("dispatches").order("desc")
 
-    if (createdByUserId) {
-      q = q.filter((f) => f.eq(f.field("userId"), createdByUserId))
-    }
-
-    const dispatches = await q.collect()
+    const allDispatches = await q.take(500)
+    const dispatches = allDispatches.filter((d) => {
+      const date = d.createdAt ?? d._creationTime
+      return date >= startMs && date <= endMs
+    })
 
     return await Promise.all(
       dispatches.map(async (dispatch) => {
@@ -59,8 +68,80 @@ export const list = query({
 })
 
 /**
+ * Lists dispatches within a date range for the reports detail panel.
+ * Enriches each dispatch with user name, item count, and total value.
+ * @param startMs - Start of the date range in milliseconds.
+ * @param endMs - End of the date range in milliseconds.
+ */
+export const listByDateRange = query({
+  args: {
+    startMs: v.number(),
+    endMs: v.number(),
+  },
+  handler: async (ctx, { startMs, endMs }) => {
+    const userId = await getAuthUserId(ctx)
+    if (userId === null) throw new Error("Unauthorized")
+
+    const [byCreationTime, byCreatedAt] = await Promise.all([
+      ctx.db
+        .query("dispatches")
+        .withIndex("by_creation_time", (q) =>
+          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
+        )
+        .order("desc")
+        .collect(),
+      ctx.db
+        .query("dispatches")
+        .withIndex("by_createdAt", (q) =>
+          q.gte("createdAt", startMs).lte("createdAt", endMs)
+        )
+        .order("desc")
+        .collect(),
+    ])
+
+    // Production records from by_creation_time, seed records from by_createdAt
+    const productionRecords = byCreationTime.filter(
+      (d) => d.createdAt === undefined
+    )
+
+    // Merge and dedup by _id — production first preserves time order
+    const seen = new Set<string>()
+    const dispatches = [...productionRecords, ...byCreatedAt].filter((d) => {
+      if (seen.has(d._id)) return false
+      seen.add(d._id)
+      return true
+    })
+
+    return await Promise.all(
+      dispatches.map(async (dispatch) => {
+        const [user, items] = await Promise.all([
+          ctx.db.get(dispatch.userId),
+          ctx.db
+            .query("dispatchItems")
+            .withIndex("by_dispatch", (q) => q.eq("dispatchId", dispatch._id))
+            .collect(),
+        ])
+
+        const totalValue = items.reduce(
+          (sum, item) => sum + item.quantityDeducted * item.unitCost,
+          0
+        )
+
+        return {
+          ...dispatch,
+          userName: user?.name ?? "Unknown",
+          itemCount: items.length,
+          totalValue,
+        }
+      })
+    )
+  },
+})
+
+/**
  * Fetches all line items for a specific dispatch, enriched with
  * product name, SKU, batch code, and line total.
+ * @param dispatchId - ID of the dispatch to fetch items for.
  */
 export const getItemsByDispatch = query({
   args: { dispatchId: v.id("dispatches") },
