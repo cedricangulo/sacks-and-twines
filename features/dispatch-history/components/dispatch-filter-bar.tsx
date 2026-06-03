@@ -1,7 +1,8 @@
 "use client"
 
 import { useQuery } from "convex-helpers/react/cache"
-import { Columns3, SearchIcon, XIcon } from "lucide-react"
+import { ArrowLeft, Columns3, SearchIcon, XIcon } from "lucide-react"
+import Link from "next/link"
 import type { Dispatch, SetStateAction } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -70,6 +71,11 @@ export default function DispatchFilterBar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <Button asChild size="icon" variant="ghost">
+        <Link href="/products">
+          <ArrowLeft />
+        </Link>
+      </Button>
       <div className="relative max-w-xs grow">
         <SearchIcon className="absolute -translate-y-1/2 left-3 top-1/2 size-4 text-muted-foreground" />
         <Input

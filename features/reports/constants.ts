@@ -41,8 +41,14 @@ export function getStatsRange(
     selectedDayEndMs: number | null
   }
 ): { startMs: number; endMs: number } {
-  if (filters.selectedDayStartMs !== null && filters.selectedDayEndMs !== null) {
-    return { startMs: filters.selectedDayStartMs, endMs: filters.selectedDayEndMs }
+  if (
+    filters.selectedDayStartMs !== null &&
+    filters.selectedDayEndMs !== null
+  ) {
+    return {
+      startMs: filters.selectedDayStartMs,
+      endMs: filters.selectedDayEndMs,
+    }
   }
   switch (range) {
     case "month":

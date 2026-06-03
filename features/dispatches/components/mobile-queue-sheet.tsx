@@ -22,7 +22,6 @@ export default function MobileQueueSheet() {
     <Sheet open={open} onOpenChange={setOpen} modal={false}>
       <SheetTrigger asChild>
         <Button
-          variant="secondary"
           className="relative xl:hidden"
           aria-label={`Dispatch queue (${itemCount} items)`}
         >
