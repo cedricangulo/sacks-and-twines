@@ -1,9 +1,9 @@
 import { History } from "lucide-react"
 import Link from "next/link"
+import { PageHeaderSetter } from "@/components/page-header-context"
 import { Button } from "@/components/ui/button"
 import DispatchQueueSidebar from "@/features/dispatches/components/dispatch-queue-sidebar"
 import MobileQueueSheet from "@/features/dispatches/components/mobile-queue-sheet"
-import { DispatchQueueProvider } from "@/features/dispatches/hooks/dispatch-queue-context"
 
 interface Props {
   children: React.ReactNode
@@ -11,32 +11,27 @@ interface Props {
 
 export default function ProductsLayout({ children }: Props) {
   return (
-    <DispatchQueueProvider>
+    <>
+      <PageHeaderSetter
+        title="Dispatch"
+        actions={
+          <>
+            <Button asChild variant="secondary">
+              <Link href="/dispatch-history">
+                <History />
+                History
+              </Link>
+            </Button>
+            <MobileQueueSheet />
+          </>
+        }
+      />
       <div className="flex h-[calc(100dvh-4rem)]">
-        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-semibold type-lg">Dispatch</h2>
-              <p className="text-sm text-muted-foreground">
-                Select products to dispatch
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" asChild>
-                <Link href="/dispatch-history">
-                  <History />
-                  History
-                </Link>
-              </Button>
-              <MobileQueueSheet />
-            </div>
-          </div>
-          {children}
-        </div>
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto">{children}</div>
         <div className="hidden xl:flex">
           <DispatchQueueSidebar />
         </div>
       </div>
-    </DispatchQueueProvider>
+    </>
   )
 }

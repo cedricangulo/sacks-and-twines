@@ -1,6 +1,4 @@
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { PageHeaderSetter } from "@/components/page-header-context"
 
 interface Props {
   children: React.ReactNode
@@ -8,16 +6,9 @@ interface Props {
 
 export default function DispatchHistoryLayout({ children }: Props) {
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-start gap-2">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/products">
-            <ArrowLeft />
-          </Link>
-        </Button>
-        <h2 className="font-semibold type-lg">Dispatch History</h2>
-      </div>
-      {children}
-    </div>
+    <>
+      <PageHeaderSetter title="Dispatch History" />
+      <div className="p-6 space-y-6">{children}</div>
+    </>
   )
 }

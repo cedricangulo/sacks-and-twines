@@ -1,3 +1,4 @@
+import { PageHeaderSetter } from "@/components/page-header-context"
 import AddStaffDialog from "@/features/users/components/add-staff-dialog"
 
 interface Props {
@@ -6,12 +7,9 @@ interface Props {
 
 export default function UsersLayout({ children }: Props) {
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold type-lg">Users</h2>
-        <AddStaffDialog />
-      </div>
-      {children}
-    </div>
+    <>
+      <PageHeaderSetter title="Users" actions={<AddStaffDialog />} />
+      <div className="p-6 space-y-6">{children}</div>
+    </>
   )
 }

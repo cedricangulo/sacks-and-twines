@@ -1,6 +1,6 @@
 "use client"
 
-import { Skeleton } from "@/components/ui/skeleton"
+import { PageHeaderSetter } from "@/components/page-header-context"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 
 interface Props {
@@ -15,17 +15,11 @@ export default function DashboardPageLayout({ children }: Props) {
     hours < 12 ? "morning" : hours < 18 ? "afternoon" : "evening"
 
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="font-semibold type-lg">
-        Good {greetings},{" "}
-        {isLoading ? (
-          <Skeleton className="inline-block w-32 h-5" />
-        ) : (
-          user?.name
-        )}
-        !
-      </h2>
-      {children}
-    </div>
+    <>
+      <PageHeaderSetter
+        title={`Good ${greetings}, ${isLoading ? "..." : user?.name}!`}
+      />
+      <div className="p-6 space-y-6">{children}</div>
+    </>
   )
 }
