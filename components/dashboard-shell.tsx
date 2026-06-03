@@ -1,10 +1,18 @@
 "use client"
 
+import { ArrowLeft } from "lucide-react"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ReactNode } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ForbiddenPage } from "@/components/forbidden-page"
+import {
+  PageHeaderProvider,
+  usePageHeader,
+} from "@/components/page-header-context"
 import { StaffHeader } from "@/components/staff-header"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
   SidebarProvider,
@@ -38,6 +46,33 @@ function isOwnerOnlyPath(pathname: string): boolean {
   )
 }
 
+function PageHeaderBar() {
+  const { title, backHref, actions } = usePageHeader()
+
+  if (!title) return null
+
+  return (
+    <>
+      <Separator orientation="vertical" className="h-10 shrink-0" />
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        {backHref ? (
+          <Button variant="ghost" size="icon" className="shrink-0" asChild>
+            <Link href={backHref}>
+              <ArrowLeft />
+            </Link>
+          </Button>
+        ) : null}
+        <h2 className="font-semibold type-lg truncate">{title}</h2>
+      </div>
+      {actions ? (
+        <div className="flex items-center gap-2 ml-auto shrink-0">
+          {actions}
+        </div>
+      ) : null}
+    </>
+  )
+}
+
 export function DashboardShell({ children, initialRole }: Props) {
   const { user } = useCurrentUser()
   const pathname = usePathname()
@@ -52,24 +87,29 @@ export function DashboardShell({ children, initialRole }: Props) {
     }
 
     return (
-      <div className="flex min-h-screen flex-col">
-        <StaffHeader />
-        <main className="flex-1 overflow-y-auto">{children}</main>
-      </div>
+      <PageHeaderProvider>
+        <div className="flex min-h-screen flex-col">
+          <StaffHeader />
+          <main className="flex-1 overflow-y-auto">{children}</main>
+        </div>
+      </PageHeaderProvider>
     )
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-          </div>
-        </header>
-        <main suppressHydrationWarning>{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <PageHeaderProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b overflow-hidden transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+            <div className="flex items-center flex-1 min-w-0 gap-4 px-4">
+              <SidebarTrigger className="-ml-1 shrink-0" />
+              <PageHeaderBar />
+            </div>
+          </header>
+          <main suppressHydrationWarning>{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </PageHeaderProvider>
   )
 }

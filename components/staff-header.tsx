@@ -4,12 +4,14 @@ import { useAuthActions } from "@convex-dev/auth/react"
 import { Box, LogOut, Logs } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { usePageHeader } from "@/components/page-header-context"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 
 export function StaffHeader() {
   const { signOut } = useAuthActions()
   const { push } = useRouter()
+  const { actions } = usePageHeader()
 
   return (
     <header className="flex items-center justify-between w-full h-16 px-6 border-b shrink-0 bg-background">
@@ -29,6 +31,12 @@ export function StaffHeader() {
             My Activity
           </Link>
         </Button>
+        {actions ? (
+          <>
+            <Separator orientation="vertical" />
+            {actions}
+          </>
+        ) : null}
         <Separator orientation="vertical" />
         <Button
           variant="destructive"
