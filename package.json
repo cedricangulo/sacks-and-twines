@@ -30,7 +30,7 @@
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "convex": "^1.39.1",
+    "convex": "^1.40.0",
     "convex-helpers": "^0.1.118",
     "jwt-decode": "^4.0.0",
     "lucia": "^3.2.2",
