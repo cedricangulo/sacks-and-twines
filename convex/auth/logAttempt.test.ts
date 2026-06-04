@@ -1,3 +1,4 @@
+import { register as registerRateLimiter } from "@convex-dev/rate-limiter/test"
 import { convexTest } from "convex-test"
 import { describe, expect, it } from "vitest"
 import { api } from "../_generated/api"
@@ -7,12 +8,15 @@ const modules = {
   "./_generated/api.ts": () => import("../_generated/api"),
   "./_generated/server.ts": () => import("../_generated/server"),
   "./auth/logAttempt.ts": () => import("./logAttempt"),
+  "./rate_limiter.ts": () => import("../rate_limiter"),
   "./users/queries.ts": () => import("../users/queries"),
 }
 
 describe("logAttempt", () => {
   function makeTest() {
-    return convexTest({ schema, modules })
+    const t = convexTest({ schema, modules })
+    registerRateLimiter(t as never)
+    return t
   }
 
   async function seedUser(
@@ -320,36 +324,26 @@ describe("logAttempt", () => {
 
   // ── Action Values ──────────────────────────────────────────
 
-  it("accepts any string as action", async () => {
+  it("rejects invalid action strings", async () => {
     const t = makeTest()
 
-    await t.mutation(api.auth.logAttempt.logAttempt, {
-      action: "custom_action_123",
-      email: "any@test.com",
-    })
-
-    const logs = await t.run(async (ctx) => {
-      return await ctx.db.query("auditLogs").collect()
-    })
-
-    expect(logs).toHaveLength(1)
-    expect(logs[0].action).toBe("custom_action_123")
+    await expect(
+      t.mutation(api.auth.logAttempt.logAttempt, {
+        action: "custom_action_123",
+        email: "any@test.com",
+      })
+    ).rejects.toThrow("Invalid action")
   })
 
-  it("accepts uppercase action strings", async () => {
+  it("rejects uppercase action strings", async () => {
     const t = makeTest()
 
-    await t.mutation(api.auth.logAttempt.logAttempt, {
-      action: "AUTH_SIGN_IN",
-      email: "any@test.com",
-    })
-
-    const logs = await t.run(async (ctx) => {
-      return await ctx.db.query("auditLogs").collect()
-    })
-
-    expect(logs).toHaveLength(1)
-    expect(logs[0].action).toBe("AUTH_SIGN_IN")
+    await expect(
+      t.mutation(api.auth.logAttempt.logAttempt, {
+        action: "AUTH_SIGN_IN",
+        email: "any@test.com",
+      })
+    ).rejects.toThrow("Invalid action")
   })
 
   // ── Description Structure ──────────────────────────────────

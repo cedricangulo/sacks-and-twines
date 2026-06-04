@@ -32,9 +32,11 @@ export const create = zMutation({
       globalLimit(ctx, "globalCreateUser"),
     ])
 
+    const normalizedEmail = email.trim().toLowerCase()
+
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .unique()
     if (existing !== null) {
       throw new Error("A user with this email already exists")
@@ -43,11 +45,11 @@ export const create = zMutation({
     const newUser = await createAccount(ctx as unknown as never, {
       provider: "password",
       account: {
-        id: email,
+        id: normalizedEmail,
         secret: password,
       },
       profile: {
-        email,
+        email: normalizedEmail,
         name,
         role: "staff",
         status: "active",
@@ -60,7 +62,7 @@ export const create = zMutation({
       await ctx.runMutation(internal.auditLogs.mutations.log, {
         userId: callerId,
         action: "user_create",
-        description: `Created staff ${email}`,
+        description: `Created staff ${normalizedEmail}`,
         resourceType: "user",
         resourceId: newUser.user._id,
         userAgent,

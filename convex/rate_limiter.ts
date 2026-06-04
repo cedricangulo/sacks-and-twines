@@ -110,6 +110,13 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     rate: 10,
     capacity: 10,
   },
+  // Auth attempt audit logging per email address
+  logAttempt: {
+    kind: "token bucket",
+    period: MINUTE,
+    rate: 20,
+    capacity: 30,
+  },
 
   // ── Future: Dispatches ──────────────────────────────────────
   // Placeholder — adjust when dispatch CRUD ships

@@ -23,7 +23,8 @@ export const seedAll = internalAction({
   args: {},
   handler: async (ctx): Promise<SeedResult> => {
     // ── Find or create staff user ────────────────────────────────────────
-    const staffEmail = process.env.STAFF_EMAIL ?? "juandelacruz@gmail.com"
+    const rawStaffEmail = process.env.STAFF_EMAIL ?? "juandelacruz@gmail.com"
+    const staffEmail = rawStaffEmail.trim().toLowerCase()
     const staffPassword = process.env.STAFF_PASSWORD ?? "staff123"
 
     const existingUser = await ctx.runQuery(internal.users.queries.getByEmail, {
@@ -55,7 +56,7 @@ export const seedAll = internalAction({
     }
 
     // ── Find owner user ──────────────────────────────────────────────────
-    const ownerEmail = process.env.OWNER_EMAIL
+    const ownerEmail = process.env.OWNER_EMAIL?.trim().toLowerCase()
     let ownerId: string
 
     if (ownerEmail) {

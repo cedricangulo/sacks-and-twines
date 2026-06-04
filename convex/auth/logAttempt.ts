@@ -1,5 +1,8 @@
 import { v } from "convex/values"
 import { mutation } from "../_generated/server"
+import { rateLimiter } from "../rate_limiter"
+
+const ALLOWED_ACTIONS = ["auth_sign_in", "auth_sign_in_failed"] as const
 
 /**
  * Records an authentication attempt (success or failure) in the audit log.
@@ -17,9 +20,20 @@ export const logAttempt = mutation({
     userAgent: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (!ALLOWED_ACTIONS.includes(args.action as (typeof ALLOWED_ACTIONS)[number])) {
+      throw new Error(`Invalid action: ${args.action}`)
+    }
+
+    const normalizedEmail = args.email.trim().toLowerCase()
+
+    await rateLimiter.limit(ctx, "logAttempt", {
+      key: normalizedEmail || "anonymous",
+      throws: true,
+    })
+
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .unique()
     const userId = user?._id
 
@@ -37,9 +51,9 @@ export const logAttempt = mutation({
       description: JSON.stringify({
         summary:
           args.action === "auth_sign_in"
-            ? `User ${args.email} signed in`
-            : `Failed sign-in for ${args.email}`,
-        details: { email: args.email },
+            ? `User ${normalizedEmail} signed in`
+            : `Failed sign-in for ${normalizedEmail}`,
+        details: { email: normalizedEmail },
       }),
       resourceType: args.resourceType,
       resourceId: userId,

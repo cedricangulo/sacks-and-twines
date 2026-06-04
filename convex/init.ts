@@ -2,7 +2,7 @@ import { createAccount } from "@convex-dev/auth/server"
 import { internal } from "./_generated/api"
 import { internalAction } from "./_generated/server"
 
-const OWNER_EMAIL = process.env.OWNER_EMAIL!
+const OWNER_EMAIL = process.env.OWNER_EMAIL!.trim().toLowerCase()
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD!
 
 /**

@@ -18,7 +18,8 @@ const passwordProvider = ConvexCredentials({
   },
   authorize: async (credentials, ctx) => {
     const flow = credentials.flow as string | undefined
-    const email = (credentials.email as string) ?? ""
+    const rawEmail = (credentials.email as string) ?? ""
+    const email = rawEmail.trim().toLowerCase()
     const password = (credentials.password as string) ?? ""
 
     verifyCredentials({ flow: flow ?? "", email, password })
