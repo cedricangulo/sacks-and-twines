@@ -2,10 +2,9 @@
 
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { forbidden, usePathname } from "next/navigation"
 import { ReactNode } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
-import { ForbiddenPage } from "@/components/forbidden-page"
 import {
   PageHeaderProvider,
   usePageHeader,
@@ -83,7 +82,7 @@ export function DashboardShell({ children, initialRole }: Props) {
 
   if (role === "staff") {
     if (isOwnerOnlyPath(pathname)) {
-      return <ForbiddenPage />
+      return forbidden()
     }
 
     return (
