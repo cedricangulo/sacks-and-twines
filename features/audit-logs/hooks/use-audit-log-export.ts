@@ -125,7 +125,7 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
 
   const exportArgs = useMemo(
     () =>
-      isAuthenticated
+      isAuthenticated && (exportMenuOpen || exportDialogOpen)
         ? {
             search: search || undefined,
             action: filterArgs.action,
@@ -136,6 +136,8 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
         : "skip",
     [
       isAuthenticated,
+      exportMenuOpen,
+      exportDialogOpen,
       search,
       filterArgs.action,
       filterArgs.userId,

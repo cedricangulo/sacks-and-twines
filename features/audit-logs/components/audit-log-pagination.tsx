@@ -33,7 +33,7 @@ export default function AuditLogPagination({
         <PaginationItem>
           <PaginationPrevious
             onClick={hasPrev && !isLoading ? onPrev : undefined}
-            href={hasPrev && !isLoading ? "#" : undefined}
+            href={undefined}
             text="Previous"
             className={
               !hasPrev || isLoading
@@ -52,7 +52,7 @@ export default function AuditLogPagination({
         <PaginationItem>
           <PaginationNext
             onClick={hasNext && !isLoading ? onNext : undefined}
-            href={hasNext && !isLoading ? "#" : undefined}
+            href={undefined}
             text="Next"
             className={
               !hasNext || isLoading

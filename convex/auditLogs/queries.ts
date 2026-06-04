@@ -268,24 +268,37 @@ async function fetchExportLogs(
     )
   }
 
-  const logs = await base.order("desc").take(10000)
+  const logs = await base.order("desc").take(2000)
 
-  return await Promise.all(
-    logs.map(async (log) => {
-      let userName: string | null = null
-      let userEmail: string | null = null
-      let userRole: string | null = null
-      if (log.userId) {
-        const user = await ctx.db.get(log.userId)
-        if (user) {
-          userName = user.name ?? null
-          userEmail = user.email
-          userRole = user.role ?? null
-        }
+  const userIdSet = new Set(
+    logs.map((log) => log.userId).filter(Boolean) as Id<"users">[]
+  )
+  const userMap = new Map<
+    string,
+    { name: string | null; email: string; role: string | null }
+  >()
+  await Promise.all(
+    [...userIdSet].map(async (id) => {
+      const user = await ctx.db.get(id)
+      if (user) {
+        userMap.set(id, {
+          name: user.name ?? null,
+          email: user.email,
+          role: user.role ?? null,
+        })
       }
-      return { ...log, userName, userEmail, userRole }
     })
   )
+
+  return logs.map((log) => {
+    const user = log.userId ? userMap.get(log.userId) : null
+    return {
+      ...log,
+      userName: user?.name ?? null,
+      userEmail: user?.email ?? null,
+      userRole: user?.role ?? null,
+    }
+  })
 }
 
 /**
