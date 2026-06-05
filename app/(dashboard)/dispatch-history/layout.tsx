@@ -1,7 +1,28 @@
+import type { Metadata } from "next"
 import { PageHeaderSetter } from "@/components/page-header-context"
 
 interface Props {
   children: React.ReactNode
+}
+
+export const metadata: Metadata = {
+  title: "Dispatch History",
+  description:
+    "View and search past dispatches and order history in the Sacks & Twines system",
+  openGraph: {
+    title: "Dispatch History",
+    description:
+      "View and search past dispatches and order history in the Sacks & Twines system",
+    url: "/dispatch-history",
+  },
+  twitter: {
+    title: "Dispatch History",
+    description:
+      "View and search past dispatches and order history in the Sacks & Twines system",
+  },
+  alternates: {
+    canonical: "/dispatch-history",
+  },
 }
 
 export default function DispatchHistoryLayout({ children }: Props) {

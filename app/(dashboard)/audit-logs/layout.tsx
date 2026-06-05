@@ -1,22 +1,30 @@
-"use client"
+import type { Metadata } from "next"
+import AuditLogsClientLayout from "./_client-layout"
 
-import { usePathname } from "next/navigation"
-import { PageHeaderSetter } from "@/components/page-header-context"
+export const metadata: Metadata = {
+  title: "Audit Logs",
+  description:
+    "View and search audit logs to track all changes in the Sacks & Twines system",
+  openGraph: {
+    title: "Audit Logs",
+    description:
+      "View and search audit logs to track all changes in the Sacks & Twines system",
+    url: "/audit-logs",
+  },
+  twitter: {
+    title: "Audit Logs",
+    description:
+      "View and search audit logs to track all changes in the Sacks & Twines system",
+  },
+  alternates: {
+    canonical: "/audit-logs",
+  },
+}
 
 interface Props {
   children: React.ReactNode
 }
 
 export default function AuditLogsLayout({ children }: Props) {
-  const pathname = usePathname()
-
-  return (
-    <>
-      <PageHeaderSetter
-        title="Audit Logs"
-        backHref={pathname !== "/audit-logs" ? "/products" : null}
-      />
-      <div className="p-6 space-y-6">{children}</div>
-    </>
-  )
+  return <AuditLogsClientLayout>{children}</AuditLogsClientLayout>
 }
