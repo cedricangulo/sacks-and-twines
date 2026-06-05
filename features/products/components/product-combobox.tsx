@@ -76,7 +76,6 @@ export default function ProductCombobox({
         <div className="absolute z-50 w-full mt-1 border shadow-lg rounded-2xl bg-popover">
           <div className="p-2">
             <Input
-              list="product-listbox"
               placeholder="Search existing items..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}

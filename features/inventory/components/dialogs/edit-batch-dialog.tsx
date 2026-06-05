@@ -52,8 +52,7 @@ export default function EditBatchDialog({
     <Dialog modal={false} open={dialogOpen} onOpenChange={setOpen}>
       {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
 
-      {open ? (
-        // * manual backdrop since modal={false} is used
+      {dialogOpen ? (
         <div className="fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
       ) : null}
 

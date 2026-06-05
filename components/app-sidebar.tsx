@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Container,
   LayoutDashboard,
+  LogOut,
   Logs,
   ShelvingUnit,
   Users,
@@ -101,11 +102,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
 
   return (
-    <Sidebar {...props}>
+    <Sidebar {...props} variant="floating">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
+            <SidebarMenuButton asChild>
               <Link href="/dashboard">
                 <div className="grid flex-1 text-sm leading-tight text-left">
                   <span className="font-semibold truncate type-base">
@@ -151,7 +152,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 signOut()
               }}
             >
-              Sign Out
+              <LogOut />
+              <span>Sign Out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
