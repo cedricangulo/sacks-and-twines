@@ -1,27 +1,20 @@
 import { ImageResponse } from "next/og"
 
-export const size = {
-  width: 1200,
-  height: 630,
+const containerStyle = {
+  height: "100%",
+  width: "100%",
+  display: "flex",
+  flexDirection: "column" as const,
+  alignItems: "center",
+  justifyContent: "center",
+  background:
+    "linear-gradient(180deg, #615fff 0%, #372aac 50%, #1447e6 100%)",
+  fontFamily: '"Nunito Sans", sans-serif',
 }
-
-export const contentType = "image/png"
 
 export default function Image() {
   return new ImageResponse(
-    <div
-      style={{
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background:
-          "linear-gradient(180deg, #615fff 0%, #372aac 50%, #1447e6 100%)",
-        fontFamily: '"Nunito Sans", sans-serif',
-      }}
-    >
+    <div style={containerStyle}>
       <div
         style={{
           display: "flex",
@@ -63,8 +56,6 @@ export default function Image() {
         Inventory Management System
       </p>
     </div>,
-    {
-      ...size,
-    }
+    { width: 1200, height: 630 }
   )
 }

@@ -14,6 +14,41 @@ function toDate(value: number | string | Date) {
     : value
 }
 
+const INDIVIDUAL_FIELD_KEYS = [
+  "weekday",
+  "era",
+  "year",
+  "month",
+  "day",
+  "hour",
+  "minute",
+  "second",
+  "fractionalSecondDigits",
+  "timeZoneName",
+  "timeZone",
+] as const satisfies ReadonlyArray<keyof Intl.DateTimeFormatOptions>
+
+function hasExplicitFields(
+  opts: Intl.DateTimeFormatOptions
+): boolean {
+  return INDIVIDUAL_FIELD_KEYS.some((key) => key in opts)
+}
+
+const formatterCache = new Map<string, Intl.DateTimeFormat>()
+
+function getCachedFormatter(
+  locale: string,
+  opts: Intl.DateTimeFormatOptions
+): Intl.DateTimeFormat {
+  const key = `${locale}:${JSON.stringify(opts)}`
+  let formatter = formatterCache.get(key)
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, opts)
+    formatterCache.set(key, formatter)
+  }
+  return formatter
+}
+
 export function formatDateTime(
   value: number | string | Date,
   { locale = "en-PH", ...opts }: FormatDateOptions = {}
@@ -26,7 +61,10 @@ export function formatDateTime(
     hour: "numeric",
     minute: "2-digit",
   }
-  return new Intl.DateTimeFormat(locale, { ...defaultOpts, ...opts }).format(d)
+  return getCachedFormatter(locale, {
+    ...defaultOpts,
+    ...opts,
+  }).format(d)
 }
 
 export function formatDate(
@@ -38,7 +76,10 @@ export function formatDate(
   }: FormatDateOptions = {}
 ) {
   const d = toDate(value)
-  return new Intl.DateTimeFormat(locale, { dateStyle, ...opts }).format(d)
+  const resolved = hasExplicitFields(opts)
+    ? opts
+    : { dateStyle, ...opts }
+  return getCachedFormatter(locale, resolved).format(d)
 }
 
 export function formatTime(
@@ -50,5 +91,8 @@ export function formatTime(
   }: FormatDateOptions = {}
 ) {
   const d = toDate(value)
-  return new Intl.DateTimeFormat(locale, { timeStyle, ...opts }).format(d)
+  const resolved = hasExplicitFields(opts)
+    ? opts
+    : { timeStyle, ...opts }
+  return getCachedFormatter(locale, resolved).format(d)
 }
