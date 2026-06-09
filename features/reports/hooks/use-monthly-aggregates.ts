@@ -28,7 +28,10 @@ export function useMonthlyAggregates(startMs: number, endMs: number) {
     | MonthlyAggregates
     | undefined
 
-  return { data: raw ?? emptyAggregates, isLoading: raw === undefined }
+  return {
+    data: raw ?? emptyAggregates,
+    isLoading: raw === undefined && isAuthenticated,
+  }
 }
 
 const emptyAggregates: MonthlyAggregates = {
