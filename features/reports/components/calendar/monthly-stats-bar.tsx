@@ -129,21 +129,21 @@ export default function MonthlyStatsBar() {
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              variant={range === "month" ? "default" : "outline"}
+              variant={range === "month" ? "secondary" : "outline"}
               onClick={() => setRange("month")}
             >
               This Month
             </Button>
             <Button
               size="sm"
-              variant={range === "year" ? "default" : "outline"}
+              variant={range === "year" ? "secondary" : "outline"}
               onClick={() => setRange("year")}
             >
               This Year
             </Button>
             <Button
               size="sm"
-              variant={range === "all" ? "default" : "outline"}
+              variant={range === "all" ? "secondary" : "outline"}
               onClick={() => setRange("all")}
             >
               All Time

@@ -87,4 +87,9 @@ function TabsContent({
   )
 }
 
-export { Tabs, TabsContent, TabsList, TabsTrigger, tabsListVariants }
+// TODO(react-doctor): only-export-components — move tabsListVariants to a
+// separate file or stop exporting it if only used internally. Fast Refresh
+// stops working when a .tsx file exports non-component values alongside
+// components. See: https://react.doctor/docs/rules/react-doctor/only-export-components
+// export { Tabs, TabsContent, TabsList, TabsTrigger, tabsListVariants }
+export { Tabs, TabsContent, TabsList, TabsTrigger }

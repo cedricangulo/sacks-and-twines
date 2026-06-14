@@ -20,7 +20,9 @@ export const logAttempt = mutation({
     userAgent: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!ALLOWED_ACTIONS.includes(args.action as (typeof ALLOWED_ACTIONS)[number])) {
+    if (
+      !ALLOWED_ACTIONS.includes(args.action as (typeof ALLOWED_ACTIONS)[number])
+    ) {
       throw new Error(`Invalid action: ${args.action}`)
     }
 

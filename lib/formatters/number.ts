@@ -29,5 +29,5 @@ export function formatQuantity(value: number) {
 
 export function formatCompact(value: number) {
   if (value === 0) return "0"
-  return new Intl.NumberFormat("en-US", { notation: "compact" }).format(value)
+  return new Intl.NumberFormat("en-PH", { notation: "compact" }).format(value)
 }

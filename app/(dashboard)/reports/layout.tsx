@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 import { PageHeaderSetter } from "@/components/page-header-context"
+import ReportExportButton from "@/features/reports/components/export/report-export-button"
+import { ReportFiltersProvider } from "@/features/reports/hooks/report-filters-context"
 
 interface Props {
   children: React.ReactNode
@@ -27,9 +29,16 @@ export const metadata: Metadata = {
 
 export default function ReportsLayout({ children }: Props) {
   return (
-    <>
-      <PageHeaderSetter title="Reports" />
+    <ReportFiltersProvider>
+      <PageHeaderSetter
+        title="Reports"
+        actions={
+          <ReportFiltersProvider>
+            <ReportExportButton />
+          </ReportFiltersProvider>
+        }
+      />
       <div className="p-6 space-y-6">{children}</div>
-    </>
+    </ReportFiltersProvider>
   )
 }

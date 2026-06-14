@@ -1,0 +1,7 @@
+{
+  "$schema": "https://pdfx.akashpise.dev/schema.json",
+  "componentDir": "./features/reports/components/pdf/pdfx",
+  "registry": "https://pdfx.akashpise.dev/r",
+  "theme": "./lib/theme-file.ts",
+  "blockDir": "./components/"
+}

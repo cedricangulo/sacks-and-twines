@@ -11,10 +11,7 @@ type JsonLdProps = {
 
 export function JsonLd({ data }: JsonLdProps) {
   return (
-    <script
-      type="application/ld+json"
-      suppressHydrationWarning
-    >
+    <script type="application/ld+json" suppressHydrationWarning>
       {escapeJsonLd(data)}
     </script>
   )

@@ -13,6 +13,8 @@ const isProtectedRoute = createRouteMatcher([
   "/suppliers(.*)",
   "/users(.*)",
   "/audit-logs(.*)",
+  "/audit-logs/personal(.*)",
+  "/reports(.*)",
 ])
 
 const isSignInPage = createRouteMatcher(["/sign-in"])

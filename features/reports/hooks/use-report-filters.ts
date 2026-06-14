@@ -65,7 +65,7 @@ export function useReportFilters() {
 
   const formattedDate = useMemo(() => {
     if (day === null) return null
-    return new Date(year, month, day).toLocaleDateString("en-US", {
+    return new Date(year, month, day).toLocaleDateString("en-PH", {
       month: "long",
       day: "numeric",
     })

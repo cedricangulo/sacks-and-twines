@@ -27,7 +27,7 @@ export function useCalendarSummary(startMs: number, endMs: number) {
     | { dispatchTimestamps: number[]; adjustmentTimestamps: number[] }
     | undefined
 
-  const isLoading = raw === undefined
+  const isLoading = raw === undefined && isAuthenticated
 
   // Bucket timestamps by day-of-month using client's local timezone.
   const summary = useMemo(() => {
