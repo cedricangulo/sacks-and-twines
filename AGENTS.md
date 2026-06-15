@@ -77,6 +77,66 @@ Before any Next.js work, find and read the relevant doc in `node_modules/next/di
 - Biome config excludes `convex/_generated/`, `.next/`, `components/ui/` from formatting
 - `next.config.mjs` enables `experimental.authInterrupts: true`
 
+# TanStack Table
+
+All tables use `@tanstack/react-table` and follow a **Container + Pure Table** split pattern.
+
+## Container (`*TableContainer`)
+
+Owns all TanStack config — no UI rendering.
+
+- `createColumnHelper<T>()`
+- `useState<SortingState>` — default sort column + direction
+- `useState<string | null>` for expandable row ID (manual, NOT `getExpandedRowModel`)
+- `columns` in `useMemo([], [])` — stable reference, no deps
+- `data` in `useMemo(() => data ?? [], [data])` — ensure array, stable ref
+- `useReactTable({ data, columns, state: { sorting, columnVisibility }, meta: {...}, onSortingChange, onColumnVisibilityChange, getCoreRowModel, getSortedRowModel, enableSortingRemoval: false, isMultiSortEvent: () => false, getRowId: (row) => row._id })`
+- Returns the Pure Table component, passing `table` + any expand/callback props
+
+## Pure Table (`*Table`)
+
+Pure render component — receives `table: ReactTable<T>`, no TanStack config imports besides `flexRender` / `ReactTable` type.
+
+- Derives `rows = table.getRowModel().rows`, `totalColumns = table.getAllLeafColumns().length`
+- Renders `<Table>` → `<TableHeader>` with sort buttons (ArrowUp/ArrowDown) via `flexRender`
+- `<TableBody className="animate-fade-in">` with `<Empty>` fallback when `rows.length === 0`
+- Expandable rows: `<Fragment>` with row component + detail `<TableRow colSpan={totalColumns}>`
+
+## Column conventions
+
+- Primary identifiers: `enableHiding: false`
+- Actions column: `columnHelper.display({ id: "actions", enableSorting: false, enableHiding: false, enableGlobalFilter: false })`
+- Cell renderers use `info.getValue()`, `info.row.original`, or `({ row }) =>` pattern
+- Chevron rotation in expandable rows uses `meta` from table options to read `expandedId`
+
+## Page render cascade (every table page)
+
+```tsx
+{isUserLoading || filtered === undefined ? (
+  <SkeletonTable headers={[...TABLE_COLUMNS.map(c => c.label)]} actions="ellipsis" />
+) : user?.role !== "owner" ? (
+  <p className="text-sm text-muted-foreground">No permission...</p>
+) : filtered.length > 0 ? (
+  <TableContainer data={filtered} ... />
+) : (
+  <Empty>...</Empty>
+)}
+```
+
+`filtered === undefined` signals loading (Convex query hasn't resolved). `useCurrentUser()` provides `user`, `isLoading`, `isAuthenticated`.
+
+## Client-side filtering (via `nuqs`)
+
+- `useQueryState("search", ...)` + `useQueryStates(parsers, { history: "replace" })`
+- `filtered = useMemo(() => { if (!data) return undefined; ... }, [data, search, filters])`
+- `clearFilters()` resets all query params to defaults
+- `hasActiveFilters` drives empty state message ("no results match" vs "no items yet")
+
+## SkeletonTable
+
+- Props: `headers: string[]`, `actions: "ellipsis" | "text" | "none"`, `rowCount?: number`
+- Rows fade progressively: `style={{ opacity: Math.max(1 - i * 0.2, 0.3) }}`
+
 # Architecture
 
 - **Convex is the sole backend** — no REST API or server-side framework beyond it
