@@ -14,19 +14,22 @@ export function StaffHeader() {
   const { actions } = usePageHeader()
 
   return (
-    <header className="flex items-center justify-between w-full h-16 px-6 border-b shrink-0 bg-background">
-      <Button asChild variant="ghost">
-        <Link href="/products">Sacks and Twines</Link>
-      </Button>
+    <header
+      className="flex h-16 shrink-0 items-center justify-between px-6 gap-6 overflow-hidden transition-[width,height] ease-linear"
+      style={{ viewTransitionName: "site-header" }}
+    >
+      <Link className="text-md" href="/products">
+        Sacks and Twines
+      </Link>
       <div className="flex items-center gap-2">
         <Button variant="secondary" asChild>
-          <Link href="/products">
+          <Link href="/products" transitionTypes={["nav-forward"]}>
             <Box />
             Dispatch
           </Link>
         </Button>
         <Button variant="secondary" asChild>
-          <Link href="/audit-logs/personal">
+          <Link href="/audit-logs/personal" transitionTypes={["nav-forward"]}>
             <Logs />
             My Activity
           </Link>

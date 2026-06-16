@@ -3,7 +3,7 @@
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { forbidden, usePathname } from "next/navigation"
-import { ReactNode } from "react"
+import { ReactNode, ViewTransition } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import {
   PageHeaderProvider,
@@ -45,23 +45,34 @@ function isOwnerOnlyPath(pathname: string): boolean {
   )
 }
 
+function titleFromPathname(pathname: string): string {
+  const segments = pathname.split("/").filter(Boolean)
+  if (segments.length === 0) return ""
+  const last = segments[segments.length - 1]
+  return last
+    .split("-")
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(" ")
+}
+
 function PageHeaderBar() {
   const { title, backHref, actions } = usePageHeader()
+  const pathname = usePathname()
 
-  if (!title) return null
+  const displayTitle = title || titleFromPathname(pathname)
+  if (!displayTitle) return null
 
   return (
     <>
-      <Separator orientation="vertical" className="h-10 shrink-0" />
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex items-center flex-1 min-w-0 gap-2">
         {backHref ? (
           <Button variant="ghost" size="icon" className="shrink-0" asChild>
-            <Link href={backHref}>
+            <Link href={backHref} transitionTypes={["nav-back"]}>
               <ArrowLeft />
             </Link>
           </Button>
         ) : null}
-        <h2 className="font-semibold type-lg truncate">{title}</h2>
+        <h2 className="font-semibold truncate type-md">{displayTitle}</h2>
       </div>
       {actions ? (
         <div className="flex items-center gap-2 ml-auto shrink-0">
@@ -87,9 +98,23 @@ export function DashboardShell({ children, initialRole }: Props) {
 
     return (
       <PageHeaderProvider>
-        <div className="flex min-h-screen flex-col">
+        <div className="flex flex-col min-h-screen">
           <StaffHeader />
-          <main className="flex-1 overflow-y-auto">{children}</main>
+          <ViewTransition
+            enter={{
+              "nav-forward": "nav-forward",
+              "nav-back": "nav-back",
+              default: "x-fade",
+            }}
+            exit={{
+              "nav-forward": "nav-forward",
+              "nav-back": "nav-back",
+              default: "x-fade",
+            }}
+            default="x-fade"
+          >
+            <main className="flex-1 overflow-y-auto">{children}</main>
+          </ViewTransition>
         </div>
       </PageHeaderProvider>
     )
@@ -100,13 +125,30 @@ export function DashboardShell({ children, initialRole }: Props) {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b overflow-hidden transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+          <header
+            className="flex h-16 shrink-0 items-center gap-2 overflow-hidden transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
+            style={{ viewTransitionName: "site-header" }}
+          >
             <div className="flex items-center flex-1 min-w-0 gap-4 px-4">
               <SidebarTrigger className="-ml-1 shrink-0" />
               <PageHeaderBar />
             </div>
           </header>
-          <main suppressHydrationWarning>{children}</main>
+          <ViewTransition
+            enter={{
+              "nav-forward": "nav-forward",
+              "nav-back": "nav-back",
+              default: "x-fade",
+            }}
+            exit={{
+              "nav-forward": "nav-forward",
+              "nav-back": "nav-back",
+              default: "x-fade",
+            }}
+            default="x-fade"
+          >
+            <main suppressHydrationWarning>{children}</main>
+          </ViewTransition>
         </SidebarInset>
       </SidebarProvider>
     </PageHeaderProvider>

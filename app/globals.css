@@ -45,6 +45,13 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --animate-fade-in: fade-in 0.35s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
 }
 
 :root {
@@ -54,7 +61,7 @@
   --card-foreground: oklch(0.147 0.004 49.3);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.147 0.004 49.3);
-  --primary: oklch(0.488 0.243 264.376);
+  --primary: oklch(48.78% 0.24331 264.421);
   --primary-foreground: oklch(0.97 0.014 254.604);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
@@ -72,14 +79,22 @@
   --chart-4: oklch(0.457 0.24 277.023);
   --chart-5: oklch(0.398 0.195 277.366);
   --radius: 0.625rem;
-  --sidebar: oklch(0.986 0.002 67.8);
-  --sidebar-foreground: oklch(0.147 0.004 49.3);
-  --sidebar-primary: oklch(0.546 0.245 262.881);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-  --sidebar-accent: oklch(0.96 0.002 17.2);
-  --sidebar-accent-foreground: oklch(0.214 0.009 43.1);
-  --sidebar-border: oklch(0.922 0.005 34.3);
-  --sidebar-ring: oklch(0.714 0.014 41.2);
+
+  --sidebar: #14369c;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #315df2;
+  --sidebar-primary-foreground: #eff6ff;
+  --sidebar-accent: #0d287a;
+  --sidebar-accent-foreground: #eff6ff;
+  --sidebar-border: #e8e4e3;
+  --sidebar-ring: #aba09c;
+
+  --sileo-state-success: var(--primary);
+  --sileo-state-loading: var(--muted-foreground);
+  --sileo-state-error: var(--destructive);
+  --sileo-state-warning: oklch(0.795 0.184 86.047);
+  --sileo-state-info: var(--primary);
+  --sileo-state-action: var(--primary);
 }
 
 .dark {
@@ -144,6 +159,87 @@
   ::-webkit-scrollbar-thumb {
     background-color: var(--border);
     border-radius: 5px;
+  }
+}
+
+/* ========== View Transitions ========== */
+
+::view-transition-old(.x-fade) {
+  animation: 100ms ease-in both fade-out;
+}
+
+::view-transition-new(.x-fade) {
+  animation: 150ms ease-out 100ms both fade-in;
+}
+
+::view-transition-old(.nav-forward) {
+  animation: 100ms ease-in both fade-out;
+}
+
+::view-transition-new(.nav-forward) {
+  animation: 150ms ease-out 100ms both fade-in;
+}
+
+::view-transition-old(.nav-back) {
+  animation: 100ms ease-in both fade-out;
+}
+
+::view-transition-new(.nav-back) {
+  animation: 150ms ease-out 100ms both fade-in;
+}
+
+/* Freeze persistent chrome — no reason to animate what doesn't change */
+
+::view-transition-group(site-header) {
+  animation: none;
+  z-index: 100;
+}
+
+::view-transition-old(site-header) {
+  display: none;
+}
+
+::view-transition-new(site-header) {
+  animation: none;
+}
+
+::view-transition-group(app-sidebar) {
+  animation: none;
+  z-index: 100;
+}
+
+::view-transition-old(app-sidebar) {
+  display: none;
+}
+
+::view-transition-new(app-sidebar) {
+  animation: none;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }
 

@@ -102,17 +102,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
 
   return (
-    <Sidebar {...props} variant="floating">
+    <Sidebar
+      {...props}
+      variant="floating"
+      style={{ viewTransitionName: "app-sidebar" }}
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
+                <div className="bg-accent rounded-2xl flex aspect-square size-8 items-center justify-center text-sidebar-primary-foreground"  />
                 <div className="grid flex-1 text-sm leading-tight text-left">
                   <span className="font-semibold truncate type-base">
                     Sacks and Twines
                   </span>
-                  <span className="truncate type-xs text-muted-foreground">
+                  <span className="truncate type-xs text-blue-100">
                     Inventory Management
                   </span>
                 </div>
@@ -131,7 +136,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 {item.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <Link href={item.url} className="flex items-center gap-2">
+                      <Link
+                        href={item.url}
+                        transitionTypes={["nav-forward"]}
+                        className="flex items-center gap-2"
+                      >
                         {item.icon && <item.icon />}
                         <span>{item.title}</span>
                       </Link>
