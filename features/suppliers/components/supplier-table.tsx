@@ -1,7 +1,14 @@
 "use client"
 
 import { flexRender, type Table as ReactTable } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp } from "lucide-react"
+import { ArrowDown, ArrowUp, Building2 } from "lucide-react"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import {
   Table,
   TableBody,
@@ -25,7 +32,7 @@ export default function SupplierTable({ table }: SupplierTableProps) {
     <Table>
       <TableHeader>
         {table.getHeaderGroups().map((headerGroup) => (
-          <TableRow key={headerGroup.id}>
+          <TableRow className="border-border/50" key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
               <TableHead key={header.id} className="text-muted-foreground">
                 {header.isPlaceholder ? null : header.column.getCanSort() ? (
@@ -55,16 +62,30 @@ export default function SupplierTable({ table }: SupplierTableProps) {
           </TableRow>
         ))}
       </TableHeader>
-      <TableBody>
-        {rows.map((row) => (
-          <TableRow key={row.id}>
-            {row.getVisibleCells().map((cell) => (
-              <TableCell key={cell.id}>
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </TableCell>
-            ))}
-          </TableRow>
-        ))}
+      <TableBody className="animate-fade-in">
+        {rows.length === 0 ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Building2 size={16} />
+              </EmptyMedia>
+              <EmptyTitle>No suppliers yet</EmptyTitle>
+              <EmptyDescription>
+                Add your first supplier to get started.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          rows.map((row) => (
+            <TableRow className="border-border/50" key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))
+        )}
       </TableBody>
     </Table>
   )

@@ -1,18 +1,10 @@
 "use client"
 
 import type { VisibilityState } from "@tanstack/react-table"
-import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  type SortingState,
-  useReactTable,
-} from "@tanstack/react-table"
+import { flexRender, type Table as ReactTable } from "@tanstack/react-table"
 import { ArrowDown, ArrowUp, PackageOpen } from "lucide-react"
 import type { Dispatch, SetStateAction } from "react"
-import { Fragment, useMemo, useState } from "react"
-import { Badge } from "@/components/ui/badge"
+import { Fragment } from "react"
 import {
   Empty,
   EmptyDescription,
@@ -28,138 +20,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { formatDateTime } from "@/lib/formatters"
 import type { Dispatch as DispatchType } from "../../validation"
 import DispatchItemsRow from "./dispatch-items-row"
 import DispatchTableRow from "./dispatch-table-row"
 
-const columnHelper = createColumnHelper<DispatchType>()
-
-// Props for the dispatch history table.
 interface DispatchTableProps {
-  dispatches: DispatchType[]
-  columnVisibility: VisibilityState
-  onColumnVisibilityChange: Dispatch<SetStateAction<VisibilityState>>
+  table: ReactTable<DispatchType>
+  expandedDispatchId: string | null
+  onToggle: (id: string) => void
   itemsColumnVisibility: VisibilityState
   onItemsColumnVisibilityChange: Dispatch<SetStateAction<VisibilityState>>
 }
 
-// Full dispatch history table with expandable rows, sorting, and column visibility controls.
 export default function DispatchTable({
-  dispatches,
-  columnVisibility,
-  onColumnVisibilityChange,
+  table,
+  expandedDispatchId,
+  onToggle,
   itemsColumnVisibility,
   onItemsColumnVisibilityChange,
 }: DispatchTableProps) {
-  const [expandedDispatchId, setExpandedDispatchId] = useState<string | null>(
-    null
-  )
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "createdAt", desc: true },
-  ])
-
-  const columns = useMemo(
-    () => [
-      columnHelper.display({
-        id: "expand",
-        header: "",
-        enableSorting: false,
-        enableHiding: false,
-        enableGlobalFilter: false,
-      }),
-      columnHelper.accessor("customerReference", {
-        header: "Customer Ref",
-        cell: (info) => (
-          <span className="italic font-medium">{info.getValue() ?? "-"}</span>
-        ),
-        sortingFn: "alphanumeric",
-      }),
-      columnHelper.accessor("userName", {
-        header: "Dispatched By",
-        cell: (info) => info.getValue(),
-        sortingFn: "alphanumeric",
-      }),
-      columnHelper.accessor("status", {
-        header: "Status",
-        cell: (info) => {
-          const status = info.getValue()
-          return (
-            <Badge variant={status === "completed" ? "success" : "destructive"}>
-              {status === "completed" ? "Completed" : "Voided"}
-            </Badge>
-          )
-        },
-        sortingFn: "alphanumeric",
-      }),
-      columnHelper.accessor((row) => row.itemCount, {
-        id: "itemCount",
-        header: "Total Items",
-        cell: (info) => (
-          <span className="font-mono tabular-nums">{info.getValue()}</span>
-        ),
-        sortingFn: "basic",
-        enableSorting: false,
-      }),
-      columnHelper.accessor((row) => row.createdAt ?? row._creationTime, {
-        id: "createdAt",
-        header: "Dispatched At",
-        cell: (info) => (
-          <span className="text-muted-foreground">
-            {formatDateTime(info.getValue())}
-          </span>
-        ),
-        enableGlobalFilter: false,
-        sortingFn: "basic",
-      }),
-      columnHelper.display({
-        id: "actions",
-        header: "",
-        enableSorting: false,
-        enableHiding: false,
-        enableGlobalFilter: false,
-      }),
-    ],
-    []
-  )
-
-  const data = useMemo(() => dispatches ?? [], [dispatches])
-
-  const table = useReactTable({
-    data,
-    columns,
-    state: { sorting, columnVisibility },
-    onSortingChange: setSorting,
-    onColumnVisibilityChange,
-    getCoreRowModel: getCoreRowModel(),
-    enableSortingRemoval: false,
-    isMultiSortEvent: () => false,
-    getSortedRowModel: getSortedRowModel(),
-    getRowId: (row) => row._id,
-  })
-
   const rows = table.getRowModel().rows
   const totalColumns = table.getAllLeafColumns().length
-
-  const toggleExpand = (id: string) => {
-    setExpandedDispatchId((prev) => (prev === id ? null : id))
-  }
-
-  if (rows.length === 0) {
-    return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <PackageOpen size={16} />
-          </EmptyMedia>
-          <EmptyTitle>No dispatch history yet</EmptyTitle>
-          <EmptyDescription>
-            Dispatched orders will appear here.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-    )
-  }
 
   return (
     <div className="space-y-4">
@@ -196,29 +77,45 @@ export default function DispatchTable({
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
-          {rows.map((row) => (
-            <Fragment key={row.id}>
-              <DispatchTableRow
-                row={row}
-                isExpanded={expandedDispatchId === row.original._id}
-                onToggle={() => toggleExpand(row.original._id)}
-              />
-              {expandedDispatchId === row.original._id ? (
-                <TableRow key={`${row.id}-items`}>
-                  <TableCell colSpan={totalColumns} className="p-4">
-                    <div className="overflow-hidden transition-all">
-                      <DispatchItemsRow
-                        dispatchId={row.original._id}
-                        columnVisibility={itemsColumnVisibility}
-                        onColumnVisibilityChange={onItemsColumnVisibilityChange}
-                      />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </Fragment>
-          ))}
+        <TableBody className="animate-fade-in">
+          {rows.length === 0 ? (
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <PackageOpen size={16} />
+                </EmptyMedia>
+                <EmptyTitle>No dispatch history yet</EmptyTitle>
+                <EmptyDescription>
+                  Dispatched orders will appear here.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            rows.map((row) => (
+              <Fragment key={row.id}>
+                <DispatchTableRow
+                  row={row}
+                  isExpanded={expandedDispatchId === row.original._id}
+                  onToggle={() => onToggle(row.original._id)}
+                />
+                {expandedDispatchId === row.original._id ? (
+                  <TableRow key={`${row.id}-items`}>
+                    <TableCell colSpan={totalColumns} className="p-4">
+                      <div className="overflow-hidden transition-all">
+                        <DispatchItemsRow
+                          dispatchId={row.original._id}
+                          columnVisibility={itemsColumnVisibility}
+                          onColumnVisibilityChange={
+                            onItemsColumnVisibilityChange
+                          }
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+              </Fragment>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>

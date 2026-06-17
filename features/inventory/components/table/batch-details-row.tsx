@@ -9,10 +9,11 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp, Loader2Icon } from "lucide-react"
-import type { Dispatch, SetStateAction } from "react"
+import { ArrowDown, ArrowUp, EllipsisVertical } from "lucide-react"
+import type { Dispatch, ReactNode, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -57,7 +58,7 @@ export default function BatchDetailsRow({
       columnHelper.accessor("quantityReceived", {
         header: "Qty Received",
         cell: (info) => (
-          <span className="font-mono tabular-nums">
+          <span className="block w-full text-right font-mono tabular-nums">
             {formatNumber(info.getValue())}
           </span>
         ),
@@ -66,7 +67,7 @@ export default function BatchDetailsRow({
       columnHelper.accessor("quantityRemaining", {
         header: "Qty Remaining",
         cell: (info) => (
-          <span className="font-mono tabular-nums">
+          <span className="block w-full text-right font-mono tabular-nums">
             {formatNumber(info.getValue())}
           </span>
         ),
@@ -75,7 +76,7 @@ export default function BatchDetailsRow({
       columnHelper.accessor("unitCost", {
         header: "Unit Cost",
         cell: (info) => (
-          <span className="font-mono tabular-nums">
+          <span className="block w-full text-right font-mono tabular-nums">
             {formatCurrency(info.getValue())}
           </span>
         ),
@@ -84,7 +85,7 @@ export default function BatchDetailsRow({
       columnHelper.accessor("totalProcurementCost", {
         header: "Total Cost",
         cell: (info) => (
-          <span className="font-mono tabular-nums">
+          <span className="block w-full text-right font-mono tabular-nums">
             {formatCurrency(info.getValue())}
           </span>
         ),
@@ -150,20 +151,11 @@ export default function BatchDetailsRow({
     getRowId: (row) => row._id,
   })
 
-  if (batches === undefined) {
-    return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground">
-        <Loader2Icon size={20} className="mr-2 animate-spin" />
-        Loading batches&hellip;
-      </div>
-    )
-  }
-
   const rows = table.getRowModel().rows
 
   return (
     <Table>
-      <TableHeader className="border-b">
+      <TableHeader className="border-b border-border/50">
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
@@ -196,9 +188,30 @@ export default function BatchDetailsRow({
         ))}
       </TableHeader>
       <TableBody>
-        {rows.length ? (
+        {batches === undefined ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <TableRow className="border-border/50 h-15" key={i}>
+              {table.getAllLeafColumns().reduce<ReactNode[]>((acc, col) => {
+                if (!col.getIsVisible()) return acc
+                acc.push(
+                  <TableCell key={col.id}>
+                    {col.id === "actions" ? (
+                      <EllipsisVertical
+                        size={16}
+                        className="text-muted-foreground"
+                      />
+                    ) : (
+                      <Skeleton className="w-20 h-4" />
+                    )}
+                  </TableCell>
+                )
+                return acc
+              }, [])}
+            </TableRow>
+          ))
+        ) : rows.length ? (
           rows.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow className="border-border/50 animate-fade-in" key={row.id}>
               {row.getVisibleCells().map((cell) => (
                 <TableCell key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}

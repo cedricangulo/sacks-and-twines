@@ -1,49 +1,25 @@
 "use client"
 
 import { flexRender, type Row } from "@tanstack/react-table"
-import { ChevronDown } from "lucide-react"
 import { TableCell, TableRow } from "@/components/ui/table"
-import { cn } from "@/lib/utils"
 import type { Product } from "../../validation"
 
-// Props for the inventory table row.
 interface InventoryTableRowProps {
   row: Row<Product>
-  isExpanded: boolean
   onToggle: () => void
 }
 
-// Single product row with click-to-expand toggle.
 export default function InventoryTableRow({
   row,
-  isExpanded,
   onToggle,
 }: InventoryTableRowProps) {
   return (
     <TableRow
       key={row.id}
-      className={cn(
-        "cursor-pointer transition-colors"
-        // row.original.status === "archived"
-        //   ? "bg-amber-100 dark:bg-amber-950 hover:bg-amber-100/50 dark:hover:bg-amber-950/50"
-        //   : "hover:bg-muted/20"
-      )}
+      className="cursor-pointer transition-colors border-border/50"
       onClick={onToggle}
     >
       {row.getVisibleCells().map((cell) => {
-        if (cell.column.id === "expand") {
-          return (
-            <TableCell key={cell.id} className="w-8 pr-0">
-              <ChevronDown
-                size={16}
-                className={cn(
-                  "text-muted-foreground transition-transform duration-200",
-                  isExpanded && "rotate-180"
-                )}
-              />
-            </TableCell>
-          )
-        }
         if (cell.column.id === "actions") {
           return (
             <TableCell

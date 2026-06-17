@@ -1,7 +1,14 @@
 "use client"
 
 import { flexRender, type Table as ReactTable } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp } from "lucide-react"
+import { ArrowDown, ArrowUp, Users } from "lucide-react"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import {
   Table,
   TableBody,
@@ -73,16 +80,30 @@ export default function StaffTable({ table }: StaffTableProps) {
           </TableRow>
         ))}
       </TableHeader>
-      <TableBody>
-        {rows.map((row) => (
-          <TableRow key={row.id}>
-            {row.getVisibleCells().map((cell) => (
-              <TableCell key={cell.id}>
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </TableCell>
-            ))}
-          </TableRow>
-        ))}
+      <TableBody className="animate-fade-in">
+        {rows.length === 0 ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Users size={16} />
+              </EmptyMedia>
+              <EmptyTitle>No staff yet</EmptyTitle>
+              <EmptyDescription>
+                Create your first staff account to get started.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          rows.map((row) => (
+            <TableRow key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))
+        )}
       </TableBody>
     </Table>
   )

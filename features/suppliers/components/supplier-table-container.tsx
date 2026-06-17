@@ -8,17 +8,9 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
-import { Building2, SearchX } from "lucide-react"
 import type { Dispatch, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import SupplierTable, { type Supplier } from "./supplier-table"
 import SupplierTableActions from "./supplier-table-actions"
 
@@ -54,18 +46,22 @@ export default function SupplierTableContainer({
       columnHelper.accessor((row) => row.contactPerson ?? "", {
         id: "contactPerson",
         header: "Contact Person",
-        cell: (info) => info.getValue() || "—",
+        cell: (info) => <span>{info.getValue() || "—"}</span>,
         sortingFn: "alphanumeric",
       }),
       columnHelper.accessor((row) => row.contactNumber ?? "", {
         id: "contactNumber",
         header: "Contact Number",
-        cell: (info) => info.getValue() || "—",
+        cell: (info) => (
+          <span className="font-mono tabular-nums">
+            {info.getValue() || "—"}
+          </span>
+        ),
       }),
       columnHelper.accessor((row) => row.address ?? "", {
         id: "address",
         header: "Address",
-        cell: (info) => info.getValue() || "—",
+        cell: (info) => <span>{info.getValue() || "—"}</span>,
       }),
       columnHelper.accessor((row) => row.archivedAt ?? "", {
         id: "archivedAt",
@@ -100,24 +96,6 @@ export default function SupplierTableContainer({
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row._id,
   })
-
-  const rows = table.getRowModel().rows
-
-  if (rows.length === 0) {
-    return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <Building2 size={16} />
-          </EmptyMedia>
-          <EmptyTitle>No suppliers yet</EmptyTitle>
-          <EmptyDescription>
-            Add your first supplier to get started.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-    )
-  }
 
   return <SupplierTable table={table} />
 }

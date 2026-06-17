@@ -15,8 +15,8 @@ import { useReportFiltersContext } from "../../hooks/report-filters-context"
 import { useAdjustmentsByDateRange } from "../../hooks/use-report-adjustments"
 import { useDispatchesByDateRange } from "../../hooks/use-report-dispatches"
 import { useReportPagination } from "../../hooks/use-report-pagination"
-import ReportAdjustmentTable from "../tables/report-adjustment-table"
-import ReportDispatchTable from "../tables/report-dispatch-table"
+import ReportAdjustmentTableContainer from "../tables/report-adjustment-table-container"
+import ReportDispatchTableContainer from "../tables/report-dispatch-table-container"
 import ReportPagination from "./report-pagination"
 
 // Detail panel showing dispatches and stock adjustments for a selected day
@@ -115,7 +115,7 @@ export default function CalendarDetailPanel() {
             </div>
           ) : (
             <div className="overflow-y-auto h-80">
-              <ReportDispatchTable dispatches={paginatedDispatches} />
+              <ReportDispatchTableContainer dispatches={paginatedDispatches} />
             </div>
           )}
         </TabsContent>
@@ -138,7 +138,9 @@ export default function CalendarDetailPanel() {
             </div>
           ) : (
             <div className="overflow-y-auto h-80">
-              <ReportAdjustmentTable adjustments={paginatedAdjustments} />
+              <ReportAdjustmentTableContainer
+                adjustments={paginatedAdjustments}
+              />
             </div>
           )}
         </TabsContent>

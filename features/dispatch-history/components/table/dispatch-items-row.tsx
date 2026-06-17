@@ -9,9 +9,10 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp, Loader2Icon } from "lucide-react"
-import type { Dispatch, SetStateAction } from "react"
+import { ArrowDown, ArrowUp, EllipsisVertical } from "lucide-react"
+import type { Dispatch, ReactNode, SetStateAction } from "react"
 import { useMemo, useState } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -126,22 +127,13 @@ export default function DispatchItemsRow({
     getRowId: (row) => row._id,
   })
 
-  if (items === undefined) {
-    return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground">
-        <Loader2Icon size={20} className="mr-2 animate-spin" />
-        Loading items&hellip;
-      </div>
-    )
-  }
-
   const rows = table.getRowModel().rows
 
   return (
     <Table>
       <TableHeader className="border-b">
         {table.getHeaderGroups().map((headerGroup) => (
-          <TableRow key={headerGroup.id}>
+          <TableRow className="border-border/50" key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
               <TableHead key={header.id} className="text-muted-foreground">
                 {header.isPlaceholder ? null : header.column.getCanSort() ? (
@@ -171,10 +163,31 @@ export default function DispatchItemsRow({
           </TableRow>
         ))}
       </TableHeader>
-      <TableBody>
-        {rows.length ? (
+      <TableBody className="animate-fade-in">
+        {items === undefined ? (
+          Array.from({ length: 1 }).map((_, i) => (
+            <TableRow className="h-15" key={i}>
+              {table.getAllLeafColumns().reduce<ReactNode[]>((acc, col) => {
+                if (!col.getIsVisible()) return acc
+                acc.push(
+                  <TableCell key={col.id}>
+                    {col.id === "actions" ? (
+                      <EllipsisVertical
+                        size={16}
+                        className="text-muted-foreground"
+                      />
+                    ) : (
+                      <Skeleton className="w-20 h-4" />
+                    )}
+                  </TableCell>
+                )
+                return acc
+              }, [])}
+            </TableRow>
+          ))
+        ) : rows.length ? (
           rows.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow className="animate-fade-in" key={row.id}>
               {row.getVisibleCells().map((cell) => (
                 <TableCell key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
