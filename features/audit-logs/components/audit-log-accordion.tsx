@@ -33,7 +33,7 @@ export default function AuditLogAccordion({
 
   if (isLoading) {
     return (
-      <div className="h-[calc(100vh-300px)] overflow-y-auto space-y-2">
+      <div className="h-[calc(100vh-220px)] overflow-y-auto space-y-2">
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-16 w-full rounded-xl" />
         ))}
@@ -43,7 +43,7 @@ export default function AuditLogAccordion({
 
   if (page.length === 0) {
     return (
-      <Empty className="h-[calc(100vh-300px)]">
+      <Empty className="h-[calc(100vh-220px)]">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             {search || hasActiveFilters ? (
@@ -68,7 +68,7 @@ export default function AuditLogAccordion({
   }
 
   return (
-    <div className="h-[calc(100vh-300px)] overflow-y-auto px-2">
+    <div className="h-[calc(100vh-220px)] overflow-y-auto px-2">
       <Accordion
         type="single"
         collapsible

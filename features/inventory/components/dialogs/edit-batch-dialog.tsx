@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { DialogBackdrop } from "@/components/ui/dialog-backdrop"
 import {
   Field,
   FieldContent,
@@ -52,11 +53,13 @@ export default function EditBatchDialog({
     <Dialog modal={false} open={dialogOpen} onOpenChange={setOpen}>
       {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
 
-      {dialogOpen ? (
-        <div className="fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
-      ) : null}
+      {dialogOpen ? <DialogBackdrop /> : null}
 
-      <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Edit batch</DialogTitle>
           <DialogDescription>

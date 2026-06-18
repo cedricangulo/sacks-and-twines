@@ -30,7 +30,7 @@ export default function UsersLayout({ children }: Props) {
   return (
     <>
       <PageHeaderSetter title="Users" actions={<AddStaffDialog />} />
-      <div className="p-6 space-y-6">{children}</div>
+      <div className="px-6 space-y-6">{children}</div>
     </>
   )
 }

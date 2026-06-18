@@ -37,7 +37,11 @@ export default function MobileQueueSheet() {
           ) : null}
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-80 p-0">
+      <SheetContent
+        side="right"
+        className="p-2 bg-transparent border-transparent shadow-none w-80 rounded-2xl"
+        aria-describedby={undefined}
+      >
         <SheetTitle className="sr-only">Dispatch Queue</SheetTitle>
         <DispatchQueueSidebar onSuccess={() => setOpen(false)} />
       </SheetContent>

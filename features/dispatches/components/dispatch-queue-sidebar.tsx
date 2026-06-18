@@ -26,7 +26,7 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
   } = useDispatchSubmit(onSuccess)
 
   return (
-    <div className="flex flex-col w-full h-full border-l xl:w-80 bg-background">
+    <div className="flex flex-col w-full h-full border rounded-2xl xl:w-80 bg-card shadow-sm">
       <div className="flex items-center justify-between p-4 pr-16 xl:pr-4">
         <h3 className="font-medium type-sm">Dispatch Queue</h3>
         <Badge variant="success">

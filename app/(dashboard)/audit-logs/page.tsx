@@ -36,7 +36,7 @@ export default function AuditLogsPage() {
   } = useAuditLogs(filterArgs, search, !isAuthenticated)
 
   return (
-    <div className="flex-1 space-y-6">
+    <div className="flex-1 space-y-4">
       <AuditLogFilterBar
         search={search}
         onSearchChange={setSearch}

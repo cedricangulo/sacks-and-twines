@@ -1,6 +1,8 @@
 "use client"
 
 import { InfoIcon } from "lucide-react"
+import dynamic from "next/dynamic"
+import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { DialogBackdrop } from "@/components/ui/dialog-backdrop"
 import {
   Field,
   FieldContent,
@@ -18,9 +21,17 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import UploadDropzone from "@/components/ui/upload-dropzone"
-import ProductCombobox from "@/features/products/components/product-combobox"
 import { useInventoryDialog } from "../../hooks/use-inventory-dialog"
 import FieldCard from "../field-card"
+
+const ProductCombobox = dynamic(
+  () => import("@/features/products/components/product-combobox"),
+  {
+    loading: () => (
+      <div className="h-10 w-full animate-pulse rounded-2xl bg-muted" />
+    ),
+  }
+)
 
 // Dialog for adding inventory — select an existing product or create a new one inline with batch and supplier details.
 export default function AddInventoryDialog() {
@@ -48,20 +59,34 @@ export default function AddInventoryDialog() {
     handleSubmit,
   } = useInventoryDialog()
 
+  const formState = useMemo(
+    () => ({ fields, locked, errors, supplierOptions }),
+    [fields, locked, errors, supplierOptions]
+  )
+
+  const formActions = useMemo(
+    () => ({
+      onFieldChange: setField,
+      onUnlock: unlockField,
+      onCategoryChange: handleCategoryChange,
+      clearFieldError,
+    }),
+    [setField, unlockField, handleCategoryChange, clearFieldError]
+  )
+
   return (
     <Dialog modal={false} open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
         <Button>Add Inventory</Button>
       </DialogTrigger>
 
-      {open ? (
-        // * manual backdrop since modal={false} is used
-        <div className="fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
-      ) : null}
+      {open ? <DialogBackdrop /> : null}
 
       <DialogContent
         className="sm:max-w-5xl!"
         onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>Add Inventory</DialogTitle>
@@ -73,7 +98,6 @@ export default function AddInventoryDialog() {
 
         <form
           id="inventory-form"
-          key={String(open)}
           onSubmit={handleSubmit}
           className="flex flex-col gap-6"
         >
@@ -118,6 +142,7 @@ export default function AddInventoryDialog() {
                       <Input
                         id="name"
                         name="name"
+                        key={String(open)}
                         placeholder="Enter a new item name"
                         aria-invalid={!!errors.name}
                         onInput={() => clearFieldError("name")}
@@ -145,13 +170,8 @@ export default function AddInventoryDialog() {
               mode={mode}
               draftSku={draftSku}
               draftBatch={draftBatch}
-              formState={{ fields, locked, errors, supplierOptions }}
-              formActions={{
-                onFieldChange: setField,
-                onUnlock: unlockField,
-                onCategoryChange: handleCategoryChange,
-                clearFieldError,
-              }}
+              formState={formState}
+              formActions={formActions}
             />
           </FieldGroup>
 

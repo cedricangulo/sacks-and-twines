@@ -35,7 +35,7 @@ export default function ProductsPage() {
   } = useProductFilters(products)
 
   return (
-    <div className="flex-1 space-y-6">
+    <div className="flex-1 space-y-4">
       <ProductFilterBar
         search={search}
         onSearchChange={setSearch}
@@ -64,13 +64,13 @@ export default function ProductsPage() {
       ) : (
         <>
           {filtered.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+            <div className="animate-fade-in grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {filtered.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>
           ) : hasActiveFilters || search ? (
-            <Empty>
+            <Empty className="animate-fade-in">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <SearchX />
@@ -82,7 +82,7 @@ export default function ProductsPage() {
               </EmptyHeader>
             </Empty>
           ) : (
-            <Empty>
+            <Empty className="animate-fade-in">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <Package />

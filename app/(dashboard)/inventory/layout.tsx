@@ -1,6 +1,12 @@
 import type { Metadata } from "next"
+import dynamic from "next/dynamic"
 import { PageHeaderSetter } from "@/components/page-header-context"
-import AddInventoryDialog from "@/features/inventory/components/dialogs/add-inventory-dialog"
+import { Button } from "@/components/ui/button"
+
+const AddInventoryDialog = dynamic(
+  () => import("@/features/inventory/components/dialogs/add-inventory-dialog"),
+  { loading: () => <Button>Add Inventory</Button> }
+)
 
 interface Props {
   children: React.ReactNode
@@ -30,7 +36,7 @@ export default function InventoryLayout({ children }: Props) {
   return (
     <>
       <PageHeaderSetter title="Inventory" actions={<AddInventoryDialog />} />
-      <div className="p-6 space-y-6">{children}</div>
+      <div className="px-6 space-y-6">{children}</div>
     </>
   )
 }

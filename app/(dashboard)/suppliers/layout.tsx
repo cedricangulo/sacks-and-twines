@@ -30,7 +30,7 @@ export default function SuppliersLayout({ children }: Props) {
   return (
     <>
       <PageHeaderSetter title="Suppliers" actions={<AddSupplierDialog />} />
-      <div className="p-6 space-y-6">{children}</div>
+      <div className="px-6 space-y-6">{children}</div>
     </>
   )
 }

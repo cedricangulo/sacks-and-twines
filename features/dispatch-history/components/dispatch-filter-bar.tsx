@@ -72,7 +72,7 @@ export default function DispatchFilterBar({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button asChild size="icon" variant="ghost">
-        <Link href="/products">
+        <Link href="/products" transitionTypes={["nav-back"]}>
           <ArrowLeft />
         </Link>
       </Button>

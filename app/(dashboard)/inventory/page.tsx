@@ -10,11 +10,12 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
+import SkeletonTable from "@/components/ui/skeleton-table"
 import { api } from "@/convex/_generated/api"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import InventoryFilterBar from "@/features/inventory/components/inventory-filter-bar"
-import InventoryTable from "@/features/inventory/components/table/inventory-table"
+import InventoryTableContainer from "@/features/inventory/components/table/inventory-table-container"
+import { INVENTORY_TABLE_COLUMNS } from "@/features/inventory/constants"
 import { useInventoryFilters } from "@/features/inventory/hooks/use-inventory-filters"
 
 export default function InventoryPage() {
@@ -43,7 +44,7 @@ export default function InventoryPage() {
   >({})
 
   return (
-    <div className="flex-1 space-y-6">
+    <div className="flex-1 space-y-4">
       <InventoryFilterBar
         search={search}
         onSearchChange={setSearch}
@@ -67,13 +68,19 @@ export default function InventoryPage() {
         onBatchVisibilityChange={setBatchVisibility}
       />
       {isUserLoading || filtered === undefined ? (
-        <Skeleton className="h-64 w-full" />
+        <SkeletonTable
+          headers={[
+            "Product Name",
+            ...INVENTORY_TABLE_COLUMNS.map((c) => c.label),
+          ]}
+          actions="ellipsis"
+        />
       ) : user?.role !== "owner" ? (
         <p className="text-sm text-muted-foreground">
           You don&apos;t have permission to access this page.
         </p>
       ) : filtered.length > 0 ? (
-        <InventoryTable
+        <InventoryTableContainer
           products={filtered}
           columnVisibility={inventoryVisibility}
           onColumnVisibilityChange={setInventoryVisibility}
@@ -81,7 +88,7 @@ export default function InventoryPage() {
           onBatchColumnVisibilityChange={setBatchVisibility}
         />
       ) : (
-        <Empty>
+        <Empty className="animate-fade-in">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               {search || hasActiveFilters ? (

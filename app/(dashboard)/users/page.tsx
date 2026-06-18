@@ -10,11 +10,12 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
+import SkeletonTable from "@/components/ui/skeleton-table"
 import { api } from "@/convex/_generated/api"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import StaffFilterBar from "@/features/users/components/staff-filter-bar"
 import StaffTableContainer from "@/features/users/components/staff-table-container"
+import { STAFF_TABLE_COLUMNS } from "@/features/users/constants"
 import { useStaffFilters } from "@/features/users/hooks/use-staff-filters"
 
 export default function UsersPage() {
@@ -35,7 +36,7 @@ export default function UsersPage() {
   >({})
 
   return (
-    <div className="flex-1 space-y-6">
+    <div className="flex-1 space-y-4">
       <StaffFilterBar
         search={search}
         onSearchChange={setSearch}
@@ -53,7 +54,10 @@ export default function UsersPage() {
         onColumnVisibilityChange={setColumnVisibility}
       />
       {isUserLoading || filtered === undefined ? (
-        <Skeleton className="h-64 w-full" />
+        <SkeletonTable
+          headers={["Name", ...STAFF_TABLE_COLUMNS.map((c) => c.label)]}
+          actions="text"
+        />
       ) : user?.role !== "owner" ? (
         <p className="text-sm text-muted-foreground">
           You don&apos;t have permission to access this page.
@@ -65,7 +69,7 @@ export default function UsersPage() {
           onColumnVisibilityChange={setColumnVisibility}
         />
       ) : (
-        <Empty>
+        <Empty className="animate-fade-in">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               {search || hasActiveFilters ? (

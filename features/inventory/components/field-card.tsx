@@ -113,7 +113,7 @@ const FieldCard = memo(function FieldCard({
   formActions: { onFieldChange, onUnlock, onCategoryChange, clearFieldError },
 }: FieldCardProps) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border p-4">
+    <div className="flex flex-col gap-4">
       <FieldGroup className="grid grid-cols-2">
         <Field>
           <FieldLabel>SKU</FieldLabel>
@@ -253,8 +253,6 @@ const FieldCard = memo(function FieldCard({
           />
         </RenderInput>
       </Field>
-
-      <Separator />
 
       <FieldGroup className="grid grid-cols-2">
         <Field data-invalid={!!errors.quantityReceived}>

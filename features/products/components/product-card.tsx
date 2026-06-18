@@ -41,7 +41,7 @@ export default function ProductCard({ product }: Props) {
   } = useProductCard(product)
 
   return (
-    <Card className="relative w-full max-w-sm gap-0 pt-0 pb-4">
+    <Card className="relative w-full max-w-sm gap-0 pt-0 pb-4 shadow-[0px_0px_0px_1px_rgba(0,0,0,0.04),0px_2px_8px_0px_rgba(0,0,0,0.06)]">
       <div className="relative w-full overflow-hidden max-h-32 aspect-4/3 bg-muted">
         {product.imageUrl ? (
           <Image
@@ -58,7 +58,7 @@ export default function ProductCard({ product }: Props) {
           </div>
         )}
       </div>
-      <CardHeader className="p-4">
+      <CardHeader className="p-4 gap-0!">
         {isLowStock ? (
           <Badge variant="warning">Low Stock</Badge>
         ) : isOutOfStock ? (
@@ -66,7 +66,7 @@ export default function ProductCard({ product }: Props) {
         ) : null}
         <CardTitle>{product.name}</CardTitle>
         <CardDescription>
-          <h5 className="type-sm">{product.skuCode}</h5>
+          {/* <h5 className="type-sm">{product.skuCode}</h5> */}
           <p className="type-base text-foreground">
             {formatNumber(product.currentQuantity)}{" "}
             <span>

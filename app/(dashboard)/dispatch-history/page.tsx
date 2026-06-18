@@ -10,9 +10,9 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
+import SkeletonTable from "@/components/ui/skeleton-table"
 import DispatchFilterBar from "@/features/dispatch-history/components/dispatch-filter-bar"
-import DispatchTable from "@/features/dispatch-history/components/table/dispatch-table"
+import DispatchTableContainer from "@/features/dispatch-history/components/table/dispatch-table-container"
 import { useDispatchHistoryFilters } from "@/features/dispatch-history/hooks/use-dispatch-history-filters"
 import { useDispatches } from "@/features/dispatch-history/hooks/use-dispatches"
 
@@ -21,7 +21,6 @@ export default function DispatchHistoryPage() {
     "createdByUserId",
     parseAsString.withDefault("all").withOptions({
       history: "replace",
-      shallow: false,
     })
   )
 
@@ -47,7 +46,7 @@ export default function DispatchHistoryPage() {
   const displayData = filtered ?? []
 
   return (
-    <div className="flex-1 space-y-6">
+    <div className="flex-1 space-y-4">
       <DispatchFilterBar
         search={search}
         onSearchChange={setSearch}
@@ -66,9 +65,18 @@ export default function DispatchHistoryPage() {
         onItemsVisibilityChange={setItemsVisibility}
       />
       {isLoading ? (
-        <Skeleton className="h-64 w-full" />
+        <SkeletonTable
+          headers={[
+            "Customer Ref",
+            "Dispatched By",
+            "Status",
+            "Total Items",
+            "Dispatched At",
+          ]}
+          actions="none"
+        />
       ) : displayData.length > 0 ? (
-        <DispatchTable
+        <DispatchTableContainer
           dispatches={displayData}
           columnVisibility={dispatchVisibility}
           onColumnVisibilityChange={setDispatchVisibility}
@@ -76,7 +84,7 @@ export default function DispatchHistoryPage() {
           onItemsColumnVisibilityChange={setItemsVisibility}
         />
       ) : (
-        <Empty>
+        <Empty className="animate-fade-in">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               {search || hasActiveFilters ? <SearchX /> : <Package />}

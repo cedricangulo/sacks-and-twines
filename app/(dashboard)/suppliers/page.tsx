@@ -9,10 +9,11 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
+import SkeletonTable from "@/components/ui/skeleton-table"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import SupplierFilterBar from "@/features/suppliers/components/supplier-filter-bar"
 import SupplierTableContainer from "@/features/suppliers/components/supplier-table-container"
+import { SUPPLIER_TABLE_COLUMNS } from "@/features/suppliers/constants"
 import { useSupplierFilters } from "@/features/suppliers/hooks/use-supplier-filters"
 import { useSuppliers } from "@/features/suppliers/hooks/use-suppliers"
 
@@ -34,7 +35,7 @@ export default function SuppliersPage() {
   >({})
 
   return (
-    <div className="flex-1 space-y-6">
+    <div className="flex-1 space-y-4">
       <SupplierFilterBar
         search={search}
         onSearchChange={setSearch}
@@ -52,7 +53,13 @@ export default function SuppliersPage() {
         onColumnVisibilityChange={setColumnVisibility}
       />
       {isUserLoading || filtered === undefined ? (
-        <Skeleton className="h-64 w-full" />
+        <SkeletonTable
+          headers={[
+            "Company Name",
+            ...SUPPLIER_TABLE_COLUMNS.map((c) => c.label),
+          ]}
+          actions="ellipsis"
+        />
       ) : user?.role !== "owner" ? (
         <p className="text-sm text-muted-foreground">
           You don&apos;t have permission to access this page.
@@ -64,7 +71,7 @@ export default function SuppliersPage() {
           onColumnVisibilityChange={setColumnVisibility}
         />
       ) : (
-        <Empty>
+        <Empty className="animate-fade-in">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               {search || hasActiveFilters ? (
