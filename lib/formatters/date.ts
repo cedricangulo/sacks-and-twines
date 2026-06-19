@@ -28,9 +28,7 @@ const INDIVIDUAL_FIELD_KEYS = [
   "timeZone",
 ] as const satisfies ReadonlyArray<keyof Intl.DateTimeFormatOptions>
 
-function hasExplicitFields(
-  opts: Intl.DateTimeFormatOptions
-): boolean {
+function hasExplicitFields(opts: Intl.DateTimeFormatOptions): boolean {
   return INDIVIDUAL_FIELD_KEYS.some((key) => key in opts)
 }
 
@@ -76,9 +74,7 @@ export function formatDate(
   }: FormatDateOptions = {}
 ) {
   const d = toDate(value)
-  const resolved = hasExplicitFields(opts)
-    ? opts
-    : { dateStyle, ...opts }
+  const resolved = hasExplicitFields(opts) ? opts : { dateStyle, ...opts }
   return getCachedFormatter(locale, resolved).format(d)
 }
 
@@ -91,8 +87,6 @@ export function formatTime(
   }: FormatDateOptions = {}
 ) {
   const d = toDate(value)
-  const resolved = hasExplicitFields(opts)
-    ? opts
-    : { timeStyle, ...opts }
+  const resolved = hasExplicitFields(opts) ? opts : { timeStyle, ...opts }
   return getCachedFormatter(locale, resolved).format(d)
 }

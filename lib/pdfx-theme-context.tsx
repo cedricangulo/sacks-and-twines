@@ -4,13 +4,9 @@
 // Provides runtime theme overrides via React context.
 // Wrap a subtree in <PdfxThemeProvider theme={myTheme}> to override defaults.
 
-import {
-  type DependencyList,
-  type ReactNode,
-  use,
-} from "react"
+import { type DependencyList, type ReactNode, use } from "react"
+import { type PdfxTheme, PdfxThemeContext } from "./pdfx-context"
 import { theme as defaultTheme } from "./theme-file"
-import { PdfxThemeContext, type PdfxTheme } from "./pdfx-context"
 
 export interface PdfxThemeProviderProps {
   theme?: PdfxTheme

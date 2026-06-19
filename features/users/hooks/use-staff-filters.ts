@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  debounce,
   parseAsString,
   parseAsStringEnum,
   useQueryState,
@@ -25,14 +24,11 @@ export function useStaffFilters(staff: StaffUser[] | undefined) {
     "search",
     parseAsString.withDefault("").withOptions({
       history: "replace",
-      shallow: false,
-      limitUrlUpdates: debounce(300),
     })
   )
 
   const [filters, setFilters] = useQueryStates(staffParsers, {
     history: "replace",
-    shallow: false,
   })
 
   const hasActiveFilters = search !== "" || filters.status !== "all"

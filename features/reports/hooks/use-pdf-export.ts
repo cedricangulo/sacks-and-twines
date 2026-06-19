@@ -79,7 +79,9 @@ export function usePdfExport() {
 
     try {
       const pdfModule = await import("@react-pdf/renderer")
-      const { MonthlyReport } = await import("../components/export/report/monthly-report")
+      const { MonthlyReport } = await import(
+        "../components/export/report/monthly-report"
+      )
 
       setCachedPrimitives({
         Page: pdfModule.Page,

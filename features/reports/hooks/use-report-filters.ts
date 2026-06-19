@@ -24,7 +24,7 @@ const calendarParsers = {
   page: parseAsInteger.withDefault(1),
 }
 
-const nuqsOptions = { history: "replace" as const, shallow: false as const }
+const nuqsOptions = { history: "replace" as const }
 
 // Calendar navigation and day selection state synced to URL query params.
 export function useReportFilters() {

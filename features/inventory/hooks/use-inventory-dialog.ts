@@ -1,9 +1,10 @@
 "use client"
 
+import { useQuery } from "convex-helpers/react/cache"
 import type { SubmitEvent } from "react"
-import { useMemo, useState } from "react"
-import { useActiveProducts } from "@/features/products/hooks/use-products"
-import { useSupplierOptions } from "@/features/suppliers/hooks/use-suppliers"
+import { useCallback, useMemo, useState } from "react"
+import { api } from "@/convex/_generated/api"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import { useImageUpload } from "@/lib/hooks/use-image-upload"
 import { type StockInFieldErrors, validateStockIn } from "../validation"
 import { useCreateStockIn } from "./use-create-stock-in"
@@ -56,12 +57,30 @@ const EMPTY_FIELDS: FieldValues = {
 
 // Manages the add-inventory dialog state: existing/new product selection, field locking, draft codes, validation, and submission.
 export function useInventoryDialog() {
-  const products = useActiveProducts()
-  const supplierOptions = useSupplierOptions()
+  const { isAuthenticated } = useCurrentUser()
+
+  const [open, setOpen] = useState(false)
+
+  const products = useQuery(
+    api.products.queries.listActive,
+    open && isAuthenticated ? {} : "skip"
+  )
+
+  const rawSupplierOptions = useQuery(
+    api.suppliers.queries.listActiveOptions,
+    open && isAuthenticated ? {} : "skip"
+  )
+
+  const supplierOptions = useMemo(
+    () =>
+      rawSupplierOptions?.map((s) => ({ id: s._id, name: s.companyName })) ??
+      null,
+    [rawSupplierOptions]
+  )
+
   const create = useCreateStockIn()
   const image = useImageUpload()
 
-  const [open, setOpen] = useState(false)
   const [errors, setErrors] = useState<StockInFieldErrors>({})
   const [mode, setMode] = useState<"existing" | "new">("existing")
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
@@ -77,53 +96,59 @@ export function useInventoryDialog() {
     [products, selectedProductId]
   )
 
-  const refreshDraftCodes = () => {
+  const refreshDraftCodes = useCallback(() => {
     setDraftSku(generateDraftCode("SKU"))
     setDraftBatch(generateDraftCode("BAT"))
-  }
+  }, [])
 
-  const resetControlledFields = () => {
+  const resetControlledFields = useCallback(() => {
     setFields(EMPTY_FIELDS)
-  }
+  }, [])
 
-  const handleOpen = (newOpen: boolean) => {
-    setOpen(newOpen)
-    if (newOpen) {
-      setErrors({})
-      setMode("existing")
-      setSelectedProductId(null)
+  const handleOpen = useCallback(
+    (newOpen: boolean) => {
+      setOpen(newOpen)
+      if (newOpen) {
+        setErrors({})
+        setMode("existing")
+        setSelectedProductId(null)
+        setLocked(INITIAL_LOCKED_STATE)
+        resetControlledFields()
+        refreshDraftCodes()
+        image.reset()
+      }
+    },
+    [image, resetControlledFields, refreshDraftCodes]
+  )
+
+  const handleSelectProduct = useCallback(
+    (productId: string | null) => {
+      setSelectedProductId(productId)
       setLocked(INITIAL_LOCKED_STATE)
-      resetControlledFields()
+      const product = products?.find((p) => p._id === productId)
+      if (product) {
+        setFields({
+          category: product.category,
+          baseUom: product.baseUom,
+          weightPerUnit: String(product.weightPerUnit ?? ""),
+          supplierId: product.lastSupplierId ?? "",
+          lowStockThreshold: String(product.lowStockThreshold ?? ""),
+        })
+      }
       refreshDraftCodes()
-      image.reset()
-    }
-  }
+    },
+    [products, refreshDraftCodes]
+  )
 
-  const handleSelectProduct = (productId: string | null) => {
-    setSelectedProductId(productId)
-    setLocked(INITIAL_LOCKED_STATE)
-    const product = products?.find((p) => p._id === productId)
-    if (product) {
-      setFields({
-        category: product.category,
-        baseUom: product.baseUom,
-        weightPerUnit: String(product.weightPerUnit ?? ""),
-        supplierId: product.lastSupplierId ?? "",
-        lowStockThreshold: String(product.lowStockThreshold ?? ""),
-      })
-    }
-    refreshDraftCodes()
-  }
-
-  const handleAddNew = () => {
+  const handleAddNew = useCallback(() => {
     setMode("new")
     setSelectedProductId(null)
     setLocked(Object.fromEntries(LOCKED_FIELDS.map((f) => [f, false])))
     resetControlledFields()
     refreshDraftCodes()
-  }
+  }, [resetControlledFields, refreshDraftCodes])
 
-  const handleSwitchToExisting = () => {
+  const handleSwitchToExisting = useCallback(() => {
     setMode("existing")
     setLocked(INITIAL_LOCKED_STATE)
     if (selectedProduct) {
@@ -138,97 +163,103 @@ export function useInventoryDialog() {
       resetControlledFields()
     }
     refreshDraftCodes()
-  }
+  }, [selectedProduct, resetControlledFields, refreshDraftCodes])
 
-  const setField = (field: string, value: string) => {
+  const setField = useCallback((field: string, value: string) => {
     setFields((prev) => ({ ...prev, [field as keyof FieldValues]: value }))
-  }
+  }, [])
 
-  const handleCategoryChange = (value: string) => {
-    setField("category", value)
-    if (value === "sacks") {
-      setFields((prev) => ({ ...prev, baseUom: "piece", weightPerUnit: "0" }))
-    }
-    if (value === "twines") {
-      setFields((prev) => ({
-        ...prev,
-        baseUom: "roll",
-        weightPerUnit: "20",
-      }))
-    }
-  }
+  const handleCategoryChange = useCallback(
+    (value: string) => {
+      setField("category", value)
+      if (value === "sacks") {
+        setFields((prev) => ({ ...prev, baseUom: "piece", weightPerUnit: "0" }))
+      }
+      if (value === "twines") {
+        setFields((prev) => ({
+          ...prev,
+          baseUom: "roll",
+          weightPerUnit: "20",
+        }))
+      }
+    },
+    [setField]
+  )
 
-  const unlockField = (field: string) => {
+  const unlockField = useCallback((field: string) => {
     setLocked((prev) => ({ ...prev, [field]: false }))
-  }
+  }, [])
 
-  const clearFieldError = (field: keyof StockInFieldErrors) => {
+  const clearFieldError = useCallback((field: keyof StockInFieldErrors) => {
     setErrors((prev) => {
       if (!prev[field]) return prev
       const next = { ...prev }
       delete next[field]
       return next
     })
-  }
+  }, [])
 
-  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setErrors({})
+  const handleSubmit = useCallback(
+    async (event: SubmitEvent<HTMLFormElement>) => {
+      event.preventDefault()
+      setErrors({})
 
-    const form = event.currentTarget
+      const form = event.currentTarget
 
-    let imageStorageId: string | null = null
-    if (image.state.file) {
-      imageStorageId = await image.upload()
-    }
+      let imageStorageId: string | null = null
+      if (image.state.file) {
+        imageStorageId = await image.upload()
+      }
 
-    const formData = new FormData(form)
+      const formData = new FormData(form)
 
-    const formName = String(formData.get("name") ?? "")
+      const formName = String(formData.get("name") ?? "")
 
-    const payload = {
-      mode,
-      productId: mode === "existing" ? selectedProductId : undefined,
-      name: mode === "new" ? formName || undefined : undefined,
-      category:
-        mode === "new" || (mode === "existing" && !locked.category)
-          ? (fields.category as "sacks" | "twines") || undefined
-          : undefined,
-      baseUom:
-        mode === "new" || (mode === "existing" && !locked.baseUom)
-          ? (fields.baseUom as "piece" | "roll") || undefined
-          : undefined,
-      weightPerUnit:
-        mode === "new" || (mode === "existing" && !locked.weightPerUnit)
-          ? fields.weightPerUnit
-            ? Number(fields.weightPerUnit)
-            : undefined
-          : undefined,
-      supplierId:
-        mode === "new" || (mode === "existing" && !locked.supplierId)
-          ? fields.supplierId
-          : fields.supplierId || "",
-      quantityReceived: Number(formData.get("quantityReceived") ?? 0),
-      totalProcurementCost: Number(formData.get("totalProcurementCost") ?? 0),
-      lowStockThreshold:
-        mode === "new" || (mode === "existing" && !locked.lowStockThreshold)
-          ? fields.lowStockThreshold
-            ? Number(fields.lowStockThreshold)
-            : undefined
-          : undefined,
-      imageStorageId: imageStorageId ?? undefined,
-    }
+      const payload = {
+        mode,
+        productId: mode === "existing" ? selectedProductId : undefined,
+        name: mode === "new" ? formName || undefined : undefined,
+        category:
+          mode === "new" || (mode === "existing" && !locked.category)
+            ? (fields.category as "sacks" | "twines") || undefined
+            : undefined,
+        baseUom:
+          mode === "new" || (mode === "existing" && !locked.baseUom)
+            ? (fields.baseUom as "piece" | "roll") || undefined
+            : undefined,
+        weightPerUnit:
+          mode === "new" || (mode === "existing" && !locked.weightPerUnit)
+            ? fields.weightPerUnit
+              ? Number(fields.weightPerUnit)
+              : undefined
+            : undefined,
+        supplierId:
+          mode === "new" || (mode === "existing" && !locked.supplierId)
+            ? fields.supplierId
+            : fields.supplierId || "",
+        quantityReceived: Number(formData.get("quantityReceived") ?? 0),
+        totalProcurementCost: Number(formData.get("totalProcurementCost") ?? 0),
+        lowStockThreshold:
+          mode === "new" || (mode === "existing" && !locked.lowStockThreshold)
+            ? fields.lowStockThreshold
+              ? Number(fields.lowStockThreshold)
+              : undefined
+            : undefined,
+        imageStorageId: imageStorageId ?? undefined,
+      }
 
-    const result = validateStockIn(payload)
+      const result = validateStockIn(payload)
 
-    if (!result.success) {
-      setErrors(result.errors)
-      return
-    }
+      if (!result.success) {
+        setErrors(result.errors)
+        return
+      }
 
-    setOpen(false)
-    return await create.submit(result.data)
-  }
+      setOpen(false)
+      return await create.submit(result.data)
+    },
+    [image, mode, selectedProductId, locked, fields, create]
+  )
 
   return {
     products,

@@ -1,6 +1,6 @@
 "use client"
 
-import { debounce, parseAsString, useQueryState } from "nuqs"
+import { parseAsString, useQueryState } from "nuqs"
 import { useMemo } from "react"
 import type { Id } from "@/convex/_generated/dataModel"
 import { getTimestampFromPreset } from "@/features/audit-logs/helpers/date-presets"
@@ -12,8 +12,6 @@ export function useAuditLogFilters(logs: AuditLogEntry[] | undefined) {
     "search",
     parseAsString.withDefault("").withOptions({
       history: "replace",
-      shallow: false,
-      limitUrlUpdates: debounce(300),
     })
   )
 
@@ -21,7 +19,6 @@ export function useAuditLogFilters(logs: AuditLogEntry[] | undefined) {
     "action",
     parseAsString.withDefault("all").withOptions({
       history: "replace",
-      shallow: false,
     })
   )
 
@@ -29,7 +26,6 @@ export function useAuditLogFilters(logs: AuditLogEntry[] | undefined) {
     "userId",
     parseAsString.withDefault("all").withOptions({
       history: "replace",
-      shallow: false,
     })
   )
 
@@ -37,7 +33,6 @@ export function useAuditLogFilters(logs: AuditLogEntry[] | undefined) {
     "dateFrom",
     parseAsString.withDefault("all").withOptions({
       history: "replace",
-      shallow: false,
     })
   )
 
@@ -45,7 +40,6 @@ export function useAuditLogFilters(logs: AuditLogEntry[] | undefined) {
     "dateTo",
     parseAsString.withDefault("all").withOptions({
       history: "replace",
-      shallow: false,
     })
   )
 
