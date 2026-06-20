@@ -30,9 +30,13 @@ export default defineSchema({
   products: defineTable({
     skuCode: v.string(),
     name: v.string(),
-    category: v.union(v.literal("sacks"), v.literal("twines")),
-    baseUom: v.union(v.literal("piece"), v.literal("roll")),
-    weightPerUnit: v.optional(v.number()),
+    category: v.union(
+      v.literal("sacks"),
+      v.literal("twines"),
+      v.literal("thread")
+    ),
+    baseUom: v.union(v.literal("piece"), v.literal("roll"), v.literal("cut")),
+    conversionFactor: v.optional(v.number()),
     currentQuantity: v.number(),
     totalAssetValue: v.number(),
     lowStockThreshold: v.number(),
@@ -91,8 +95,8 @@ export default defineSchema({
     productId: v.id("products"),
     dispatchUom: v.union(
       v.literal("piece"),
-      v.literal("kilo"),
-      v.literal("roll")
+      v.literal("roll"),
+      v.literal("cut")
     ),
     dispatchQuantity: v.number(),
     quantityDeducted: v.number(),

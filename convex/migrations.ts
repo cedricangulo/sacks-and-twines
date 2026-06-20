@@ -76,3 +76,33 @@ export const backfillSuppliers = migrations.define({
     await ctx.db.patch(supplier._id, { batchCount: batches.length })
   },
 })
+
+/**
+ * Converts existing "kilo" dispatchUom values to "cut"
+ * after schema change removing "kilo" in favor of "cut".
+ */
+export const replaceKiloWithCut = migrations.define({
+  table: "dispatchItems",
+  migrateOne: async (ctx, item) => {
+    if ((item as Record<string, unknown>).dispatchUom !== "kilo") return
+    await ctx.db.patch(item._id, { dispatchUom: "cut" })
+  },
+})
+
+/**
+ * Renames `weightPerUnit` to `conversionFactor` on existing product records.
+ * Strips the old field that no longer exists in the schema.
+ */
+export const renameWeightPerUnit = migrations.define({
+  table: "products",
+  migrateOne: async (ctx, product) => {
+    const wpu = (product as Record<string, unknown>).weightPerUnit
+    if (wpu === undefined || wpu === null) return
+    const { weightPerUnit: _, ...rest } = product as Record<string, unknown>
+    await ctx.db.replace(product._id, {
+      ...rest,
+      conversionFactor:
+        (product as Record<string, unknown>).conversionFactor ?? wpu,
+    } as never)
+  },
+})

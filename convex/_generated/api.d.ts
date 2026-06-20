@@ -21,6 +21,7 @@ import type * as dispatches_queries from "../dispatches/queries.js";
 import type * as dispatches_validators from "../dispatches/validators.js";
 import type * as http from "../http.js";
 import type * as init from "../init.js";
+import type * as lib_constants from "../lib/constants.js";
 import type * as migrations from "../migrations.js";
 import type * as products_mutations from "../products/mutations.js";
 import type * as products_queries from "../products/queries.js";
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   "dispatches/validators": typeof dispatches_validators;
   http: typeof http;
   init: typeof init;
+  "lib/constants": typeof lib_constants;
   migrations: typeof migrations;
   "products/mutations": typeof products_mutations;
   "products/queries": typeof products_queries;
