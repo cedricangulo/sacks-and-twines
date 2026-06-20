@@ -52,7 +52,7 @@ describe("stock adjustment queries", () => {
           name: "Test Product",
           category: "sacks",
           baseUom: "piece",
-          weightPerUnit: 0,
+          conversionFactor: 0,
           currentQuantity: 100,
           totalAssetValue: 50000,
           lowStockThreshold: 10,

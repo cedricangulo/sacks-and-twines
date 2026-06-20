@@ -47,12 +47,12 @@ async function createProduct(
   overrides?: Partial<{
     skuCode: string
     name: string
-    category: "sacks" | "twines"
-    baseUom: "piece" | "roll"
+    category: "sacks" | "twines" | "thread"
+    baseUom: "piece" | "roll" | "cut"
     currentQuantity: number
     totalAssetValue: number
     lowStockThreshold: number
-    weightPerUnit: number
+    conversionFactor: number
     status: "active" | "archived"
   }>
 ) {
@@ -65,7 +65,7 @@ async function createProduct(
       currentQuantity: overrides?.currentQuantity ?? 100,
       totalAssetValue: overrides?.totalAssetValue ?? 5000,
       lowStockThreshold: overrides?.lowStockThreshold ?? 10,
-      weightPerUnit: overrides?.weightPerUnit ?? 1,
+      conversionFactor: overrides?.conversionFactor ?? 1,
       status: overrides?.status ?? "active",
     })
   })
@@ -150,7 +150,7 @@ async function createDispatchItem(
     dispatchId: Id<"dispatches">
     batchId: Id<"batches">
     productId: Id<"products">
-    dispatchUom?: "piece" | "kilo" | "roll"
+    dispatchUom?: "piece" | "roll" | "cut"
     dispatchQuantity?: number
     quantityDeducted?: number
     unitCost?: number
@@ -761,7 +761,7 @@ describe("exportDispatchItems", () => {
       dispatchId,
       batchId,
       productId,
-      dispatchUom: "kilo",
+      dispatchUom: "cut",
       dispatchQuantity: 20,
       quantityDeducted: 20,
       unitCost: 15,
@@ -782,7 +782,7 @@ describe("exportDispatchItems", () => {
       dispatchedBy: "Dispatcher",
       product: "Product X",
       batchCode: "BATCH-123",
-      dispatchUom: "kilo",
+      dispatchUom: "cut",
       dispatchQty: 20,
       qtyDeducted: 20,
       unitCost: 15,

@@ -50,8 +50,8 @@ describe("product queries", () => {
   async function createProduct(
     t: ReturnType<typeof convexTest>,
     overrides: { name: string } & Partial<{
-      category: "sacks" | "twines"
-      baseUom: "piece" | "roll"
+      category: "sacks" | "twines" | "thread"
+      baseUom: "piece" | "roll" | "cut"
       currentQuantity: number
       totalAssetValue: number
       status: "active" | "archived"
@@ -63,7 +63,7 @@ describe("product queries", () => {
         name: overrides.name,
         category: overrides.category ?? "sacks",
         baseUom: overrides.baseUom ?? "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: overrides.currentQuantity ?? 0,
         totalAssetValue: overrides.totalAssetValue ?? 0,
         lowStockThreshold: 0,
@@ -646,7 +646,7 @@ describe("product queries", () => {
         name: "Temp",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -757,7 +757,7 @@ describe("product queries", () => {
         name: "Temp",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -790,7 +790,7 @@ describe("product queries", () => {
         name: "Product With Image",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 10,
         totalAssetValue: 5000,
         lowStockThreshold: 2,

@@ -216,7 +216,7 @@ export const exportProducts = query({
           currentQuantity: p.currentQuantity,
           totalAssetValue: p.totalAssetValue,
           lowStockThreshold: p.lowStockThreshold,
-          weightPerUnit: p.weightPerUnit,
+          conversionFactor: p.conversionFactor,
           lastSupplier: lastSupplierName,
           batchCount: activeBatches.length,
         }

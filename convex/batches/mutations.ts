@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { internal } from "../_generated/api"
+import { DEFAULT_CONVERSION_FACTOR } from "../lib/constants"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { stockInArgs, updateBatchArgs, voidBatchArgs } from "./validators"
@@ -38,7 +39,7 @@ export const generateUploadUrl = zMutation({
  * @param name - Product name (required for "new" mode).
  * @param category - Product category (required for "new" mode).
  * @param baseUom - Base unit (required for "new" mode).
- * @param weightPerUnit - Weight per unit for kg conversions.
+ * @param conversionFactor - Conversion factor for UOM conversions.
  * @param supplierId - Supplier for this batch.
  * @param quantityReceived - Received quantity.
  * @param totalProcurementCost - Total cost of procurement.
@@ -57,7 +58,7 @@ export const stockIn = zMutation({
       name,
       category,
       baseUom,
-      weightPerUnit,
+      conversionFactor,
       supplierId,
       quantityReceived,
       totalProcurementCost,
@@ -122,7 +123,8 @@ export const stockIn = zMutation({
         name,
         category,
         baseUom,
-        weightPerUnit: weightPerUnit ?? (category === "sacks" ? 0 : 20),
+        conversionFactor:
+          conversionFactor ?? DEFAULT_CONVERSION_FACTOR[category],
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: lowStockThreshold ?? 0,
@@ -220,7 +222,7 @@ export const stockIn = zMutation({
  * @param totalProcurementCost - Updated total cost.
  * @param category - Updated product category.
  * @param baseUom - Updated product base unit.
- * @param weightPerUnit - Updated weight per unit.
+ * @param conversionFactor - Updated conversion factor.
  * @param lowStockThreshold - Updated low-stock threshold.
  * @param userAgent - Browser user agent for audit logging.
  * @returns `true` on success.
@@ -237,7 +239,7 @@ export const update = zMutation({
       totalProcurementCost,
       category,
       baseUom,
-      weightPerUnit,
+      conversionFactor,
       lowStockThreshold,
       userAgent,
     }
@@ -347,7 +349,8 @@ export const update = zMutation({
           ...(category !== undefined
             ? {
                 category,
-                weightPerUnit: weightPerUnit ?? (category === "sacks" ? 0 : 20),
+                conversionFactor:
+                  conversionFactor ?? DEFAULT_CONVERSION_FACTOR[category],
               }
             : {}),
           ...(baseUom !== undefined ? { baseUom } : {}),
