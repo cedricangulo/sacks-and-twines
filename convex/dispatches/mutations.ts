@@ -1,12 +1,12 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { internal } from "../_generated/api"
+import { INTEGER_UOMS } from "../lib/constants"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { submitDispatchArgs } from "./validators"
 
 /**
  * Submits a dispatch order, deducting stock from batches using FIFO ordering.
- * Supports dispatch in pieces, rolls, or kilos (with weight conversion).
  * Sacks can only be dispatched in whole units.
  * Accessible to any active user (owner or staff).
  *
@@ -48,24 +48,17 @@ export const submit = zMutation({
       if (product.status === "archived")
         throw new Error(`Product ${product.name} is archived`)
 
-      if (product.category === "sacks" && !Number.isInteger(item.quantity)) {
+      if (
+        (INTEGER_UOMS as readonly string[]).includes(item.dispatchUom) &&
+        !Number.isInteger(item.quantity)
+      ) {
         throw new Error(
-          `Sacks can only be dispatched in whole units — ${item.quantity} is not valid for ${product.name}`
+          `Dispatch UOM "${item.dispatchUom}" requires whole units — ${item.quantity} is not valid for ${product.name}`
         )
       }
 
       // Convert dispatch quantity to baseUom for batch deduction
-      let toDeduct: number
-      if (item.dispatchUom === "kilo") {
-        if (!product.weightPerUnit || product.weightPerUnit <= 0) {
-          throw new Error(
-            `Product ${product.name} has no weight-per-unit configured for kg dispatch`
-          )
-        }
-        toDeduct = item.quantity / product.weightPerUnit
-      } else {
-        toDeduct = item.quantity
-      }
+      const toDeduct = item.quantity
 
       // Get active batches with remaining stock, FIFO (oldest first)
       const activeBatches = await ctx.db
@@ -95,12 +88,7 @@ export const submit = zMutation({
         }
 
         // dispatchQuantity in the user's chosen UOM for this batch's portion
-        let dispatchQty: number
-        if (item.dispatchUom === "kilo") {
-          dispatchQty = deducted * product.weightPerUnit!
-        } else {
-          dispatchQty = deducted
-        }
+        const dispatchQty = deducted
 
         await Promise.all([
           ctx.db.insert("dispatchItems", {
@@ -129,7 +117,8 @@ export const submit = zMutation({
       )
 
       // Guard: all requested quantity must be fulfilled
-      if (remaining > 0) {
+      // 1e-7 is a small epsilon to account for floating-point precision issues
+      if (remaining > 1e-7) {
         throw new Error(
           `Insufficient stock for ${product.name} — requested ${item.quantity} ${item.dispatchUom}, only ${(toDeduct - remaining).toFixed(2)} ${product.baseUom} available`
         )
