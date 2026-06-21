@@ -9,9 +9,9 @@ export interface Product {
   createdAt?: number
   skuCode: string
   name: string
-  category: "sacks" | "twines"
-  baseUom: "piece" | "roll"
-  weightPerUnit?: number
+  category: "sacks" | "twines" | "thread"
+  baseUom: "piece" | "roll" | "cut"
+  conversionFactor?: number
   currentQuantity: number
   totalAssetValue: number
   lowStockThreshold: number
@@ -42,7 +42,7 @@ export interface BatchDetail extends Batch {
   productName: string | null
   category: string | null
   baseUom: string | null
-  weightPerUnit: number | null
+  conversionFactor: number | null
   lowStockThreshold: number | null
   imagePath: string | null
   supplierName: string | null
@@ -58,9 +58,13 @@ const StockInSchema = z.object({
   mode: z.union([z.literal("existing"), z.literal("new")]),
   productId: z.optional(z.string().min(1)),
   name: z.optional(z.string().min(1).max(255)),
-  category: z.optional(z.union([z.literal("sacks"), z.literal("twines")])),
-  baseUom: z.optional(z.union([z.literal("piece"), z.literal("roll")])),
-  weightPerUnit: z.optional(z.number().min(0)),
+  category: z.optional(
+    z.union([z.literal("sacks"), z.literal("twines"), z.literal("thread")])
+  ),
+  baseUom: z.optional(
+    z.union([z.literal("piece"), z.literal("roll"), z.literal("cut")])
+  ),
+  conversionFactor: z.optional(z.number().min(0)),
   supplierId: z.string().min(1, "Supplier is required"),
   quantityReceived: positiveNumber,
   totalProcurementCost: positiveNumber,
@@ -94,9 +98,13 @@ const BatchUpdateSchema = z.object({
   supplierId: z.string().min(1, "Supplier is required"),
   quantityReceived: positiveNumber,
   totalProcurementCost: positiveNumber,
-  category: z.optional(z.union([z.literal("sacks"), z.literal("twines")])),
-  baseUom: z.optional(z.union([z.literal("piece"), z.literal("roll")])),
-  weightPerUnit: z.optional(z.number().min(0)),
+  category: z.optional(
+    z.union([z.literal("sacks"), z.literal("twines"), z.literal("thread")])
+  ),
+  baseUom: z.optional(
+    z.union([z.literal("piece"), z.literal("roll"), z.literal("cut")])
+  ),
+  conversionFactor: z.optional(z.number().min(0)),
   lowStockThreshold: z.optional(z.number().min(0)),
 })
 
