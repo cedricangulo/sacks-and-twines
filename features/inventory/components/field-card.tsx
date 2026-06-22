@@ -19,8 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { Id } from "@/convex/_generated/dataModel"
+import { BASE_UOMS, PRODUCT_CATEGORIES } from "@/convex/lib/constants"
 import SupplierCombobox from "@/features/suppliers/components/supplier-combobox"
 import type { StockInFieldErrors } from "../validation"
 
@@ -29,7 +29,7 @@ interface FieldCardState {
   fields: {
     category: string
     baseUom: string
-    weightPerUnit: string
+    conversionFactor: string
     supplierId: string
     lowStockThreshold: string
   }
@@ -104,7 +104,7 @@ function RenderInput({
   )
 }
 
-// Card containing product fields (category, UoM, weight, supplier, threshold) and batch entry fields.
+// Card containing product fields (category, UoM, conversion factor, supplier, threshold) and batch entry fields.
 const FieldCard = memo(function FieldCard({
   mode,
   draftSku,
@@ -148,8 +148,11 @@ const FieldCard = memo(function FieldCard({
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="sacks">Sacks</SelectItem>
-                <SelectItem value="twines">Twines</SelectItem>
+                {PRODUCT_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </SelectItem>
+                ))}
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -176,8 +179,11 @@ const FieldCard = memo(function FieldCard({
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="piece">Piece</SelectItem>
-                <SelectItem value="roll">Roll</SelectItem>
+                {BASE_UOMS.map((uom) => (
+                  <SelectItem key={uom} value={uom}>
+                    {uom.charAt(0).toUpperCase() + uom.slice(1)}
+                  </SelectItem>
+                ))}
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -186,25 +192,25 @@ const FieldCard = memo(function FieldCard({
 
       <FieldGroup className="grid grid-cols-2">
         <RenderInput
-          field="weightPerUnit"
-          label="Weight per Unit (kg)"
+          field="conversionFactor"
+          label="Conversion Factor"
           mode={mode}
-          isLocked={locked["weightPerUnit"] ?? false}
+          isLocked={locked["conversionFactor"] ?? false}
           onUnlock={onUnlock}
-          hasError={!!errors.weightPerUnit}
+          hasError={!!errors.conversionFactor}
         >
           <Input
-            value={fields.weightPerUnit}
+            value={fields.conversionFactor}
             onInput={(e) => {
-              onFieldChange("weightPerUnit", e.currentTarget.value)
-              clearFieldError("weightPerUnit")
+              onFieldChange("conversionFactor", e.currentTarget.value)
+              clearFieldError("conversionFactor")
             }}
             type="number"
             step="0.0001"
             min="0"
             placeholder="Optional"
-            disabled={locked["weightPerUnit"] ?? false}
-            aria-invalid={!!errors.weightPerUnit}
+            disabled={locked["conversionFactor"] ?? false}
+            aria-invalid={!!errors.conversionFactor}
           />
         </RenderInput>
 
