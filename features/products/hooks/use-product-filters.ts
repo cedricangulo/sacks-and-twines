@@ -76,7 +76,9 @@ export function useProductFilters(
       result = result.filter((p) => {
         switch (filters.stock) {
           case "in_stock":
-            return p.currentQuantity > 0
+            return (
+              p.currentQuantity > 0 && p.currentQuantity > p.lowStockThreshold
+            )
           case "low_stock":
             return (
               p.currentQuantity > 0 && p.currentQuantity <= p.lowStockThreshold

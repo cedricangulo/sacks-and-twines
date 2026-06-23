@@ -31,7 +31,7 @@ import UploadDropzone from "@/components/ui/upload-dropzone"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useEditProductForm } from "../../hooks/use-edit-product-form"
 
-// Dialog form for editing a product's name, category, UoM, weight, low-stock threshold, and image.
+// Dialog form for editing a product's name, category, UoM, conversion factor, low-stock threshold, and image.
 export default function EditProductDialog({
   productId,
   children,
@@ -197,24 +197,24 @@ export default function EditProductDialog({
             ) : null}
 
             <FieldGroup className="grid grid-cols-2 gap-4">
-              <Field data-invalid={!!errors.weightPerUnit}>
+              <Field data-invalid={!!errors.conversionFactor}>
                 <div className="flex items-center justify-between gap-2">
                   <FieldLabel
-                    htmlFor="edit-weightPerUnit"
+                    htmlFor="edit-conversionFactor"
                     className={
-                      lockedFields.weightPerUnit
+                      lockedFields.conversionFactor
                         ? "text-muted-foreground"
                         : undefined
                     }
                   >
-                    Weight per Unit
+                    Conversion Factor
                   </FieldLabel>
-                  {lockedFields.weightPerUnit ? (
+                  {lockedFields.conversionFactor ? (
                     <Button
                       size="xs"
                       variant="ghost"
                       type="button"
-                      onClick={() => handleUnlock("weightPerUnit")}
+                      onClick={() => handleUnlock("conversionFactor")}
                     >
                       <PencilIcon />
                       Edit
@@ -223,16 +223,16 @@ export default function EditProductDialog({
                 </div>
                 <FieldContent>
                   <Input
-                    id="edit-weightPerUnit"
-                    value={formValues.weightPerUnit ?? ""}
-                    disabled={lockedFields.weightPerUnit}
+                    id="edit-conversionFactor"
+                    value={formValues.conversionFactor ?? ""}
+                    disabled={lockedFields.conversionFactor}
                     type="number"
                     step="0.1"
                     min="0"
-                    aria-invalid={!!errors.weightPerUnit}
+                    aria-invalid={!!errors.conversionFactor}
                     onInput={(e) =>
                       handleChange(
-                        "weightPerUnit",
+                        "conversionFactor",
                         e.currentTarget.value
                           ? Number(e.currentTarget.value)
                           : undefined
@@ -240,8 +240,8 @@ export default function EditProductDialog({
                     }
                   />
                 </FieldContent>
-                {errors.weightPerUnit ? (
-                  <FieldError>{errors.weightPerUnit}</FieldError>
+                {errors.conversionFactor ? (
+                  <FieldError>{errors.conversionFactor}</FieldError>
                 ) : null}
               </Field>
 

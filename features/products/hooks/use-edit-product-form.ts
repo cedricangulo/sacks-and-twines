@@ -5,6 +5,7 @@ import { useQuery } from "convex-helpers/react/cache"
 import { SubmitEvent, useEffect, useReducer, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { DEFAULT_CONVERSION_FACTOR } from "@/convex/lib/constants"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import {
   type ProductUpdateFieldErrors,
@@ -73,7 +74,7 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
         lockedFields: {
           category: action.hasBatches,
           baseUom: action.hasBatches,
-          weightPerUnit: action.hasBatches,
+          conversionFactor: action.hasBatches,
         },
         dirty: false,
         errors: {},
@@ -166,8 +167,10 @@ export function useEditProductForm({
           name: detail.name,
           category: detail.category,
           baseUom: detail.baseUom,
-          weightPerUnit:
-            detail.weightPerUnit ?? (detail.category === "sacks" ? 0 : 20),
+          conversionFactor:
+            detail.conversionFactor ??
+            DEFAULT_CONVERSION_FACTOR[detail.category] ??
+            0,
           lowStockThreshold: detail.lowStockThreshold ?? 0,
         },
         imagePreview: detail.imageUrl ?? null,
