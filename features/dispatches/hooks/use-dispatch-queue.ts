@@ -8,11 +8,11 @@ export interface QueueItem {
   productId: string
   name: string
   skuCode: string
-  category: "sacks" | "twines"
-  baseUom: "piece" | "roll"
+  category: "sacks" | "twines" | "thread"
+  baseUom: "piece" | "roll" | "cut"
   imageUrl?: string
   quantity: number
-  dispatchUom: "piece" | "roll" | "kilo"
+  dispatchUom: "piece" | "roll" | "cut"
 }
 
 // Builds a QueueItem from a DispatchReadyProduct with the given quantity.
@@ -92,8 +92,9 @@ export function useDispatchQueue() {
     []
   )
 
+  // ! Unused for now, but may be useful in the future if we allow users to change UoM in the dispatch queue.
   const setDispatchUom = useCallback(
-    (productId: string, uom: "roll" | "kilo") => {
+    (productId: string, uom: "piece" | "roll" | "cut") => {
       setItems((prev) =>
         prev.map((item) =>
           item.productId === productId ? { ...item, dispatchUom: uom } : item

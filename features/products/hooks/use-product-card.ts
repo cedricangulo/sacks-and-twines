@@ -4,14 +4,13 @@ import { useEffect, useRef, useState } from "react"
 import { useDispatchQueueContext } from "@/features/dispatches/hooks/dispatch-queue-context"
 import type { DispatchReadyProduct } from "@/features/products/validation"
 
-// Manages a single product card's quantity input, dispatch UoM toggle, and stock-status indicators.
+// Manages a single product card's quantity input and stock-status indicators.
 export function useProductCard(product: DispatchReadyProduct) {
   const {
     items,
     incrementQuantity,
     decrementQuantity,
     setQuantity,
-    setDispatchUom,
   } = useDispatchQueueContext()
 
   const queueItem = items.find((i) => i.productId === product._id)
@@ -49,6 +48,7 @@ export function useProductCard(product: DispatchReadyProduct) {
 
   const isLowStock =
     product.lowStockThreshold > 0 &&
+    product.currentQuantity > 0 &&
     product.currentQuantity < product.lowStockThreshold
 
   const isOutOfStock = product.currentQuantity === 0
@@ -67,6 +67,5 @@ export function useProductCard(product: DispatchReadyProduct) {
     isAtMax,
     incrementQuantity: () => incrementQuantity(product),
     decrementQuantity: () => decrementQuantity(product._id),
-    setDispatchUom: (uom: "roll" | "kilo") => setDispatchUom(product._id, uom),
   }
 }
