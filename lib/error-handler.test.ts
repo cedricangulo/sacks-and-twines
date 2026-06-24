@@ -150,8 +150,8 @@ describe("handleConvexError", () => {
     })
   })
 
-  // ── Insufficient stock (keeps specific message) ───────────
-  it("maps 'Insufficient stock for' but keeps specific message", () => {
+  // ── Insufficient stock ────────────────────────────────────
+  it("maps 'Insufficient stock for' to user-friendly message", () => {
     const result = handleConvexError(
       new Error(
         "Insufficient stock for Cement — requested 50 piece, only 10 piece available"
@@ -161,7 +161,7 @@ describe("handleConvexError", () => {
     expect(result).toEqual({
       title: "Insufficient stock",
       description:
-        "Insufficient stock for Cement — requested 50 piece, only 10 piece available",
+        "Not enough stock available to fulfill the requested quantity.",
     })
   })
 
