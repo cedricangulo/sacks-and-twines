@@ -26,7 +26,7 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
   } = useDispatchSubmit(onSuccess)
 
   return (
-    <div className="flex flex-col w-full h-full border rounded-2xl xl:w-80 bg-card shadow-sm">
+    <div className="flex flex-col w-full h-full border shadow-sm rounded-2xl xl:w-80 bg-card">
       <div className="flex items-center justify-between p-4 pr-16 xl:pr-4">
         <h3 className="font-medium type-sm">Dispatch Queue</h3>
         <Badge variant="success">
@@ -52,7 +52,10 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
                 </Avatar>
 
                 <div className="flex flex-col flex-1 min-w-0">
-                  <h4 className="truncate font-heading font-seminold type-base">
+                  <h4
+                    className="line-clamp-1 font-heading font-seminold type-base"
+                    title={item.name}
+                  >
                     {item.name}
                   </h4>
                   <p className="font-mono type-base tabular-nums text-muted-foreground">
