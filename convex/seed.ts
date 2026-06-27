@@ -1,6 +1,11 @@
 import { v } from "convex/values"
 import type { Id } from "./_generated/dataModel"
 import { internalMutation } from "./_generated/server"
+import {
+  SACKS_PACK_SIZE,
+  SUPPLIER_COUNT,
+  TWINES_CUTS_PER_ROLL,
+} from "./lib/constants"
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -45,40 +50,52 @@ function nextBatchCode(): string {
 
 const SUPPLIER_DEFS = [
   {
-    companyName: "Mabuhay Fiber Supply",
+    companyName: "Manila Sack Industries",
     contactPerson: "Roberto Santos",
     contactNumber: "0917-123-4561",
-    address: "Davao City, Davao del Sur",
+    address: "Manila, Metro Manila",
   },
   {
-    companyName: "Golden Harvest Co.",
+    companyName: "Calabarzon Packaging",
     contactPerson: "Lita Reyes",
     contactNumber: "0918-234-5672",
-    address: "Cebu City, Cebu",
+    address: "Batangas City, Batangas",
   },
   {
-    companyName: "Baguio Twine Traders",
+    companyName: "Central Luzon Sacks Corp.",
     contactPerson: "Miguel Ong",
     contactNumber: "0919-345-6783",
-    address: "Baguio City, Benguet",
-  },
-  {
-    companyName: "Luzon Sacks Inc.",
-    contactPerson: "Ana Cruz",
-    contactNumber: "0920-456-7894",
     address: "San Fernando, Pampanga",
   },
   {
-    companyName: "Island Weave Corp.",
-    contactPerson: "Carlos Lim",
-    contactNumber: "0921-567-8905",
-    address: "Iloilo City, Iloilo",
+    companyName: "Ilocos Fiber Supply",
+    contactPerson: "Ana Cruz",
+    contactNumber: "0920-456-7894",
+    address: "San Fernando, La Union",
   },
   {
-    companyName: "Palawan Raw Materials",
+    companyName: "Cordillera Twine Traders",
+    contactPerson: "Carlos Lim",
+    contactNumber: "0921-567-8905",
+    address: "Baguio City, Benguet",
+  },
+  {
+    companyName: "Cagayan Valley Materials",
     contactPerson: "Elena Dimaano",
     contactNumber: "0922-678-9016",
-    address: "Puerto Princesa, Palawan",
+    address: "Tuguegarao City, Cagayan",
+  },
+  {
+    companyName: "Bicol Thread & Sacks",
+    contactPerson: "Jun Bautista",
+    contactNumber: "0923-789-0127",
+    address: "Legazpi City, Albay",
+  },
+  {
+    companyName: "Cavite Plastics & Packaging",
+    contactPerson: "Rosa Garcia",
+    contactNumber: "0924-890-1238",
+    address: "Imus, Cavite",
   },
 ]
 
@@ -86,64 +103,147 @@ const SUPPLIER_DEFS = [
 
 interface ProductDef {
   name: string
-  category: "sacks" | "twines"
-  baseUom: "piece" | "roll"
-  weightPerUnit: number
+  category: "sacks" | "twines" | "thread"
+  baseUom: "piece" | "roll" | "cut"
+  conversionFactor: number | undefined
   lowStockThreshold: number
 }
 
 const PRODUCT_DEFS: ProductDef[] = [
+  // ── Sacks (9 products) ──
   {
-    name: "Rice Sack",
+    name: "Sack 50kg White",
     category: "sacks",
     baseUom: "piece",
-    weightPerUnit: 0,
+    conversionFactor: SACKS_PACK_SIZE,
     lowStockThreshold: 100,
   },
   {
-    name: "Gunny Sack",
+    name: "Sack 50kg Yellow",
     category: "sacks",
     baseUom: "piece",
-    weightPerUnit: 0,
+    conversionFactor: SACKS_PACK_SIZE,
     lowStockThreshold: 100,
   },
   {
-    name: "Flour Sack",
+    name: "Sack 25kg Pure White",
     category: "sacks",
     baseUom: "piece",
-    weightPerUnit: 0,
+    conversionFactor: SACKS_PACK_SIZE,
     lowStockThreshold: 100,
   },
   {
-    name: "Binder Twine",
+    name: "Sack 25kg Green",
+    category: "sacks",
+    baseUom: "piece",
+    conversionFactor: SACKS_PACK_SIZE,
+    lowStockThreshold: 100,
+  },
+  {
+    name: "Sack 25kg Green Stripe",
+    category: "sacks",
+    baseUom: "piece",
+    conversionFactor: SACKS_PACK_SIZE,
+    lowStockThreshold: 100,
+  },
+  {
+    name: "Sack 25kg Yellow",
+    category: "sacks",
+    baseUom: "piece",
+    conversionFactor: SACKS_PACK_SIZE,
+    lowStockThreshold: 100,
+  },
+  {
+    name: "Sack 25kg Light Blue",
+    category: "sacks",
+    baseUom: "piece",
+    conversionFactor: SACKS_PACK_SIZE,
+    lowStockThreshold: 100,
+  },
+  {
+    name: "Sibuyas Sack 10kg Red",
+    category: "sacks",
+    baseUom: "piece",
+    conversionFactor: SACKS_PACK_SIZE,
+    lowStockThreshold: 100,
+  },
+  {
+    name: "Calamansi Sack 35kg Red",
+    category: "sacks",
+    baseUom: "piece",
+    conversionFactor: SACKS_PACK_SIZE,
+    lowStockThreshold: 100,
+  },
+  // ── Twines (3 products) ──
+  {
+    name: "Blue Twine",
     category: "twines",
-    baseUom: "roll",
-    weightPerUnit: 20,
+    baseUom: "cut",
+    conversionFactor: TWINES_CUTS_PER_ROLL,
     lowStockThreshold: 50,
   },
   {
-    name: "Baler Twine",
+    name: "Yellow Twine",
     category: "twines",
-    baseUom: "roll",
-    weightPerUnit: 20,
+    baseUom: "cut",
+    conversionFactor: TWINES_CUTS_PER_ROLL,
     lowStockThreshold: 50,
   },
   {
-    name: "Sisal Twine",
+    name: "Black Twine",
     category: "twines",
-    baseUom: "roll",
-    weightPerUnit: 20,
+    baseUom: "cut",
+    conversionFactor: TWINES_CUTS_PER_ROLL,
     lowStockThreshold: 50,
+  },
+  // ── Thread (3 products) ──
+  {
+    name: "Sewing Thread Large",
+    category: "thread",
+    baseUom: "roll",
+    conversionFactor: undefined,
+    lowStockThreshold: 20,
+  },
+  {
+    name: "Sewing Thread Medium",
+    category: "thread",
+    baseUom: "roll",
+    conversionFactor: undefined,
+    lowStockThreshold: 20,
+  },
+  {
+    name: "Sewing Thread Small",
+    category: "thread",
+    baseUom: "roll",
+    conversionFactor: undefined,
+    lowStockThreshold: 20,
   },
 ]
 
-const PRODUCT_IMAGE_MAP: Record<string, string> = {
-  "Rice Sack": "kg274bbqe3y204k3t9rb9pkbv58773qm",
-  "Gunny Sack": "kg26bxcwgxghe3kgnfrngreh89876fjg",
-  "Flour Sack": "kg24nnbp9tc1gfb0n0krd9hw958764sw",
-  "Binder Twine": "kg28hxx2hbbcxyek93y5sxj9658773qy",
-  "Baler Twine": "kg2bxmmkvnrdp6fyzcg05ejdcn876kgt",
-  "Sisal Twine": "kg27da983b0880hwwvhn2khqqh8778en",
+// ─── Product image mapping (Cloudflare Image IDs) ──────────────────────────
+// Remapped to Model B product names.
+
+const IMAGE_MAP: Record<string, string> = {
+  // ── Sacks: 50kg ──
+  "Sack 50kg White": "kg28bj21gdww1w9g7zka61nd5s89b694",
+  "Sack 50kg Yellow": "kg293h2zvbecn0f32k9x1he6nx89a3m7",
+  // ── Sacks: 25kg ──
+  "Sack 25kg Pure White": "kg2aaqjzyv5qd4pggx9fb6kh4x89b07w",
+  "Sack 25kg Green": "kg210j12mbj55gc73t1jj8zvc989atbt",
+  "Sack 25kg Green Stripe": "kg2c93pc40cgj0qfb6kyxq9wv589bdme",
+  "Sack 25kg Yellow": "kg286mbpqvjgtt9334yjrwes8589a67h",
+  "Sack 25kg Light Blue": "kg259cban9tn9wsxq9y50s710n89asym",
+  // ── Sacks: Standalone ──
+  "Sibuyas Sack 10kg Red": "kg2a7dp7kytmcctk5y7g3me86x89an78",
+  "Calamansi Sack 35kg Red": "kg2ar0admzjtg8hefa9ndg5j6s89a3pt",
+  // ── Twines ──
+  "Blue Twine": "kg20nnhdxmm9g56txpac7hhav589aegb",
+  "Yellow Twine": "kg28sesk5s4qnvqmva9bpqcd6d89a5my",
+  "Black Twine": "kg2atf72azdmxgny30q4xax7rd89byby",
+  // ── Thread ──
+  "Sewing Thread Large": "kg2f7z73prpat7jgj3g9ty6e3d89bgnq",
+  "Sewing Thread Medium": "kg29hp7ytx4vt1n7wwcnhq7k0n89ba9c",
+  "Sewing Thread Small": "kg24jay9p731s20w2zfkccx9vs89bqwv",
 }
 
 // ─── Internal Mutation: writeAll ───────────────────────────────────────────
@@ -163,6 +263,36 @@ export const writeAll = internalMutation({
   },
   handler: async (ctx, { ownerId, staffId }) => {
     // ═══════════════════════════════════════════════════════════════════════
+    // 0. Clear existing seed data (children → parents order)
+    // ═══════════════════════════════════════════════════════════════════════
+    const [
+      oldDispatchItems,
+      oldLogs,
+      oldAdjustments,
+      oldDispatches,
+      oldBatches,
+      oldProducts,
+      oldSuppliers,
+    ] = await Promise.all([
+      ctx.db.query("dispatchItems").collect(),
+      ctx.db.query("auditLogs").collect(),
+      ctx.db.query("stockAdjustments").collect(),
+      ctx.db.query("dispatches").collect(),
+      ctx.db.query("batches").collect(),
+      ctx.db.query("products").collect(),
+      ctx.db.query("suppliers").collect(),
+    ])
+    await Promise.all([
+      ...oldDispatchItems.map((d) => ctx.db.delete(d._id)),
+      ...oldLogs.map((l) => ctx.db.delete(l._id)),
+      ...oldAdjustments.map((a) => ctx.db.delete(a._id)),
+      ...oldDispatches.map((d) => ctx.db.delete(d._id)),
+      ...oldBatches.map((b) => ctx.db.delete(b._id)),
+      ...oldProducts.map((p) => ctx.db.delete(p._id)),
+      ...oldSuppliers.map((s) => ctx.db.delete(s._id)),
+    ])
+
+    // ═══════════════════════════════════════════════════════════════════════
     // 1. Insert suppliers
     // ═══════════════════════════════════════════════════════════════════════
     // ═══════════════════════════════════════════════════════════════════════
@@ -178,12 +308,12 @@ export const writeAll = internalMutation({
             name: def.name,
             category: def.category,
             baseUom: def.baseUom,
-            weightPerUnit: def.weightPerUnit,
+            conversionFactor: def.conversionFactor,
             currentQuantity: 0,
             totalAssetValue: 0,
             lowStockThreshold: def.lowStockThreshold,
             status: "active",
-            imagePath: PRODUCT_IMAGE_MAP[def.name],
+            imagePath: IMAGE_MAP[def.name],
             createdAt: productCreatedAt.getTime(),
           })
           return { id, def }
@@ -214,7 +344,7 @@ export const writeAll = internalMutation({
     }> = []
 
     for (const { id: pId, def } of productList) {
-      const numBatches = rndInt(5, 12)
+      const numBatches = rndInt(2, 4)
       let lastDate = DATE_BASE
 
       for (let i = 0; i < numBatches; i++) {
@@ -229,12 +359,16 @@ export const writeAll = internalMutation({
         const unitCost =
           def.baseUom === "piece"
             ? toFloat(rndInt(45, 95) + Math.random())
-            : toFloat(rndInt(120, 280) + Math.random())
+            : def.baseUom === "roll"
+              ? toFloat(rndInt(80, 200) + Math.random())
+              : toFloat(rndInt(120, 280) + Math.random())
 
         const qty =
           def.baseUom === "piece"
-            ? rndInt(2000, 8000)
-            : toFloat(rndInt(5000, 15000) + Math.random())
+            ? rndInt(200, 800)
+            : def.baseUom === "roll"
+              ? rndInt(30, 100)
+              : toFloat(rndInt(100, 400) + Math.random())
 
         const batchCode = nextBatchCode()
         const batchId = await ctx.db.insert("batches", {
@@ -268,7 +402,7 @@ export const writeAll = internalMutation({
     // ═══════════════════════════════════════════════════════════════════════
     // 5. Insert dispatches + items (~100 dispatches, peak-weighted)
     // ═══════════════════════════════════════════════════════════════════════
-    const NUM_DISPATCHES = 1000
+    const NUM_DISPATCHES = 150
     const dispatchRecords: Array<{
       id: Id<"dispatches">
       userId: Id<"users">
@@ -278,14 +412,14 @@ export const writeAll = internalMutation({
       dispatchId: Id<"dispatches">
       batchId: Id<"batches">
       productId: Id<"products">
-      dispatchUom: "piece" | "kilo" | "roll"
+      dispatchUom: "piece" | "roll" | "cut"
       dispatchQuantity: number
       quantityDeducted: number
       unitCost: number
       createdAt: number
     }> = []
 
-    const peakStart = new Date("2025-10-01T00:00:00+08:00")
+    const peakStart = new Date("2025-09-01T00:00:00+08:00")
     const peakEnd = DATE_END
 
     // Build product → active batches index for O(1) lookups
@@ -346,14 +480,12 @@ export const writeAll = internalMutation({
         const dispatchQty =
           product.def.baseUom === "piece"
             ? rndInt(5, 50)
-            : toFloat(rndInt(2, 30) + Math.random())
+            : product.def.baseUom === "roll"
+              ? rndInt(1, 10)
+              : toFloat(rndInt(2, 30) + Math.random())
 
-        const qtyDeducted = toFloat(
-          product.def.baseUom === "piece"
-            ? dispatchQty
-            : dispatchQty * product.def.weightPerUnit,
-          4
-        )
+        const qtyDeducted =
+          product.def.baseUom === "cut" ? toFloat(dispatchQty) : dispatchQty
 
         // Find an active batch with enough remaining
         const productBatchesList = (
@@ -382,7 +514,9 @@ export const writeAll = internalMutation({
         const dispatchUom =
           product.def.baseUom === "piece"
             ? ("piece" as const)
-            : ("kilo" as const)
+            : product.def.baseUom === "roll"
+              ? ("roll" as const)
+              : ("cut" as const)
 
         dispatchItemsToInsert.push({
           dispatchId,
@@ -396,10 +530,10 @@ export const writeAll = internalMutation({
         })
 
         // Deduct from batch
-        batch.quantityRemaining = toFloat(
-          batch.quantityRemaining - qtyDeducted,
-          4
-        )
+        batch.quantityRemaining =
+          product.def.baseUom === "cut"
+            ? toFloat(batch.quantityRemaining - qtyDeducted)
+            : batch.quantityRemaining - qtyDeducted
 
         // Track depleted batches for O(1) exclusion
         if (batch.quantityRemaining <= 0) {
@@ -499,9 +633,9 @@ export const writeAll = internalMutation({
 
         const batch = rnd(activeBatches)
         const qty =
-          def.baseUom === "piece"
-            ? rndInt(1, 20)
-            : toFloat(rndInt(1, 20) + Math.random())
+          def.baseUom === "cut"
+            ? toFloat(rndInt(1, 20) + Math.random())
+            : rndInt(1, 20)
 
         const reason = rnd(reasons)
         const userId = rnd(userIds)
@@ -528,7 +662,10 @@ export const writeAll = internalMutation({
 
         // Apply to batch if not voided
         if (!isVoided) {
-          const newRemaining = toFloat(batch.quantityRemaining - qty)
+          const newRemaining =
+            def.baseUom === "cut"
+              ? toFloat(batch.quantityRemaining - qty)
+              : batch.quantityRemaining - qty
           batch.quantityRemaining = Math.max(0, newRemaining)
         }
       }
@@ -565,7 +702,7 @@ export const writeAll = internalMutation({
           0
         )
         const currentQuantity =
-          def.baseUom === "piece" ? Math.round(totalQty) : toFloat(totalQty)
+          def.baseUom === "cut" ? toFloat(totalQty) : Math.round(totalQty)
 
         let totalAssetValue = 0
         if (activeBatches.length > 0) {

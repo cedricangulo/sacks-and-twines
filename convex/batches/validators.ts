@@ -12,9 +12,13 @@ export const stockInArgs = {
   mode: z.union([z.literal("existing"), z.literal("new")]),
   productId: z.optional(zid("products")),
   name: z.optional(z.string().min(1).max(255)),
-  category: z.optional(z.union([z.literal("sacks"), z.literal("twines")])),
-  baseUom: z.optional(z.union([z.literal("piece"), z.literal("roll")])),
-  weightPerUnit: z.optional(z.number().min(0)),
+  category: z.optional(
+    z.union([z.literal("sacks"), z.literal("twines"), z.literal("thread")])
+  ),
+  baseUom: z.optional(
+    z.union([z.literal("piece"), z.literal("roll"), z.literal("cut")])
+  ),
+  conversionFactor: z.optional(z.number().min(0)),
   supplierId: zid("suppliers"),
   quantityReceived: positiveNumber,
   totalProcurementCost: positiveNumber,
@@ -30,9 +34,13 @@ export const updateBatchArgs = {
   supplierId: zid("suppliers"),
   quantityReceived: positiveNumber,
   totalProcurementCost: positiveNumber,
-  category: z.optional(z.union([z.literal("sacks"), z.literal("twines")])),
-  baseUom: z.optional(z.union([z.literal("piece"), z.literal("roll")])),
-  weightPerUnit: z.optional(z.number().min(0)),
+  category: z.optional(
+    z.union([z.literal("sacks"), z.literal("twines"), z.literal("thread")])
+  ),
+  baseUom: z.optional(
+    z.union([z.literal("piece"), z.literal("roll"), z.literal("cut")])
+  ),
+  conversionFactor: z.optional(z.number().min(0)),
   lowStockThreshold: z.optional(z.number().min(0)),
   ...auditMeta,
 }

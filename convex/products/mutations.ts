@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { internal } from "../_generated/api"
+import { DEFAULT_CONVERSION_FACTOR } from "../lib/constants"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import {
@@ -14,9 +15,9 @@ import {
  * Only active owners may create products.
  *
  * @param name - Product display name.
- * @param category - Either "sacks" or "twines".
- * @param baseUom - Base unit of measure ("piece" or "roll").
- * @param weightPerUnit - Weight per unit for kg conversions (optional).
+ * @param category - "sacks", "twines", or "thread".
+ * @param baseUom - Base unit of measure ("piece", "roll", or "cut").
+ * @param conversionFactor - Conversion factor for UOM conversions (optional).
  * @param lowStockThreshold - Quantity threshold for low-stock alerts (optional).
  * @param userAgent - Browser user agent for audit logging.
  * @returns The newly created product ID (`Id<"products">`).
@@ -25,7 +26,7 @@ export const create = zMutation({
   args: createProductArgs,
   handler: async (
     ctx,
-    { name, category, baseUom, weightPerUnit, lowStockThreshold, userAgent }
+    { name, category, baseUom, conversionFactor, lowStockThreshold, userAgent }
   ) => {
     const callerId = await getAuthUserId(ctx)
     if (callerId === null) throw new Error("Unauthorized")
@@ -65,7 +66,7 @@ export const create = zMutation({
       name,
       category,
       baseUom,
-      weightPerUnit: weightPerUnit ?? (category === "sacks" ? 0 : 20),
+      conversionFactor: conversionFactor ?? DEFAULT_CONVERSION_FACTOR[category],
       currentQuantity: 0,
       totalAssetValue: 0,
       lowStockThreshold: lowStockThreshold ?? 0,
@@ -92,9 +93,9 @@ export const create = zMutation({
  *
  * @param productId - ID of the product to update.
  * @param name - New display name.
- * @param category - New category ("sacks" or "twines").
- * @param baseUom - New base unit ("piece" or "roll").
- * @param weightPerUnit - Updated weight per unit.
+ * @param category - New category ("sacks", "twines", or "thread").
+ * @param baseUom - New base unit ("piece", "roll", or "cut").
+ * @param conversionFactor - Updated conversion factor.
  * @param lowStockThreshold - Updated low-stock threshold.
  * @param imageStorageId - New image storage ID (or null to clear).
  * @param userAgent - Browser user agent for audit logging.
@@ -109,7 +110,7 @@ export const update = zMutation({
       name,
       category,
       baseUom,
-      weightPerUnit,
+      conversionFactor,
       lowStockThreshold,
       imageStorageId,
       userAgent,
@@ -157,7 +158,7 @@ export const update = zMutation({
       name,
       category,
       baseUom,
-      weightPerUnit: weightPerUnit ?? (category === "sacks" ? 0 : 20),
+      conversionFactor: conversionFactor ?? DEFAULT_CONVERSION_FACTOR[category],
       lowStockThreshold: lowStockThreshold ?? 0,
     }
 
@@ -170,12 +171,12 @@ export const update = zMutation({
     const changes: Record<string, { old: unknown; new: unknown }> = {}
     if (name !== existing.name) changes.name = { old: existing.name, new: name }
     if (
-      weightPerUnit !== undefined &&
-      weightPerUnit !== existing.weightPerUnit
+      conversionFactor !== undefined &&
+      conversionFactor !== existing.conversionFactor
     ) {
-      changes.weight_per_unit = {
-        old: existing.weightPerUnit,
-        new: weightPerUnit,
+      changes.conversion_factor = {
+        old: existing.conversionFactor,
+        new: conversionFactor,
       }
     }
     if (

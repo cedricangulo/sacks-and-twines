@@ -10,6 +10,7 @@ export const CATEGORY_OPTIONS = [
   { value: "all", label: "All" },
   { value: "sacks", label: "Sacks" },
   { value: "twines", label: "Twines" },
+  { value: "thread", label: "Thread" },
 ] as const
 
 // Filter options for stock health status.

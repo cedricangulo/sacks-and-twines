@@ -4,6 +4,7 @@ import { useQuery } from "convex-helpers/react/cache"
 import type { SubmitEvent } from "react"
 import { useCallback, useMemo, useState } from "react"
 import { api } from "@/convex/_generated/api"
+import { DEFAULT_CONVERSION_FACTOR } from "@/convex/lib/constants"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import { useImageUpload } from "@/lib/hooks/use-image-upload"
 import { type StockInFieldErrors, validateStockIn } from "../validation"
@@ -27,7 +28,7 @@ type FieldLockState = Record<string, boolean>
 const LOCKED_FIELDS = [
   "category",
   "baseUom",
-  "weightPerUnit",
+  "conversionFactor",
   "supplierId",
   "lowStockThreshold",
 ] as const
@@ -41,7 +42,7 @@ const INITIAL_LOCKED_STATE = Object.fromEntries(
 interface FieldValues {
   category: string
   baseUom: string
-  weightPerUnit: string
+  conversionFactor: string
   supplierId: string
   lowStockThreshold: string
 }
@@ -50,7 +51,7 @@ interface FieldValues {
 const EMPTY_FIELDS: FieldValues = {
   category: "",
   baseUom: "",
-  weightPerUnit: "",
+  conversionFactor: "",
   supplierId: "",
   lowStockThreshold: "",
 }
@@ -130,7 +131,7 @@ export function useInventoryDialog() {
         setFields({
           category: product.category,
           baseUom: product.baseUom,
-          weightPerUnit: String(product.weightPerUnit ?? ""),
+          conversionFactor: String(product.conversionFactor ?? ""),
           supplierId: product.lastSupplierId ?? "",
           lowStockThreshold: String(product.lowStockThreshold ?? ""),
         })
@@ -155,7 +156,7 @@ export function useInventoryDialog() {
       setFields({
         category: selectedProduct.category,
         baseUom: selectedProduct.baseUom,
-        weightPerUnit: String(selectedProduct.weightPerUnit ?? ""),
+        conversionFactor: String(selectedProduct.conversionFactor ?? ""),
         supplierId: "",
         lowStockThreshold: String(selectedProduct.lowStockThreshold ?? ""),
       })
@@ -173,13 +174,26 @@ export function useInventoryDialog() {
     (value: string) => {
       setField("category", value)
       if (value === "sacks") {
-        setFields((prev) => ({ ...prev, baseUom: "piece", weightPerUnit: "0" }))
+        setFields((prev) => ({
+          ...prev,
+          baseUom: "piece",
+          conversionFactor: String(DEFAULT_CONVERSION_FACTOR.sacks),
+        }))
       }
       if (value === "twines") {
         setFields((prev) => ({
           ...prev,
+          baseUom: "cut",
+          conversionFactor: String(DEFAULT_CONVERSION_FACTOR.twines),
+        }))
+      }
+      if (value === "thread") {
+        setFields((prev) => ({
+          ...prev,
           baseUom: "roll",
-          weightPerUnit: "20",
+          conversionFactor: DEFAULT_CONVERSION_FACTOR.thread
+            ? String(DEFAULT_CONVERSION_FACTOR.thread)
+            : "",
         }))
       }
     },
@@ -221,16 +235,16 @@ export function useInventoryDialog() {
         name: mode === "new" ? formName || undefined : undefined,
         category:
           mode === "new" || (mode === "existing" && !locked.category)
-            ? (fields.category as "sacks" | "twines") || undefined
+            ? (fields.category as "sacks" | "twines" | "thread") || undefined
             : undefined,
         baseUom:
           mode === "new" || (mode === "existing" && !locked.baseUom)
-            ? (fields.baseUom as "piece" | "roll") || undefined
+            ? (fields.baseUom as "piece" | "roll" | "cut") || undefined
             : undefined,
-        weightPerUnit:
-          mode === "new" || (mode === "existing" && !locked.weightPerUnit)
-            ? fields.weightPerUnit
-              ? Number(fields.weightPerUnit)
+        conversionFactor:
+          mode === "new" || (mode === "existing" && !locked.conversionFactor)
+            ? fields.conversionFactor
+              ? Number(fields.conversionFactor)
               : undefined
             : undefined,
         supplierId:

@@ -13,7 +13,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { DispatchReadyProduct } from "@/features/products/validation"
 import { formatNumber } from "@/lib/formatters"
 import { getInitials } from "@/lib/utils"
@@ -23,21 +22,19 @@ interface Props {
   product: DispatchReadyProduct
 }
 
-// Card displaying a product for dispatch selection with quantity controls and unit toggle.
+// Card displaying a product for dispatch selection with quantity controls.
 export default function ProductCard({ product }: Props) {
   const {
     quantity,
-    dispatchUom,
     inputValue,
-    setInputValue,
     inputRef,
-    commitInput,
     isLowStock,
     isOutOfStock,
     isAtMax,
+    setInputValue,
+    commitInput,
     incrementQuantity,
     decrementQuantity,
-    setDispatchUom,
   } = useProductCard(product)
 
   return (
@@ -57,14 +54,21 @@ export default function ProductCard({ product }: Props) {
             {getInitials(product.name)}
           </div>
         )}
+        <div className="absolute top-4 left-4">
+          {isLowStock ? (
+            <Badge variant="warning">Low Stock</Badge>
+          ) : isOutOfStock ? (
+            <Badge variant="destructive">Out of Stock</Badge>
+          ) : null}
+        </div>
       </div>
       <CardHeader className="p-4 gap-0!">
-        {isLowStock ? (
-          <Badge variant="warning">Low Stock</Badge>
-        ) : isOutOfStock ? (
-          <Badge variant="destructive">Out of Stock</Badge>
-        ) : null}
-        <CardTitle>{product.name}</CardTitle>
+        <CardTitle
+          className="text-muted-foreground line-clamp-1"
+          title={product.name}
+        >
+          {product.name}
+        </CardTitle>
         <CardDescription>
           {/* <h5 className="type-sm">{product.skuCode}</h5> */}
           <p className="type-base text-foreground">
@@ -117,34 +121,6 @@ export default function ProductCard({ product }: Props) {
             <Plus />
           </Button>
         </ButtonGroup>
-
-        {product.category === "twines" ? (
-          <ToggleGroup
-            type="single"
-            value={dispatchUom === "kilo" ? "kilo" : "roll"}
-            onValueChange={(value) => {
-              if (value === "roll" || value === "kilo") {
-                setDispatchUom(value)
-              }
-            }}
-            variant="outline"
-            spacing={0}
-            className="w-full"
-          >
-            <ToggleGroupItem
-              value="roll"
-              className="flex-1 text-xs font-medium data-[state=on]:bg-secondary data-[state=on]:text-secondary-foreground"
-            >
-              Roll
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="kilo"
-              className="flex-1 text-xs font-medium data-[state=on]:bg-secondary data-[state=on]:text-secondary-foreground"
-            >
-              Kg
-            </ToggleGroupItem>
-          </ToggleGroup>
-        ) : null}
       </CardFooter>
     </Card>
   )

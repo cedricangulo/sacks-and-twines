@@ -57,7 +57,7 @@ export const getById = query({
       productName: product?.name ?? null,
       category: product?.category ?? null,
       baseUom: product?.baseUom ?? null,
-      weightPerUnit: product?.weightPerUnit ?? null,
+      conversionFactor: product?.conversionFactor ?? null,
       lowStockThreshold: product?.lowStockThreshold ?? null,
       imagePath: product?.imagePath ?? null,
       supplierName: supplier?.companyName ?? null,

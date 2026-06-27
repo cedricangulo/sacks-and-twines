@@ -59,7 +59,7 @@ describe("batch mutations", () => {
         name,
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 10,
@@ -117,7 +117,7 @@ describe("batch mutations", () => {
         name: "Phantom",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -286,7 +286,7 @@ describe("batch mutations", () => {
           name: "Archived Product",
           category: "sacks",
           baseUom: "piece",
-          weightPerUnit: 0,
+          conversionFactor: 0,
           currentQuantity: 0,
           totalAssetValue: 0,
           lowStockThreshold: 0,
@@ -326,7 +326,7 @@ describe("batch mutations", () => {
       name: "Brand New Product",
       category: "twines",
       baseUom: "roll",
-      weightPerUnit: 20,
+      conversionFactor: 20,
       supplierId,
       quantityReceived: 200,
       totalProcurementCost: 80000,
@@ -437,16 +437,13 @@ describe("batch mutations", () => {
       createSupplier(t, "Supplier"),
     ])
 
-    const { productId: _, batchCode } = await t.mutation(
-      api.batches.mutations.stockIn,
-      {
-        mode: "existing",
-        productId,
-        supplierId,
-        quantityReceived: 100,
-        totalProcurementCost: 50000,
-      }
-    )
+    await t.mutation(api.batches.mutations.stockIn, {
+      mode: "existing",
+      productId,
+      supplierId,
+      quantityReceived: 100,
+      totalProcurementCost: 50000,
+    })
 
     const [batches, newSupplierId] = await Promise.all([
       t.run(async (ctx) => {

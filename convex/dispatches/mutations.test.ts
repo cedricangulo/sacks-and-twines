@@ -59,9 +59,9 @@ describe("dispatch mutations", () => {
     t: ReturnType<typeof convexTest>,
     overrides?: Partial<{
       name: string
-      category: "sacks" | "twines"
-      baseUom: "piece" | "roll"
-      weightPerUnit: number
+      category: "sacks" | "twines" | "thread"
+      baseUom: "piece" | "roll" | "cut"
+      conversionFactor: number
       currentQuantity: number
       totalAssetValue: number
       status: "active" | "archived"
@@ -73,7 +73,7 @@ describe("dispatch mutations", () => {
         name: overrides?.name ?? "Test Product",
         category: overrides?.category ?? "sacks",
         baseUom: overrides?.baseUom ?? "piece",
-        weightPerUnit: overrides?.weightPerUnit ?? 0,
+        conversionFactor: overrides?.conversionFactor ?? 0,
         currentQuantity: overrides?.currentQuantity ?? 0,
         totalAssetValue: overrides?.totalAssetValue ?? 0,
         lowStockThreshold: 10,
@@ -126,7 +126,7 @@ describe("dispatch mutations", () => {
         name: "Phantom",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -445,85 +445,6 @@ describe("dispatch mutations", () => {
     })
   })
 
-  it("dispatches twines in kilos with correct conversion", async () => {
-    const t = makeTest()
-    const userId = await createUser(t)
-    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
-
-    const [productId, supplierId] = await Promise.all([
-      createProduct(t, {
-        name: "Test Twine",
-        category: "twines",
-        baseUom: "roll",
-        weightPerUnit: 20,
-        currentQuantity: 50,
-        totalAssetValue: 50000,
-      }),
-      createSupplier(t),
-    ])
-    await createBatch(t, {
-      productId,
-      supplierId,
-      userId,
-      quantityReceived: 50,
-      quantityRemaining: 50,
-      unitCost: 1000,
-    })
-
-    // Dispatch 100 kg = 5 rolls (20 kg each)
-    const result = await t.mutation(api.dispatches.mutations.submit, {
-      items: [{ productId, quantity: 100, dispatchUom: "kilo" }],
-    })
-
-    await t.run(async (ctx) => {
-      const items = await ctx.db
-        .query("dispatchItems")
-        .filter((q) => q.eq(q.field("dispatchId"), result.dispatchId))
-        .collect()
-
-      expect(items).toHaveLength(1)
-      // 100 kg / 20 kg per roll = 5 rolls deducted
-      expect(items[0].dispatchQuantity).toBe(100)
-      expect(items[0].quantityDeducted).toBe(5)
-      expect(items[0].dispatchUom).toBe("kilo")
-
-      // Check product
-      const product = await ctx.db.get(productId)
-      expect(product!.currentQuantity).toBe(45)
-    })
-  })
-
-  it("throws when dispatching kg but product has no weightPerUnit", async () => {
-    const t = makeTest()
-    const userId = await createUser(t)
-    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
-
-    const [productId, supplierId] = await Promise.all([
-      createProduct(t, {
-        name: "No Weight Twine",
-        category: "twines",
-        baseUom: "roll",
-        weightPerUnit: 0,
-        currentQuantity: 50,
-      }),
-      createSupplier(t),
-    ])
-    await createBatch(t, {
-      productId,
-      supplierId,
-      userId,
-      quantityReceived: 50,
-      quantityRemaining: 50,
-      unitCost: 1000,
-    })
-
-    await expect(
-      t.mutation(api.dispatches.mutations.submit, {
-        items: [{ productId, quantity: 100, dispatchUom: "kilo" }],
-      })
-    ).rejects.toThrow("weight-per-unit")
-  })
-
   it("throws when sack quantity has decimal", async () => {
     const t = makeTest()
     const userId = await createUser(t)
@@ -552,38 +473,6 @@ describe("dispatch mutations", () => {
         items: [{ productId, quantity: 1.5, dispatchUom: "piece" }],
       })
     ).rejects.toThrow("whole units")
-  })
-
-  it("allows twine quantity with decimal", async () => {
-    const t = makeTest()
-    const userId = await createUser(t)
-    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
-
-    const [productId, supplierId] = await Promise.all([
-      createProduct(t, {
-        name: "Test Twine",
-        category: "twines",
-        baseUom: "roll",
-        weightPerUnit: 20,
-        currentQuantity: 50,
-        totalAssetValue: 50000,
-      }),
-      createSupplier(t),
-    ])
-    await createBatch(t, {
-      productId,
-      supplierId,
-      userId,
-      quantityReceived: 50,
-      quantityRemaining: 50,
-      unitCost: 1000,
-    })
-
-    const result = await t.mutation(api.dispatches.mutations.submit, {
-      items: [{ productId, quantity: 1.5, dispatchUom: "kilo" }],
-    })
-
-    expect(result.dispatchId).toBeDefined()
   })
 
   it("throws when insufficient stock", async () => {

@@ -16,7 +16,7 @@ export const submitDispatchArgs = {
         dispatchUom: z.union([
           z.literal("piece"),
           z.literal("roll"),
-          z.literal("kilo"),
+          z.literal("cut"),
         ]),
       })
     )

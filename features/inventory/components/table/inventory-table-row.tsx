@@ -32,7 +32,14 @@ export default function InventoryTableRow({
           )
         }
         return (
-          <TableCell key={cell.id}>
+          <TableCell
+            key={cell.id}
+            className={
+              cell.column.id === "name"
+                ? "whitespace-normal max-w-62.5"
+                : undefined
+            }
+          >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </TableCell>
         )

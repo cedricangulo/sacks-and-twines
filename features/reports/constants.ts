@@ -99,8 +99,8 @@ export const EXPORT_PRODUCT_COLUMNS: ExportColumn[] = [
     required: false,
   },
   {
-    id: "weightPerUnit",
-    label: "Weight Per Unit",
+    id: "conversionFactor",
+    label: "Conversion Factor",
     section: "Inventory",
     required: false,
   },

@@ -11,7 +11,6 @@ interface DispatchQueueContextValue {
   incrementQuantity: (product: DispatchReadyProduct) => void
   decrementQuantity: (productId: string) => void
   setQuantity: (product: DispatchReadyProduct, quantity: number) => void
-  setDispatchUom: (productId: string, uom: "roll" | "kilo") => void
   removeFromQueue: (productId: string) => void
   clearQueue: () => void
   isInQueue: (productId: string) => boolean

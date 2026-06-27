@@ -126,7 +126,7 @@ describe("product mutations", () => {
       name: "New Product",
       category: "twines",
       baseUom: "roll",
-      weightPerUnit: 20,
+      conversionFactor: 20,
       lowStockThreshold: 5,
     })
 
@@ -140,7 +140,7 @@ describe("product mutations", () => {
       name: "New Product",
       category: "twines",
       baseUom: "roll",
-      weightPerUnit: 20,
+      conversionFactor: 20,
       currentQuantity: 0,
       totalAssetValue: 0,
       lowStockThreshold: 5,
@@ -160,7 +160,7 @@ describe("product mutations", () => {
         name: "Temp",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -195,7 +195,7 @@ describe("product mutations", () => {
         name: "Old Name",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -229,7 +229,7 @@ describe("product mutations", () => {
         name: "Old Product",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 100,
         totalAssetValue: 50000,
         lowStockThreshold: 10,
@@ -242,7 +242,7 @@ describe("product mutations", () => {
       name: "Updated Product",
       category: "twines",
       baseUom: "roll",
-      weightPerUnit: 20,
+      conversionFactor: 20,
       lowStockThreshold: 5,
     })
 
@@ -254,7 +254,7 @@ describe("product mutations", () => {
       name: "Updated Product",
       category: "twines",
       baseUom: "roll",
-      weightPerUnit: 20,
+      conversionFactor: 20,
       currentQuantity: 100,
       totalAssetValue: 50000,
       lowStockThreshold: 5,
@@ -277,7 +277,7 @@ describe("product mutations", () => {
         name: "Product A",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -290,7 +290,7 @@ describe("product mutations", () => {
         name: "Product B",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -325,7 +325,7 @@ describe("product mutations", () => {
           name: "Locked Product",
           category: "sacks",
           baseUom: "piece",
-          weightPerUnit: 0,
+          conversionFactor: 0,
           currentQuantity: 100,
           totalAssetValue: 50000,
           lowStockThreshold: 10,
@@ -385,7 +385,7 @@ describe("product mutations", () => {
           name: "Locked Product 2",
           category: "sacks",
           baseUom: "piece",
-          weightPerUnit: 0,
+          conversionFactor: 0,
           currentQuantity: 50,
           totalAssetValue: 25000,
           lowStockThreshold: 5,
@@ -444,7 +444,7 @@ describe("product mutations", () => {
         name: "Free Product",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -457,7 +457,7 @@ describe("product mutations", () => {
       name: "Changed Product",
       category: "twines",
       baseUom: "roll",
-      weightPerUnit: 20,
+      conversionFactor: 20,
       lowStockThreshold: 5,
     })
 
@@ -469,14 +469,14 @@ describe("product mutations", () => {
       name: "Changed Product",
       category: "twines",
       baseUom: "roll",
-      weightPerUnit: 20,
+      conversionFactor: 20,
       lowStockThreshold: 5,
     })
   })
 
   // ── Edge cases ────────────────────────────────────────────
 
-  it("create sets default weightPerUnit = 0 for sacks", async () => {
+  it("create sets default conversionFactor = 50 for sacks", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
       email: "owner@test.com",
@@ -495,10 +495,10 @@ describe("product mutations", () => {
     const product = await t.run(async (ctx) => {
       return await ctx.db.get(productId)
     })
-    expect(product?.weightPerUnit).toBe(0)
+    expect(product?.conversionFactor).toBe(50)
   })
 
-  it("create sets default weightPerUnit = 20 for twines", async () => {
+  it("create sets default conversionFactor = 50 for twines", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
       email: "owner@test.com",
@@ -517,7 +517,7 @@ describe("product mutations", () => {
     const product = await t.run(async (ctx) => {
       return await ctx.db.get(productId)
     })
-    expect(product?.weightPerUnit).toBe(20)
+    expect(product?.conversionFactor).toBe(50)
   })
 
   it("create sets default lowStockThreshold = 0", async () => {
@@ -583,7 +583,7 @@ describe("product mutations", () => {
         name: "Temp",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -643,7 +643,7 @@ describe("product mutations", () => {
         name: "Archive Test",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -672,7 +672,7 @@ describe("product mutations", () => {
         name: "Staff Archive",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -701,7 +701,7 @@ describe("product mutations", () => {
         name: "To Archive",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 50,
         totalAssetValue: 25000,
         lowStockThreshold: 5,
@@ -736,7 +736,7 @@ describe("product mutations", () => {
         name: "Double Archive",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -765,7 +765,7 @@ describe("product mutations", () => {
         name: "Temp",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -796,7 +796,7 @@ describe("product mutations", () => {
         name: "Audit Archive",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -830,7 +830,7 @@ describe("product mutations", () => {
         name: "Unarchive Test",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -859,7 +859,7 @@ describe("product mutations", () => {
         name: "Staff Unarchive",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -888,7 +888,7 @@ describe("product mutations", () => {
         name: "To Restore",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 30,
         totalAssetValue: 15000,
         lowStockThreshold: 5,
@@ -923,7 +923,7 @@ describe("product mutations", () => {
         name: "Already Active",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -952,7 +952,7 @@ describe("product mutations", () => {
         name: "Temp",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -983,7 +983,7 @@ describe("product mutations", () => {
         name: "Audit Restore",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,
@@ -1021,7 +1021,7 @@ describe("product mutations", () => {
         name: "Before Update",
         category: "sacks",
         baseUom: "piece",
-        weightPerUnit: 0,
+        conversionFactor: 0,
         currentQuantity: 0,
         totalAssetValue: 0,
         lowStockThreshold: 0,

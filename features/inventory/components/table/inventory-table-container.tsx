@@ -54,8 +54,10 @@ export default function InventoryTableContainer({
     () => [
       columnHelper.accessor("name", {
         header: "Product Name",
+        size: 250,
+        minSize: 150,
         cell: (info) => (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <ChevronDown
               size={16}
               className={cn(
@@ -67,11 +69,13 @@ export default function InventoryTableContainer({
                 )?.expandedProductId === info.row.original._id && "rotate-180"
               )}
             />
-            <Avatar className="border rounded">
+            <Avatar className="border rounded shrink-0">
               <AvatarImage src={info.row.original.imageUrl ?? ""} />
               <AvatarFallback>{getInitials(info.getValue())}</AvatarFallback>
             </Avatar>
-            <span className="font-medium">{info.getValue()}</span>
+            <span className="font-medium type-sm line-clamp-2 min-w-0">
+              {info.getValue()}
+            </span>
           </div>
         ),
         sortingFn: "alphanumeric",

@@ -9,9 +9,13 @@ const auditMeta = {
 // Arguments for creating a product.
 export const createProductArgs = {
   name: normalizedString(1, 255),
-  category: z.union([z.literal("sacks"), z.literal("twines")]),
-  baseUom: z.union([z.literal("piece"), z.literal("roll")]),
-  weightPerUnit: z.optional(z.number().min(0)),
+  category: z.union([
+    z.literal("sacks"),
+    z.literal("twines"),
+    z.literal("thread"),
+  ]),
+  baseUom: z.union([z.literal("piece"), z.literal("roll"), z.literal("cut")]),
+  conversionFactor: z.optional(z.number().min(0)),
   lowStockThreshold: z.optional(z.number().min(0)),
   ...auditMeta,
 }

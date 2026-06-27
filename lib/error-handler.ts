@@ -87,10 +87,11 @@ const errorPatterns: ErrorPattern[] = [
   // ── Stock / inventory ───────────────────────────────────
   {
     match: "Insufficient stock for",
-    result: (message: string) => ({
+    result: {
       title: "Insufficient stock",
-      description: message,
-    }),
+      description:
+        "Not enough stock available to fulfill the requested quantity.",
+    },
   },
 
   // ── Dispatch ────────────────────────────────────────────

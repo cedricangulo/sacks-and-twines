@@ -17,9 +17,9 @@ export interface DispatchReadyProduct {
   _creationTime: number
   skuCode: string
   name: string
-  category: "sacks" | "twines"
-  baseUom: "piece" | "roll"
-  weightPerUnit?: number
+  category: "sacks" | "twines" | "thread"
+  baseUom: "piece" | "roll" | "cut"
+  conversionFactor?: number
   currentQuantity: number
   totalAssetValue: number
   lowStockThreshold: number
@@ -33,9 +33,13 @@ export interface DispatchReadyProduct {
 // Zod schema for product update form data.
 const ProductUpdateSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
-  category: z.union([z.literal("sacks"), z.literal("twines")]),
-  baseUom: z.union([z.literal("piece"), z.literal("roll")]),
-  weightPerUnit: z.optional(z.number().min(0)),
+  category: z.union([
+    z.literal("sacks"),
+    z.literal("twines"),
+    z.literal("thread"),
+  ]),
+  baseUom: z.union([z.literal("piece"), z.literal("roll"), z.literal("cut")]),
+  conversionFactor: z.optional(z.number().min(0)),
   lowStockThreshold: z.optional(z.number().min(0)),
 })
 
