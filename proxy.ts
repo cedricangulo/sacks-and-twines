@@ -18,6 +18,14 @@ const isProtectedRoute = createRouteMatcher([
   "/reports(.*)",
 ])
 
+const isOwnerOnlyRoute = createRouteMatcher([
+  "/dashboard(.*)",
+  "/inventory(.*)",
+  "/suppliers(.*)",
+  "/users(.*)",
+  "/reports(.*)",
+])
+
 const isSignInPage = createRouteMatcher(["/sign-in"])
 
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
@@ -41,6 +49,19 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
       role = decoded?.role
     } catch {
       return nextjsMiddlewareRedirect(request, "/sign-in")
+    }
+
+    if (isOwnerOnlyRoute(request) && role !== "owner") {
+      return nextjsMiddlewareRedirect(request, "/products")
+    }
+
+    const pathname = request.nextUrl.pathname
+    const isAuditLogsOwnerOnly =
+      pathname === "/audit-logs" ||
+      (pathname.startsWith("/audit-logs/") &&
+        !pathname.startsWith("/audit-logs/personal"))
+    if (isAuditLogsOwnerOnly && role !== "owner") {
+      return nextjsMiddlewareRedirect(request, "/products")
     }
 
     const requestHeaders = new Headers(request.headers)

@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { forbidden, usePathname } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { ReactNode, ViewTransition } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import {
@@ -11,7 +11,6 @@ import {
 } from "@/components/page-header-context"
 import { StaffHeader } from "@/components/staff-header"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
   SidebarProvider,
@@ -23,26 +22,6 @@ import LoadingPage from "./loading-page"
 interface Props {
   children: ReactNode
   initialRole?: string
-}
-
-const OWNER_ONLY_ROOTS = [
-  "/inventory",
-  "/suppliers",
-  "/users",
-  "/dashboard",
-  "/reports",
-]
-
-function isOwnerOnlyPath(pathname: string): boolean {
-  if (pathname === "/audit-logs" || pathname === "/audit-logs/") return true
-  if (
-    pathname.startsWith("/audit-logs/") &&
-    !pathname.startsWith("/audit-logs/personal")
-  )
-    return true
-  return OWNER_ONLY_ROOTS.some(
-    (root) => pathname === root || pathname.startsWith(root + "/")
-  )
 }
 
 function titleFromPathname(pathname: string): string {
@@ -85,17 +64,12 @@ function PageHeaderBar() {
 
 export function DashboardShell({ children, initialRole }: Props) {
   const { user } = useCurrentUser()
-  const pathname = usePathname()
 
   const role = user?.role ?? initialRole
 
   if (!role) return <LoadingPage />
 
   if (role === "staff") {
-    if (isOwnerOnlyPath(pathname)) {
-      return forbidden()
-    }
-
     return (
       <PageHeaderProvider>
         <div className="flex flex-col min-h-screen">
@@ -120,37 +94,41 @@ export function DashboardShell({ children, initialRole }: Props) {
     )
   }
 
-  return (
-    <PageHeaderProvider>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <header
-            className="flex h-16 shrink-0 items-center gap-2 overflow-hidden transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
-            style={{ viewTransitionName: "site-header" }}
-          >
-            <div className="flex items-center flex-1 min-w-0 gap-4 px-4">
-              <SidebarTrigger className="-ml-1 shrink-0" />
-              <PageHeaderBar />
-            </div>
-          </header>
-          <ViewTransition
-            enter={{
-              "nav-forward": "nav-forward",
-              "nav-back": "nav-back",
-              default: "x-fade",
-            }}
-            exit={{
-              "nav-forward": "nav-forward",
-              "nav-back": "nav-back",
-              default: "x-fade",
-            }}
-            default="x-fade"
-          >
-            <main suppressHydrationWarning>{children}</main>
-          </ViewTransition>
-        </SidebarInset>
-      </SidebarProvider>
-    </PageHeaderProvider>
-  )
+  if (role === "owner") {
+    return (
+      <PageHeaderProvider>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <header
+              className="flex h-16 shrink-0 items-center gap-2 overflow-hidden transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
+              style={{ viewTransitionName: "site-header" }}
+            >
+              <div className="flex items-center flex-1 min-w-0 gap-4 px-4">
+                <SidebarTrigger className="-ml-1 shrink-0" />
+                <PageHeaderBar />
+              </div>
+            </header>
+            <ViewTransition
+              enter={{
+                "nav-forward": "nav-forward",
+                "nav-back": "nav-back",
+                default: "x-fade",
+              }}
+              exit={{
+                "nav-forward": "nav-forward",
+                "nav-back": "nav-back",
+                default: "x-fade",
+              }}
+              default="x-fade"
+            >
+              <main suppressHydrationWarning>{children}</main>
+            </ViewTransition>
+          </SidebarInset>
+        </SidebarProvider>
+      </PageHeaderProvider>
+    )
+  }
+
+  return <LoadingPage />
 }

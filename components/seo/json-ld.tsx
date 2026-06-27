@@ -1,3 +1,5 @@
+import Script from "next/script"
+
 function escapeJsonLd(value: unknown): string {
   return JSON.stringify(value)
     .replace(/</g, "\\u003c")
@@ -6,13 +8,16 @@ function escapeJsonLd(value: unknown): string {
 }
 
 type JsonLdProps = {
+  id: string
   data: Record<string, unknown>
 }
 
-export function JsonLd({ data }: JsonLdProps) {
+export function JsonLd({ id, data }: JsonLdProps) {
   return (
-    <script type="application/ld+json" suppressHydrationWarning>
-      {escapeJsonLd(data)}
-    </script>
+    <Script
+      id={id}
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: escapeJsonLd(data) }}
+    />
   )
 }

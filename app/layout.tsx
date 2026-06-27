@@ -112,8 +112,8 @@ export default function RootLayout({
         )}
       >
         <body>
-          <JsonLd data={websiteSchema} />
-          <JsonLd data={articleSchema} />
+          <JsonLd id="website-schema" data={websiteSchema} />
+          <JsonLd id="article-schema" data={articleSchema} />
           <Providers>{children}</Providers>
         </body>
       </html>

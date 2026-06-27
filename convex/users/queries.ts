@@ -45,6 +45,9 @@ export const listNames = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
+    const caller = await ctx.db.get(userId)
+    if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
+
     const users = await ctx.db.query("users").collect()
     return users.map((u) => ({ _id: u._id, name: u.name }))
   },
