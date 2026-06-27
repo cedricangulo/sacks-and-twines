@@ -7,8 +7,7 @@ const containerStyle = {
   flexDirection: "column" as const,
   alignItems: "center",
   justifyContent: "center",
-  background:
-    "linear-gradient(180deg, #615fff 0%, #372aac 50%, #1447e6 100%)",
+  background: "linear-gradient(180deg, #615fff 0%, #372aac 50%, #1447e6 100%)",
   fontFamily: '"Nunito Sans", sans-serif',
 }
 
