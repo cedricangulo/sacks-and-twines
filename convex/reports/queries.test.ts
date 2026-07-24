@@ -48,7 +48,7 @@ async function createProduct(
     skuCode: string
     name: string
     category: "sacks" | "twines" | "thread"
-    baseUom: "piece" | "roll" | "cut"
+    baseUom: "piece" | "roll" | "meter"
     currentQuantity: number
     totalAssetValue: number
     lowStockThreshold: number
@@ -150,7 +150,7 @@ async function createDispatchItem(
     dispatchId: Id<"dispatches">
     batchId: Id<"batches">
     productId: Id<"products">
-    dispatchUom?: "piece" | "roll" | "cut"
+    dispatchUom?: "piece" | "roll" | "meter"
     dispatchQuantity?: number
     quantityDeducted?: number
     unitCost?: number
@@ -761,7 +761,7 @@ describe("exportDispatchItems", () => {
       dispatchId,
       batchId,
       productId,
-      dispatchUom: "cut",
+      dispatchUom: "meter",
       dispatchQuantity: 20,
       quantityDeducted: 20,
       unitCost: 15,
@@ -782,7 +782,7 @@ describe("exportDispatchItems", () => {
       dispatchedBy: "Dispatcher",
       product: "Product X",
       batchCode: "BATCH-123",
-      dispatchUom: "cut",
+      dispatchUom: "meter",
       dispatchQty: 20,
       qtyDeducted: 20,
       unitCost: 15,

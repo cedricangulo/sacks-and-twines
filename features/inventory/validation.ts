@@ -10,7 +10,7 @@ export interface Product {
   skuCode: string
   name: string
   category: "sacks" | "twines" | "thread"
-  baseUom: "piece" | "roll" | "cut"
+  baseUom: "piece" | "roll" | "meter"
   conversionFactor?: number
   currentQuantity: number
   totalAssetValue: number
@@ -62,7 +62,7 @@ const StockInSchema = z.object({
     z.union([z.literal("sacks"), z.literal("twines"), z.literal("thread")])
   ),
   baseUom: z.optional(
-    z.union([z.literal("piece"), z.literal("roll"), z.literal("cut")])
+    z.union([z.literal("piece"), z.literal("roll"), z.literal("meter")])
   ),
   conversionFactor: z.optional(z.number().min(0)),
   supplierId: z.string().min(1, "Supplier is required"),
@@ -102,7 +102,7 @@ const BatchUpdateSchema = z.object({
     z.union([z.literal("sacks"), z.literal("twines"), z.literal("thread")])
   ),
   baseUom: z.optional(
-    z.union([z.literal("piece"), z.literal("roll"), z.literal("cut")])
+    z.union([z.literal("piece"), z.literal("roll"), z.literal("meter")])
   ),
   conversionFactor: z.optional(z.number().min(0)),
   lowStockThreshold: z.optional(z.number().min(0)),

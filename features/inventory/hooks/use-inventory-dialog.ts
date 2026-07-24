@@ -183,7 +183,7 @@ export function useInventoryDialog() {
       if (value === "twines") {
         setFields((prev) => ({
           ...prev,
-          baseUom: "cut",
+          baseUom: "meter",
           conversionFactor: String(DEFAULT_CONVERSION_FACTOR.twines),
         }))
       }
@@ -239,7 +239,7 @@ export function useInventoryDialog() {
             : undefined,
         baseUom:
           mode === "new" || (mode === "existing" && !locked.baseUom)
-            ? (fields.baseUom as "piece" | "roll" | "cut") || undefined
+            ? (fields.baseUom as "piece" | "roll" | "meter") || undefined
             : undefined,
         conversionFactor:
           mode === "new" || (mode === "existing" && !locked.conversionFactor)

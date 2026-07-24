@@ -16,7 +16,7 @@ import {
  *
  * @param name - Product display name.
  * @param category - "sacks", "twines", or "thread".
- * @param baseUom - Base unit of measure ("piece", "roll", or "cut").
+ * @param baseUom - Base unit of measure ("piece", "roll", or "meter").
  * @param conversionFactor - Conversion factor for UOM conversions (optional).
  * @param lowStockThreshold - Quantity threshold for low-stock alerts (optional).
  * @param userAgent - Browser user agent for audit logging.
@@ -94,7 +94,7 @@ export const create = zMutation({
  * @param productId - ID of the product to update.
  * @param name - New display name.
  * @param category - New category ("sacks", "twines", or "thread").
- * @param baseUom - New base unit ("piece", "roll", or "cut").
+ * @param baseUom - New base unit ("piece", "roll", or "meter").
  * @param conversionFactor - Updated conversion factor.
  * @param lowStockThreshold - Updated low-stock threshold.
  * @param imageStorageId - New image storage ID (or null to clear).

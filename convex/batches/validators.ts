@@ -16,7 +16,7 @@ export const stockInArgs = {
     z.union([z.literal("sacks"), z.literal("twines"), z.literal("thread")])
   ),
   baseUom: z.optional(
-    z.union([z.literal("piece"), z.literal("roll"), z.literal("cut")])
+    z.union([z.literal("piece"), z.literal("roll"), z.literal("meter")])
   ),
   conversionFactor: z.optional(z.number().min(0)),
   supplierId: zid("suppliers"),
@@ -38,7 +38,7 @@ export const updateBatchArgs = {
     z.union([z.literal("sacks"), z.literal("twines"), z.literal("thread")])
   ),
   baseUom: z.optional(
-    z.union([z.literal("piece"), z.literal("roll"), z.literal("cut")])
+    z.union([z.literal("piece"), z.literal("roll"), z.literal("meter")])
   ),
   conversionFactor: z.optional(z.number().min(0)),
   lowStockThreshold: z.optional(z.number().min(0)),

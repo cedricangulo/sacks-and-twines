@@ -60,7 +60,7 @@ describe("dispatch mutations", () => {
     overrides?: Partial<{
       name: string
       category: "sacks" | "twines" | "thread"
-      baseUom: "piece" | "roll" | "cut"
+      baseUom: "piece" | "roll" | "meter"
       conversionFactor: number
       currentQuantity: number
       totalAssetValue: number

@@ -6,12 +6,8 @@ import type { DispatchReadyProduct } from "@/features/products/validation"
 
 // Manages a single product card's quantity input and stock-status indicators.
 export function useProductCard(product: DispatchReadyProduct) {
-  const {
-    items,
-    incrementQuantity,
-    decrementQuantity,
-    setQuantity,
-  } = useDispatchQueueContext()
+  const { items, incrementQuantity, decrementQuantity, setQuantity } =
+    useDispatchQueueContext()
 
   const queueItem = items.find((i) => i.productId === product._id)
   const quantity = queueItem?.quantity ?? 0

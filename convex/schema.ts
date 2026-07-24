@@ -35,7 +35,7 @@ export default defineSchema({
       v.literal("twines"),
       v.literal("thread")
     ),
-    baseUom: v.union(v.literal("piece"), v.literal("roll"), v.literal("cut")),
+    baseUom: v.union(v.literal("piece"), v.literal("roll"), v.literal("meter")),
     conversionFactor: v.optional(v.number()),
     currentQuantity: v.number(),
     totalAssetValue: v.number(),
@@ -96,7 +96,7 @@ export default defineSchema({
     dispatchUom: v.union(
       v.literal("piece"),
       v.literal("roll"),
-      v.literal("cut")
+      v.literal("meter")
     ),
     dispatchQuantity: v.number(),
     quantityDeducted: v.number(),
