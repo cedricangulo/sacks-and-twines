@@ -1,5 +1,6 @@
 "use client"
 
+import { CaretDownIcon } from "@phosphor-icons/react"
 import type { VisibilityState } from "@tanstack/react-table"
 import {
   createColumnHelper,
@@ -8,7 +9,6 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
-import { ChevronDown } from "lucide-react"
 import type { Dispatch, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -58,7 +58,8 @@ export default function InventoryTableContainer({
         minSize: 150,
         cell: (info) => (
           <div className="flex items-center gap-2 min-w-0">
-            <ChevronDown
+            <CaretDownIcon
+              weight="fill"
               size={16}
               className={cn(
                 "text-muted-foreground transition-all duration-200 shrink-0",

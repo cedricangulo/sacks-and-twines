@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeftIcon } from "@phosphor-icons/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ReactNode, ViewTransition } from "react"
@@ -47,7 +47,7 @@ function PageHeaderBar() {
         {backHref ? (
           <Button variant="ghost" size="icon" className="shrink-0" asChild>
             <Link href={backHref} transitionTypes={["nav-back"]}>
-              <ArrowLeft />
+              <ArrowLeftIcon weight="fill" />
             </Link>
           </Button>
         ) : null}

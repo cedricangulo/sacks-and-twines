@@ -1,11 +1,12 @@
 "use client"
 
-import { Loader2, XIcon } from "lucide-react"
+import { XIcon } from "@phosphor-icons/react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Spinner } from "@/components/ui/spinner"
 import { formatNumber } from "@/lib/formatters"
 import { getInitials } from "@/lib/utils"
 import { useDispatchQueueContext } from "../hooks/dispatch-queue-context"
@@ -71,7 +72,7 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
                   onClick={() => removeFromQueue(item.productId)}
                   aria-label={`Remove ${item.name} from dispatch queue`}
                 >
-                  <XIcon />
+                  <XIcon weight="bold" />
                 </Button>
               </li>
             ))}
@@ -95,7 +96,7 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="animate-spin" />
+              <Spinner />
               Dispatching&hellip;
             </>
           ) : (

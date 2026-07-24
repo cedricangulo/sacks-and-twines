@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2Icon, TriangleAlertIcon } from "lucide-react"
+import { SpinnerGapIcon, WarningIcon } from "@phosphor-icons/react"
 import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -64,7 +64,11 @@ export default function VoidBatchDialog({
 
         {!detail ? (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <Loader2Icon size={20} className="mr-2 animate-spin" />
+            <SpinnerGapIcon
+              weight="fill"
+              size={20}
+              className="mr-2 animate-spin"
+            />
             Loading&hellip;
           </div>
         ) : (
@@ -110,7 +114,8 @@ export default function VoidBatchDialog({
             {/* Warning card */}
             <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
               <div className="mb-3 flex items-center gap-2">
-                <TriangleAlertIcon
+                <WarningIcon
+                  weight="fill"
                   size={18}
                   className="shrink-0 text-destructive"
                 />

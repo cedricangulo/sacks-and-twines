@@ -1,6 +1,6 @@
 "use client"
 
-import { SearchIcon, UploadIcon, XIcon } from "lucide-react"
+import { MagnifyingGlassIcon, UploadIcon, XIcon } from "@phosphor-icons/react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,7 +77,10 @@ export default function AuditLogFilterBar({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative max-w-xs grow">
-        <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <MagnifyingGlassIcon
+          weight="fill"
+          className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
         <Input
           placeholder="Search logs..."
           value={search}
@@ -130,7 +133,7 @@ export default function AuditLogFilterBar({
             variant="secondary"
             disabled={isExporting || !exportResult || disabled}
           >
-            <UploadIcon className="text-muted-foreground" />
+            <UploadIcon weight="fill" className="text-muted-foreground" />
             Export
           </Button>
         </DropdownMenuTrigger>
@@ -148,7 +151,7 @@ export default function AuditLogFilterBar({
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
             <AlertDialogMedia className="bg-muted text-muted-foreground">
-              <UploadIcon />
+              <UploadIcon weight="fill" />
             </AlertDialogMedia>
             <AlertDialogTitle>Export Audit Logs</AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -177,7 +180,7 @@ export default function AuditLogFilterBar({
 
       {hasActiveFilters ? (
         <Button type="button" variant="ghost" onClick={onClear}>
-          <XIcon />
+          <XIcon weight="bold" />
           Clear
         </Button>
       ) : null}

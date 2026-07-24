@@ -1,6 +1,6 @@
 "use client"
 
-import { History, SearchX } from "lucide-react"
+import { ClockCounterClockwiseIcon, XCircleIcon } from "@phosphor-icons/react"
 import { useState } from "react"
 import { Accordion } from "@/components/ui/accordion"
 import {
@@ -47,9 +47,9 @@ export default function AuditLogAccordion({
         <EmptyHeader>
           <EmptyMedia variant="icon">
             {search || hasActiveFilters ? (
-              <SearchX size={16} />
+              <XCircleIcon size={16} weight="bold" />
             ) : (
-              <History size={16} />
+              <ClockCounterClockwiseIcon weight="fill" size={16} />
             )}
           </EmptyMedia>
           <EmptyTitle>

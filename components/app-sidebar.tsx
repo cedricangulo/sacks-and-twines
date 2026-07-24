@@ -2,15 +2,17 @@
 
 import { useAuthActions } from "@convex-dev/auth/react"
 import {
-  BoxIcon,
-  ClipboardList,
-  Container,
-  LayoutDashboard,
-  LogOut,
-  Logs,
-  ShelvingUnit,
-  Users,
-} from "lucide-react"
+  ClipboardTextIcon,
+  CubeIcon,
+  ListDashesIcon,
+  PackageIcon,
+  SignOutIcon,
+  SquaresFourIcon,
+  StackSimpleIcon,
+  TruckIcon,
+  UsersIcon,
+  WarehouseIcon,
+} from "@phosphor-icons/react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -38,7 +40,7 @@ const data = {
         {
           title: "Dashboard",
           url: "/dashboard",
-          icon: LayoutDashboard,
+          icon: SquaresFourIcon,
         },
       ],
     },
@@ -49,17 +51,17 @@ const data = {
         {
           title: "Inventory",
           url: "/inventory",
-          icon: ShelvingUnit,
+          icon: WarehouseIcon,
         },
         {
           title: "Products",
           url: "/products",
-          icon: BoxIcon,
+          icon: PackageIcon,
         },
         {
           title: "Suppliers",
           url: "/suppliers",
-          icon: Container,
+          icon: TruckIcon,
         },
       ],
     },
@@ -70,7 +72,7 @@ const data = {
         {
           title: "Reports",
           url: "/reports",
-          icon: ClipboardList,
+          icon: ClipboardTextIcon,
         },
       ],
     },
@@ -81,12 +83,12 @@ const data = {
         {
           title: "Users",
           url: "/users",
-          icon: Users,
+          icon: UsersIcon,
         },
         {
           title: "Audit Logs",
           url: "/audit-logs",
-          icon: Logs,
+          icon: ListDashesIcon,
         },
       ],
     },
@@ -141,7 +143,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         transitionTypes={["nav-forward"]}
                         className="flex items-center gap-2"
                       >
-                        {item.icon && <item.icon />}
+                        {item.icon && <item.icon weight="fill" />}
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -161,7 +163,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 signOut()
               }}
             >
-              <LogOut />
+              <SignOutIcon weight="fill" />
               <span>Sign Out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -1,8 +1,8 @@
 "use client"
 
+import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon } from "@phosphor-icons/react"
 import type { VisibilityState } from "@tanstack/react-table"
 import { flexRender, type Table as ReactTable } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp, PackageOpen } from "lucide-react"
 import type { Dispatch, SetStateAction } from "react"
 import { Fragment } from "react"
 import {
@@ -60,9 +60,13 @@ export default function InventoryTable({
                       header.getContext()
                     )}
                     {header.column.getIsSorted() === "asc" ? (
-                      <ArrowUp size={14} aria-hidden="true" />
+                      <ArrowUpIcon size={14} weight="fill" aria-hidden="true" />
                     ) : header.column.getIsSorted() === "desc" ? (
-                      <ArrowDown size={14} aria-hidden="true" />
+                      <ArrowDownIcon
+                        size={14}
+                        weight="fill"
+                        aria-hidden="true"
+                      />
                     ) : null}
                   </button>
                 ) : (
@@ -81,7 +85,7 @@ export default function InventoryTable({
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <PackageOpen size={16} />
+                <ArchiveIcon size={16} weight="fill" />
               </EmptyMedia>
               <EmptyTitle>No products yet</EmptyTitle>
               <EmptyDescription>

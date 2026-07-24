@@ -1,7 +1,12 @@
 "use client"
 
+import {
+  ArrowLeftIcon,
+  ColumnsIcon,
+  MagnifyingGlassIcon,
+  XIcon,
+} from "@phosphor-icons/react"
 import { useQuery } from "convex-helpers/react/cache"
-import { ArrowLeft, Columns3, SearchIcon, XIcon } from "lucide-react"
 import Link from "next/link"
 import type { Dispatch, SetStateAction } from "react"
 import { Button } from "@/components/ui/button"
@@ -73,11 +78,14 @@ export default function DispatchFilterBar({
     <div className="flex flex-wrap items-center gap-2">
       <Button asChild size="icon" variant="ghost">
         <Link href="/products" transitionTypes={["nav-back"]}>
-          <ArrowLeft />
+          <ArrowLeftIcon weight="fill" />
         </Link>
       </Button>
       <div className="relative max-w-xs grow">
-        <SearchIcon className="absolute -translate-y-1/2 left-3 top-1/2 size-4 text-muted-foreground" />
+        <MagnifyingGlassIcon
+          weight="bold"
+          className="absolute -translate-y-1/2 left-3 top-1/2 size-4 text-muted-foreground"
+        />
         <Input
           placeholder="Search by customer or user..."
           value={search}
@@ -126,7 +134,7 @@ export default function DispatchFilterBar({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="secondary">
-            <Columns3 className="text-muted-foreground" />
+            <ColumnsIcon weight="fill" className="text-muted-foreground" />
             Columns
           </Button>
         </DropdownMenuTrigger>
@@ -175,7 +183,7 @@ export default function DispatchFilterBar({
 
       {hasActiveFilters ? (
         <Button type="button" variant="ghost" onClick={onClear}>
-          <XIcon />
+          <XIcon weight="bold" />
           Clear
         </Button>
       ) : null}

@@ -1,6 +1,6 @@
 "use client"
 
-import { X } from "lucide-react"
+import { XIcon } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -16,7 +16,7 @@ export default function NotFound() {
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <X />
+            <XIcon weight="fill" />
           </EmptyMedia>
           <EmptyTitle>Page Not Found</EmptyTitle>
           <EmptyDescription>

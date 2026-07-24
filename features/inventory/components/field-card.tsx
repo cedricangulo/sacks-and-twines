@@ -1,6 +1,6 @@
 "use client"
 
-import { PencilIcon } from "lucide-react"
+import { PencilIcon } from "@phosphor-icons/react"
 import { memo } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -93,7 +93,7 @@ function RenderInput({
             type="button"
             onClick={() => onUnlock(field)}
           >
-            <PencilIcon className="size-3" />
+            <PencilIcon weight="fill" className="size-3" />
             Edit
           </Button>
         ) : null}

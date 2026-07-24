@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2Icon } from "lucide-react"
+import { SpinnerGapIcon } from "@phosphor-icons/react"
 import {
   AccordionContent,
   AccordionItem,
@@ -57,7 +57,7 @@ export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
       <AccordionContent className="h-full border-t pt-2.5">
         {isLoading ? (
           <div className="flex items-center justify-center py-4 text-muted-foreground">
-            <Loader2Icon className="mr-2 animate-spin" />
+            <SpinnerGapIcon weight="fill" className="mr-2 animate-spin" />
             Loading details&hellip;
           </div>
         ) : (

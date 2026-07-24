@@ -1,6 +1,6 @@
 "use client"
 
-import { InfoIcon } from "lucide-react"
+import { InfoIcon } from "@phosphor-icons/react"
 import dynamic from "next/dynamic"
 import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
@@ -123,7 +123,7 @@ export default function AddInventoryDialog() {
                     role="alert"
                   >
                     <div className="flex items-center gap-2">
-                      <InfoIcon size={16} className="shrink-0" />
+                      <InfoIcon weight="fill" size={16} className="shrink-0" />
                       <span>Creating a new item</span>
                     </div>
                     <Button

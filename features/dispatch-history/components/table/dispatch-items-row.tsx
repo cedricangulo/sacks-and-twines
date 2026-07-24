@@ -1,5 +1,10 @@
 "use client"
 
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  DotsThreeVerticalIcon,
+} from "@phosphor-icons/react"
 import type { VisibilityState } from "@tanstack/react-table"
 import {
   createColumnHelper,
@@ -9,7 +14,6 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp, EllipsisVertical } from "lucide-react"
 import type { Dispatch, ReactNode, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -147,9 +151,13 @@ export default function DispatchItemsRow({
                       header.getContext()
                     )}
                     {header.column.getIsSorted() === "asc" ? (
-                      <ArrowUp size={14} aria-hidden="true" />
+                      <ArrowUpIcon size={14} weight="fill" aria-hidden="true" />
                     ) : header.column.getIsSorted() === "desc" ? (
-                      <ArrowDown size={14} aria-hidden="true" />
+                      <ArrowDownIcon
+                        size={14}
+                        weight="fill"
+                        aria-hidden="true"
+                      />
                     ) : null}
                   </button>
                 ) : (
@@ -172,8 +180,9 @@ export default function DispatchItemsRow({
                 acc.push(
                   <TableCell key={col.id}>
                     {col.id === "actions" ? (
-                      <EllipsisVertical
+                      <DotsThreeVerticalIcon
                         size={16}
+                        weight="bold"
                         className="text-muted-foreground"
                       />
                     ) : (

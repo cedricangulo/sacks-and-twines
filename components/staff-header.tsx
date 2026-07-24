@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuthActions } from "@convex-dev/auth/react"
-import { Box, LogOut, Logs } from "lucide-react"
+import { ListDashesIcon, PackageIcon, SignOutIcon } from "@phosphor-icons/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { usePageHeader } from "@/components/page-header-context"
@@ -24,13 +24,13 @@ export function StaffHeader() {
       <div className="flex items-center gap-2">
         <Button variant="secondary" asChild>
           <Link href="/products" transitionTypes={["nav-forward"]}>
-            <Box />
+            <PackageIcon weight="fill" />
             Dispatch
           </Link>
         </Button>
         <Button variant="secondary" asChild>
           <Link href="/audit-logs/personal" transitionTypes={["nav-forward"]}>
-            <Logs />
+            <ListDashesIcon weight="fill" />
             My Activity
           </Link>
         </Button>
@@ -48,7 +48,7 @@ export function StaffHeader() {
             signOut()
           }}
         >
-          <LogOut />
+          <SignOutIcon weight="fill" />
           Sign Out
         </Button>
       </div>

@@ -1,7 +1,11 @@
 "use client"
 
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  BuildingsIcon,
+} from "@phosphor-icons/react"
 import { flexRender, type Table as ReactTable } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp, Building2 } from "lucide-react"
 import {
   Empty,
   EmptyDescription,
@@ -46,9 +50,13 @@ export default function SupplierTable({ table }: SupplierTableProps) {
                       header.getContext()
                     )}
                     {header.column.getIsSorted() === "asc" ? (
-                      <ArrowUp size={16} aria-hidden="true" />
+                      <ArrowUpIcon size={16} weight="fill" aria-hidden="true" />
                     ) : header.column.getIsSorted() === "desc" ? (
-                      <ArrowDown size={16} aria-hidden="true" />
+                      <ArrowDownIcon
+                        size={16}
+                        weight="fill"
+                        aria-hidden="true"
+                      />
                     ) : null}
                   </button>
                 ) : (
@@ -67,7 +75,7 @@ export default function SupplierTable({ table }: SupplierTableProps) {
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <Building2 size={16} />
+                <BuildingsIcon size={16} weight="fill" />
               </EmptyMedia>
               <EmptyTitle>No suppliers yet</EmptyTitle>
               <EmptyDescription>

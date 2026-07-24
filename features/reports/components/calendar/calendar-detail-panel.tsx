@@ -1,6 +1,6 @@
 "use client"
 
-import { Package } from "lucide-react"
+import { PackageIcon } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -105,7 +105,7 @@ export default function CalendarDetailPanel() {
               <Empty>
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
-                    <Package />
+                    <PackageIcon weight="fill" />
                   </EmptyMedia>
                   <EmptyTitle>
                     There are no dispatches scheduled for this day.
@@ -128,7 +128,7 @@ export default function CalendarDetailPanel() {
               <Empty>
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
-                    <Package />
+                    <PackageIcon weight="fill" />
                   </EmptyMedia>
                   <EmptyTitle>
                     There are no stock adjustments for this day.

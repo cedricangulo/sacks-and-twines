@@ -1,6 +1,6 @@
 "use client"
 
-import { Minus, Plus } from "lucide-react"
+import { MinusIcon, PlusIcon } from "@phosphor-icons/react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -89,7 +89,7 @@ export default function ProductCard({ product }: Props) {
             onClick={decrementQuantity}
             disabled={quantity === 0 || isOutOfStock}
           >
-            <Minus />
+            <MinusIcon weight="bold" />
           </Button>
 
           <Input
@@ -118,7 +118,7 @@ export default function ProductCard({ product }: Props) {
             onClick={incrementQuantity}
             disabled={isAtMax || isOutOfStock}
           >
-            <Plus />
+            <PlusIcon weight="bold" />
           </Button>
         </ButtonGroup>
       </CardFooter>

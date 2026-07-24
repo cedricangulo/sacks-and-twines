@@ -1,7 +1,7 @@
 "use client"
 
+import { CaretDownIcon } from "@phosphor-icons/react"
 import { flexRender, type Row } from "@tanstack/react-table"
-import { ChevronDown } from "lucide-react"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import type { Dispatch } from "../../validation"
@@ -24,7 +24,8 @@ export default function DispatchTableRow({ row, isExpanded, onToggle }: Props) {
         if (cell.column.id === "expand") {
           return (
             <TableCell key={cell.id} className="w-8 pr-0">
-              <ChevronDown
+              <CaretDownIcon
+                weight="fill"
                 size={16}
                 className={cn(
                   "text-muted-foreground transition-transform duration-200",

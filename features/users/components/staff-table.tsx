@@ -1,7 +1,7 @@
 "use client"
 
+import { ArrowDownIcon, ArrowUpIcon, UsersIcon } from "@phosphor-icons/react"
 import { flexRender, type Table as ReactTable } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp, Users } from "lucide-react"
 import {
   Empty,
   EmptyDescription,
@@ -56,14 +56,16 @@ export default function StaffTable({ table }: StaffTableProps) {
                       header.getContext()
                     )}
                     {header.column.getIsSorted() === "asc" ? (
-                      <ArrowUp
+                      <ArrowUpIcon
                         size={16}
+                        weight="fill"
                         className="text-muted-foreground"
                         aria-hidden="true"
                       />
                     ) : header.column.getIsSorted() === "desc" ? (
-                      <ArrowDown
+                      <ArrowDownIcon
                         size={16}
+                        weight="fill"
                         className="text-muted-foreground"
                         aria-hidden="true"
                       />
@@ -85,7 +87,7 @@ export default function StaffTable({ table }: StaffTableProps) {
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <Users size={16} />
+                <UsersIcon size={16} weight="fill" />
               </EmptyMedia>
               <EmptyTitle>No staff yet</EmptyTitle>
               <EmptyDescription>

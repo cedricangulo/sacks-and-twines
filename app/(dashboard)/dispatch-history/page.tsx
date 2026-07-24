@@ -1,6 +1,6 @@
 "use client"
 
-import { Package, SearchX } from "lucide-react"
+import { PackageIcon, XCircleIcon } from "@phosphor-icons/react"
 import { parseAsString, useQueryState } from "nuqs"
 import { useState } from "react"
 import {
@@ -87,7 +87,11 @@ export default function DispatchHistoryPage() {
         <Empty className="animate-fade-in">
           <EmptyHeader>
             <EmptyMedia variant="icon">
-              {search || hasActiveFilters ? <SearchX /> : <Package />}
+              {search || hasActiveFilters ? (
+                <XCircleIcon weight="bold" />
+              ) : (
+                <PackageIcon weight="fill" />
+              )}
             </EmptyMedia>
             <EmptyTitle>
               {search || hasActiveFilters

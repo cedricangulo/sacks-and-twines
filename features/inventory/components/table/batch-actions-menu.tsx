@@ -1,6 +1,10 @@
 "use client"
 
-import { EllipsisVerticalIcon, PencilIcon, XCircleIcon } from "lucide-react"
+import {
+  DotsThreeVerticalIcon,
+  PencilIcon,
+  XCircleIcon,
+} from "@phosphor-icons/react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,7 +35,7 @@ export default function BatchActionsMenu({ batch }: { batch: Batch }) {
             className="p-0 size-8"
             disabled={!isActive}
           >
-            <EllipsisVerticalIcon size={14} />
+            <DotsThreeVerticalIcon weight="bold" size={14} />
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-40 p-1">
@@ -45,7 +49,7 @@ export default function BatchActionsMenu({ batch }: { batch: Batch }) {
                 setEditOpen(true)
               }}
             >
-              <PencilIcon size={14} />
+              <PencilIcon weight="fill" size={14} />
               Edit
             </Button>
 
@@ -84,7 +88,7 @@ export default function BatchActionsMenu({ batch }: { batch: Batch }) {
                 setVoidOpen(true)
               }}
             >
-              <XCircleIcon size={14} />
+              <XCircleIcon weight="bold" size={14} />
               Void
             </Button>
           </div>

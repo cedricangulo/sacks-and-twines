@@ -1,6 +1,11 @@
 "use client"
 
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react"
+import {
+  CaretDownIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  CaretUpIcon,
+} from "@phosphor-icons/react"
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group"
@@ -109,7 +114,11 @@ export default function CalendarGrid() {
             onClick={() => setCalendarVisible((v) => !v)}
             variant="secondary"
           >
-            {calendarVisible ? <ChevronUp /> : <ChevronDown />}
+            {calendarVisible ? (
+              <CaretUpIcon weight="fill" />
+            ) : (
+              <CaretDownIcon weight="fill" />
+            )}
             {calendarVisible ? "Hide calendar" : "Show calendar"}
           </Button>
           <Button
@@ -118,7 +127,7 @@ export default function CalendarGrid() {
             size="icon"
             variant="outline"
           >
-            <ChevronLeft />
+            <CaretLeftIcon weight="fill" />
           </Button>
           <Button
             aria-label="Next month"
@@ -129,7 +138,7 @@ export default function CalendarGrid() {
             size="icon"
             variant="outline"
           >
-            <ChevronRight />
+            <CaretRightIcon weight="fill" />
           </Button>
         </div>
       </div>

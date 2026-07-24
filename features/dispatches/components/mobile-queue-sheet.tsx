@@ -1,6 +1,6 @@
 "use client"
 
-import { ShoppingBagIcon } from "lucide-react"
+import { ShoppingBagIcon } from "@phosphor-icons/react"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,7 +25,7 @@ export default function MobileQueueSheet() {
           className="relative xl:hidden"
           aria-label={`Dispatch queue (${itemCount} items)`}
         >
-          <ShoppingBagIcon />
+          <ShoppingBagIcon weight="fill" />
           Queue
           {itemCount > 0 ? (
             <Badge

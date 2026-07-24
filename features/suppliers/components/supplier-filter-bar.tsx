@@ -1,4 +1,4 @@
-import { Columns3, SearchIcon, XIcon } from "lucide-react"
+import { ColumnsIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react"
 import type { Dispatch, SetStateAction } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -49,7 +49,10 @@ export default function SupplierFilterBar({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative max-w-xs grow">
-        <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <MagnifyingGlassIcon
+          weight="bold"
+          className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
         <Input
           placeholder="Search suppliers..."
           value={search}
@@ -81,7 +84,7 @@ export default function SupplierFilterBar({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="secondary">
-            <Columns3 className="text-muted-foreground" />
+            <ColumnsIcon weight="fill" className="text-muted-foreground" />
             Columns
           </Button>
         </DropdownMenuTrigger>
@@ -109,7 +112,7 @@ export default function SupplierFilterBar({
 
       {hasActiveFilters ? (
         <Button type="button" variant="ghost" onClick={onClear}>
-          <XIcon />
+          <XIcon weight="bold" />
           Clear
         </Button>
       ) : null}

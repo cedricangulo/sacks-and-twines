@@ -1,4 +1,4 @@
-import { SearchIcon, XIcon } from "lucide-react"
+import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -42,7 +42,10 @@ export default function ProductFilterBar({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative max-w-xs grow">
-        <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <MagnifyingGlassIcon
+          weight="bold"
+          className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
         <Input
           placeholder="Search products..."
           value={search}
@@ -113,7 +116,7 @@ export default function ProductFilterBar({
 
       {hasActiveFilters ? (
         <Button type="button" variant="ghost" onClick={onClear}>
-          <XIcon />
+          <XIcon weight="bold" />
           Clear
         </Button>
       ) : null}

@@ -1,6 +1,5 @@
 "use client"
-
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon } from "@phosphor-icons/react";
 import * as React from "react"
 import type { DayPicker } from "react-day-picker"
 import { Button } from "@/components/ui/button"
@@ -53,7 +52,7 @@ function DatePicker({
             !value ? "text-muted-foreground" : ""
           )}
         >
-          <CalendarIcon />
+          <CalendarIcon weight="fill" />
           {value
             ? formatDate(value, {
                 year: "numeric",

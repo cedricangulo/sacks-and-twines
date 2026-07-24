@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronsUpDown, Plus } from "lucide-react"
+import { CaretUpDownIcon, PlusIcon } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -69,7 +69,7 @@ export default function ProductCombobox({
         <span className="truncate">
           {selected?.name ?? "Select an item or add a new one"}
         </span>
-        <ChevronsUpDown className="opacity-50" />
+        <CaretUpDownIcon weight="fill" className="opacity-50" />
       </Button>
 
       {open ? (
@@ -125,7 +125,7 @@ export default function ProductCombobox({
                 setQuery("")
               }}
             >
-              <Plus />
+              <PlusIcon weight="fill" />
               Add New Item
             </Button>
           </div>
