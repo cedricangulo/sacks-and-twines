@@ -134,7 +134,45 @@ const PRODUCT_DEFS: ProductDef[] = [
     conversionFactor: undefined,
     lowStockThreshold: 50,
   },
+  // ── Thread (3 products) ──
+  {
+    name: "Sewing Thread Small",
+    category: "thread",
+    baseUom: "roll",
+    conversionFactor: undefined,
+    lowStockThreshold: 20,
+  },
+  {
+    name: "Sewing Thread Medium",
+    category: "thread",
+    baseUom: "roll",
+    conversionFactor: undefined,
+    lowStockThreshold: 20,
+  },
+  {
+    name: "Sewing Thread Large",
+    category: "thread",
+    baseUom: "roll",
+    conversionFactor: undefined,
+    lowStockThreshold: 20,
+  },
 ]
+
+// ─── Product image mapping ──────────────────────────────────────────────────
+
+const IMAGE_MAP: Record<string, string> = {
+  "Laminated Sack": "kg2c6ffb9tqyme8qp4znbktm998b4xq4",
+  "Assorted Sack": "kg2fjqx0rrxbdmnsg1peqyppf58b5yyq",
+  "Woven Polypropylene Sack": "kg2fvfybfxk4t6zkhp6cvnpkb98b4mjy",
+  "Sand bag": "kg21k13z862tsgg9s0y5nf695x8b43fv",
+  "Red bag": "kg2bfh4tmqd114vcqr76qv7xws8b4jyf",
+  "Sewing Twine": "kg2dx1xev3ck3phrncjc3ps80s8b4gk9",
+  "Banana Twine": "kg2d46czs8p3kfs8c7b6b13x118b5stt",
+  "Twist Twine": "kg2ecynsrgnfsveqe0cw0vkt798b5n1e",
+  "Sewing Thread Small": "kg2deeyss2z9cqvk0g9zktpnhh8b5nms",
+  "Sewing Thread Medium": "kg294k1ymwbgza5haqhpyh841x8b5rwg",
+  "Sewing Thread Large": "kg2c7ek52qzpc4k0cmf6s2k4cd8b5c4j",
+}
 
 // ─── Internal Mutation: writeAll ───────────────────────────────────────────
 
@@ -203,6 +241,7 @@ export const writeAll = internalMutation({
             totalAssetValue: 0,
             lowStockThreshold: def.lowStockThreshold,
             status: "active",
+            imagePath: IMAGE_MAP[def.name],
             createdAt: productCreatedAt.getTime(),
           })
           return { id, def }
@@ -925,6 +964,7 @@ export const writeTest = internalMutation({
           totalAssetValue: 0,
           lowStockThreshold: def.lowStockThreshold,
           status: isArchived ? "archived" : "active",
+          imagePath: IMAGE_MAP[def.name],
           createdAt: productCreatedAt.getTime(),
         })
         return { id, def }

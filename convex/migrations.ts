@@ -81,11 +81,35 @@ export const backfillSuppliers = migrations.define({
  * Converts existing "kilo" dispatchUom values to "meter"
  * after schema change removing "kilo" in favor of "meter".
  */
-export const replaceKiloWithCut = migrations.define({
+export const replaceKiloWithMeter = migrations.define({
   table: "dispatchItems",
   migrateOne: async (ctx, item) => {
     if ((item as Record<string, unknown>).dispatchUom !== "kilo") return
     await ctx.db.patch(item._id, { dispatchUom: "meter" })
+  },
+})
+
+/**
+ * Converts existing "cut" dispatchUom values to "meter"
+ * after schema change replacing "cut" with "meter".
+ */
+export const replaceCutWithMeter = migrations.define({
+  table: "dispatchItems",
+  migrateOne: async (ctx, item) => {
+    if ((item as Record<string, unknown>).dispatchUom !== "cut") return
+    await ctx.db.patch(item._id, { dispatchUom: "meter" })
+  },
+})
+
+/**
+ * Converts existing "cut" baseUom values on products to "meter"
+ * after schema change replacing "cut" with "meter".
+ */
+export const replaceProductCutWithMeter = migrations.define({
+  table: "products",
+  migrateOne: async (ctx, product) => {
+    if ((product as Record<string, unknown>).baseUom !== "cut") return
+    await ctx.db.patch(product._id, { baseUom: "meter" })
   },
 })
 

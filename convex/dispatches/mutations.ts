@@ -1,6 +1,9 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { internal } from "../_generated/api"
-import { INTEGER_UOMS } from "../lib/constants"
+import {
+  DISPATCH_UOM_BY_CATEGORY,
+  INTEGER_UOMS,
+} from "../lib/constants"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { submitDispatchArgs } from "./validators"
@@ -48,6 +51,16 @@ export const submit = zMutation({
       if (product.status === "archived")
         throw new Error(`Product ${product.name} is archived`)
 
+      // Validate UOM is valid for this product category
+      const allowedUoms = DISPATCH_UOM_BY_CATEGORY[product.category]
+      if (
+        !(allowedUoms as readonly string[]).includes(item.dispatchUom)
+      ) {
+        throw new Error(
+          `Cannot dispatch ${product.name} by "${item.dispatchUom}" — ${product.category} can only be dispatched as ${allowedUoms.join("/")}`
+        )
+      }
+
       if (
         (INTEGER_UOMS as readonly string[]).includes(item.dispatchUom) &&
         !Number.isInteger(item.quantity)
@@ -58,7 +71,16 @@ export const submit = zMutation({
       }
 
       // Convert dispatch quantity to baseUom for batch deduction
-      const toDeduct = item.quantity
+      const toDeduct =
+        item.dispatchUom === product.baseUom
+          ? item.quantity
+          : item.quantity * (product.conversionFactor ?? 0)
+
+      if (toDeduct <= 0) {
+        throw new Error(
+          `Cannot dispatch ${product.name} — missing conversion factor for ${item.dispatchUom} to ${product.baseUom}`
+        )
+      }
 
       // Get active batches with remaining stock, FIFO (oldest first)
       const activeBatches = await ctx.db
@@ -88,7 +110,10 @@ export const submit = zMutation({
         }
 
         // dispatchQuantity in the user's chosen UOM for this batch's portion
-        const dispatchQty = deducted
+        const dispatchQty =
+          item.dispatchUom === product.baseUom
+            ? deducted
+            : deducted / (product.conversionFactor ?? 1)
 
         await Promise.all([
           ctx.db.insert("dispatchItems", {
@@ -128,7 +153,7 @@ export const submit = zMutation({
         currentQuantity: Math.max(0, product.currentQuantity - toDeduct),
         totalAssetValue: Math.max(
           0,
-          product.totalAssetValue - totalCostDeducted
+          product.totalAssetValue - itemCost
         ),
       })
     }
