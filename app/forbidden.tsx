@@ -1,4 +1,6 @@
-import { ShieldX } from "lucide-react"
+"use client"
+
+import { ShieldWarningIcon } from "@phosphor-icons/react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,15 +17,15 @@ export default function Forbidden() {
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <ShieldX />
+            <ShieldWarningIcon weight="fill" />
           </EmptyMedia>
           <EmptyTitle>Access Denied</EmptyTitle>
           <EmptyDescription>
             You don&apos;t have permission to access this page.
           </EmptyDescription>
         </EmptyHeader>
-        <Button asChild>
-          <Link href="/products">Go to Products</Link>
+        <Button nativeButton={false} render={<Link href="/products" />}>
+          Go to Products
         </Button>
       </Empty>
     </div>

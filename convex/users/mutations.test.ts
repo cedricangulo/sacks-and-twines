@@ -85,7 +85,7 @@ describe("user mutations", () => {
         email: "staff@test.com",
         password: "password123",
       })
-    ).rejects.toThrowError("Only owners can create staff users")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects creation with invalid email", async () => {
@@ -422,7 +422,7 @@ describe("user mutations", () => {
         email: "staff@test.com",
         password: "password123",
       })
-    ).rejects.toThrowError("Only owners can create staff users")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects deactivation for deactivated owner", async () => {
@@ -447,7 +447,7 @@ describe("user mutations", () => {
       t.mutation(api.users.mutations.deactivate, {
         userId: staffId,
       })
-    ).rejects.toThrowError("Only owners can deactivate users")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects deactivation for non-owner staff caller", async () => {
@@ -472,6 +472,6 @@ describe("user mutations", () => {
       t.mutation(api.users.mutations.deactivate, {
         userId: staffTargetId,
       })
-    ).rejects.toThrowError("Only owners can deactivate users")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 })

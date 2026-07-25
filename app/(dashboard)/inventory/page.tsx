@@ -1,7 +1,7 @@
 "use client"
 
+import { ArchiveIcon, XCircleIcon } from "@phosphor-icons/react"
 import { useQuery } from "convex-helpers/react/cache"
-import { PackageOpen, SearchX } from "lucide-react"
 import { useState } from "react"
 import {
   Empty,
@@ -76,7 +76,7 @@ export default function InventoryPage() {
           actions="ellipsis"
         />
       ) : user?.role !== "owner" ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="type-body-small text-muted-foreground">
           You don&apos;t have permission to access this page.
         </p>
       ) : filtered.length > 0 ? (
@@ -92,9 +92,9 @@ export default function InventoryPage() {
           <EmptyHeader>
             <EmptyMedia variant="icon">
               {search || hasActiveFilters ? (
-                <SearchX size={16} />
+                <XCircleIcon weight="bold" size={16} />
               ) : (
-                <PackageOpen size={16} />
+                <ArchiveIcon weight="fill" size={16} />
               )}
             </EmptyMedia>
             <EmptyTitle>

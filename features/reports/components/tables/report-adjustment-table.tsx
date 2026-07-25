@@ -1,7 +1,7 @@
 "use client"
 
+import { ArrowDownIcon, ArrowUpIcon } from "@phosphor-icons/react"
 import { flexRender, type Table as ReactTable } from "@tanstack/react-table"
-import { ArrowDown, ArrowUp } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -40,9 +40,13 @@ export default function ReportAdjustmentTable({
                       header.getContext()
                     )}
                     {header.column.getIsSorted() === "asc" ? (
-                      <ArrowUp size={14} aria-hidden="true" />
+                      <ArrowUpIcon size={14} weight="fill" aria-hidden="true" />
                     ) : header.column.getIsSorted() === "desc" ? (
-                      <ArrowDown size={14} aria-hidden="true" />
+                      <ArrowDownIcon
+                        size={14}
+                        weight="fill"
+                        aria-hidden="true"
+                      />
                     ) : null}
                   </button>
                 ) : (

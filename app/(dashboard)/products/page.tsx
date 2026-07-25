@@ -1,7 +1,7 @@
 "use client"
 
+import { PackageIcon, XCircleIcon } from "@phosphor-icons/react"
 import { useQuery } from "convex-helpers/react/cache"
-import { Package, SearchX } from "lucide-react"
 import {
   Empty,
   EmptyDescription,
@@ -73,7 +73,7 @@ export default function ProductsPage() {
             <Empty className="animate-fade-in">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
-                  <SearchX />
+                  <XCircleIcon weight="bold" />
                 </EmptyMedia>
                 <EmptyTitle>No products found</EmptyTitle>
                 <EmptyDescription>
@@ -85,7 +85,7 @@ export default function ProductsPage() {
             <Empty className="animate-fade-in">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
-                  <Package />
+                  <PackageIcon weight="fill" />
                 </EmptyMedia>
                 <EmptyTitle>No products available</EmptyTitle>
                 <EmptyDescription>

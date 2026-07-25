@@ -1,7 +1,7 @@
 "use client"
 
+import { UsersIcon, XCircleIcon } from "@phosphor-icons/react"
 import { useQuery } from "convex-helpers/react/cache"
-import { SearchX, Users } from "lucide-react"
 import { useState } from "react"
 import {
   Empty,
@@ -59,7 +59,7 @@ export default function UsersPage() {
           actions="text"
         />
       ) : user?.role !== "owner" ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="type-body-small text-muted-foreground">
           You don&apos;t have permission to access this page.
         </p>
       ) : filtered.length > 0 ? (
@@ -73,9 +73,9 @@ export default function UsersPage() {
           <EmptyHeader>
             <EmptyMedia variant="icon">
               {search || hasActiveFilters ? (
-                <SearchX size={16} />
+                <XCircleIcon weight="bold" size={16} />
               ) : (
-                <Users size={16} />
+                <UsersIcon weight="fill" size={16} />
               )}
             </EmptyMedia>
             <EmptyTitle>

@@ -26,9 +26,7 @@ export default function AddStaffDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Add Staff</Button>
-      </DialogTrigger>
+      <DialogTrigger render={<Button />}>Add Staff</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add staff user</DialogTitle>

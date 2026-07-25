@@ -1,6 +1,6 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
 import { zid } from "convex-helpers/server/zod4"
 import { internal } from "../_generated/api"
+import { requireOwner } from "../auth/guards"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import {
@@ -27,12 +27,7 @@ export const create = zMutation({
     ctx,
     { companyName, contactPerson, contactNumber, address, userAgent }
   ) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can create suppliers")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "createSupplier", callerId),
@@ -91,12 +86,7 @@ export const update = zMutation({
       userAgent,
     }
   ) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can update suppliers")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "updateSupplier", callerId),
@@ -167,12 +157,7 @@ export const update = zMutation({
 export const archive = zMutation({
   args: archiveSupplierArgs,
   handler: async (ctx, { supplierId, userAgent }) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can archive suppliers")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "archiveSupplier", callerId),
@@ -220,12 +205,7 @@ export const archive = zMutation({
 export const unarchive = zMutation({
   args: unarchiveSupplierArgs,
   handler: async (ctx, { supplierId, userAgent }) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can unarchive suppliers")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "archiveSupplier", callerId),

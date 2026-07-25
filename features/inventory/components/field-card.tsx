@@ -1,6 +1,6 @@
 "use client"
 
-import { PencilIcon } from "lucide-react"
+import { PencilIcon } from "@phosphor-icons/react"
 import { memo } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -42,7 +42,7 @@ interface FieldCardState {
 interface FieldCardActions {
   onFieldChange: (field: string, value: string) => void
   onUnlock: (field: string) => void
-  onCategoryChange: (value: string) => void
+  onCategoryChange: (value: string | null) => void
   clearFieldError: (field: keyof StockInFieldErrors) => void
 }
 
@@ -93,7 +93,7 @@ function RenderInput({
             type="button"
             onClick={() => onUnlock(field)}
           >
-            <PencilIcon className="size-3" />
+            <PencilIcon weight="fill" className="size-3" />
             Edit
           </Button>
         ) : null}
@@ -118,13 +118,21 @@ const FieldCard = memo(function FieldCard({
         <Field>
           <FieldLabel>SKU</FieldLabel>
           <FieldContent>
-            <Input value={draftSku} disabled className="font-mono text-sm" />
+            <Input
+              value={draftSku}
+              disabled
+              className="font-mono type-body-small"
+            />
           </FieldContent>
         </Field>
         <Field>
           <FieldLabel>Batch ID</FieldLabel>
           <FieldContent>
-            <Input value={draftBatch} disabled className="font-mono text-sm" />
+            <Input
+              value={draftBatch}
+              disabled
+              className="font-mono type-body-small"
+            />
           </FieldContent>
         </Field>
       </FieldGroup>
@@ -169,8 +177,10 @@ const FieldCard = memo(function FieldCard({
           <Select
             value={fields.baseUom}
             onValueChange={(v) => {
-              onFieldChange("baseUom", v)
-              clearFieldError("baseUom")
+              if (v != null) {
+                onFieldChange("baseUom", v)
+                clearFieldError("baseUom")
+              }
             }}
             disabled={locked["baseUom"] ?? false}
           >

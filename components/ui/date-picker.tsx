@@ -1,6 +1,5 @@
 "use client"
-
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon } from "@phosphor-icons/react";
 import * as React from "react"
 import type { DayPicker } from "react-day-picker"
 import { Button } from "@/components/ui/button"
@@ -44,16 +43,8 @@ function DatePicker({
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="secondary"
-          disabled={disabled}
-          className={cn(
-            "justify-start gap-2 font-normal",
-            !value ? "text-muted-foreground" : ""
-          )}
-        >
-          <CalendarIcon />
+      <PopoverTrigger render={<Button variant="secondary" disabled={disabled} className={cn("justify-start gap-2 font-normal", !value ? "text-muted-foreground" : "")} />}>
+          <CalendarIcon weight="fill" />
           {value
             ? formatDate(value, {
                 year: "numeric",
@@ -62,7 +53,6 @@ function DatePicker({
                 locale: "en-PH",
               })
             : placeholder}
-        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar

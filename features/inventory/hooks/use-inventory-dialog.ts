@@ -171,7 +171,8 @@ export function useInventoryDialog() {
   }, [])
 
   const handleCategoryChange = useCallback(
-    (value: string) => {
+    (value: string | null) => {
+      if (value == null) return
       setField("category", value)
       if (value === "sacks") {
         setFields((prev) => ({
@@ -183,7 +184,7 @@ export function useInventoryDialog() {
       if (value === "twines") {
         setFields((prev) => ({
           ...prev,
-          baseUom: "cut",
+          baseUom: "meter",
           conversionFactor: String(DEFAULT_CONVERSION_FACTOR.twines),
         }))
       }
@@ -239,7 +240,7 @@ export function useInventoryDialog() {
             : undefined,
         baseUom:
           mode === "new" || (mode === "existing" && !locked.baseUom)
-            ? (fields.baseUom as "piece" | "roll" | "cut") || undefined
+            ? (fields.baseUom as "piece" | "roll" | "meter") || undefined
             : undefined,
         conversionFactor:
           mode === "new" || (mode === "existing" && !locked.conversionFactor)

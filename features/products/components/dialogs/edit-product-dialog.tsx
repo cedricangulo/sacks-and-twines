@@ -1,7 +1,7 @@
 "use client"
 
-import { Loader2Icon, LockIcon, PencilIcon } from "lucide-react"
-import type { ReactNode } from "react"
+import { LockIcon, PencilIcon, SpinnerGapIcon } from "@phosphor-icons/react"
+import type { ReactElement, ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -62,7 +62,9 @@ export default function EditProductDialog({
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setOpen}>
-      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
+      {children ? (
+        <DialogTrigger render={() => children as ReactElement} />
+      ) : null}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit product</DialogTitle>
@@ -73,7 +75,11 @@ export default function EditProductDialog({
 
         {!detail || !formValues ? (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <Loader2Icon size={20} className="mr-2 animate-spin" />
+            <SpinnerGapIcon
+              weight="fill"
+              size={20}
+              className="mr-2 animate-spin"
+            />
             Loading product details&hellip;
           </div>
         ) : (
@@ -187,8 +193,8 @@ export default function EditProductDialog({
             </FieldGroup>
 
             {hasBatches ? (
-              <div className="flex items-start gap-2 px-4 py-3 text-sm border rounded-2xl border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
-                <LockIcon size={16} className="mt-0.5 shrink-0" />
+              <div className="flex items-start gap-2 px-4 py-3 type-body-small border rounded-2xl border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
+                <LockIcon weight="fill" size={16} className="mt-0.5 shrink-0" />
                 <p>
                   Category and unit are locked because this product already has
                   stock records.
@@ -216,7 +222,7 @@ export default function EditProductDialog({
                       type="button"
                       onClick={() => handleUnlock("conversionFactor")}
                     >
-                      <PencilIcon />
+                      <PencilIcon weight="fill" />
                       Edit
                     </Button>
                   ) : null}

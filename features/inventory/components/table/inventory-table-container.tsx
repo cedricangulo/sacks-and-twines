@@ -1,5 +1,6 @@
 "use client"
 
+import { CaretDownIcon } from "@phosphor-icons/react"
 import type { VisibilityState } from "@tanstack/react-table"
 import {
   createColumnHelper,
@@ -8,7 +9,6 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
-import { ChevronDown } from "lucide-react"
 import type { Dispatch, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -58,7 +58,8 @@ export default function InventoryTableContainer({
         minSize: 150,
         cell: (info) => (
           <div className="flex items-center gap-2 min-w-0">
-            <ChevronDown
+            <CaretDownIcon
+              weight="fill"
               size={16}
               className={cn(
                 "text-muted-foreground transition-all duration-200 shrink-0",
@@ -73,7 +74,7 @@ export default function InventoryTableContainer({
               <AvatarImage src={info.row.original.imageUrl ?? ""} />
               <AvatarFallback>{getInitials(info.getValue())}</AvatarFallback>
             </Avatar>
-            <span className="font-medium type-sm line-clamp-2 min-w-0">
+            <span className="font-medium type-body-small line-clamp-2 min-w-0">
               {info.getValue()}
             </span>
           </div>
@@ -140,16 +141,20 @@ export default function InventoryTableContainer({
             <div className="flex items-center gap-2">
               {p.status === "active" ? (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="rounded-full size-2 bg-emerald-500 animate-pulse" />
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <span className="rounded-full size-2 bg-emerald-500 animate-pulse" />
+                    }
+                  ></TooltipTrigger>
                   <TooltipContent>Product is active</TooltipContent>
                 </Tooltip>
               ) : p.status === "archived" ? (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="rounded-full size-2 bg-amber-500 animate-pulse" />
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <span className="rounded-full size-2 bg-amber-500 animate-pulse" />
+                    }
+                  ></TooltipTrigger>
                   <TooltipContent>Product is archived</TooltipContent>
                 </Tooltip>
               ) : null}

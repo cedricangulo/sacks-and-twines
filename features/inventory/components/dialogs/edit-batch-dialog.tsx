@@ -1,7 +1,7 @@
 "use client"
 
-import { Loader2Icon, LockIcon } from "lucide-react"
-import type { ReactNode } from "react"
+import { LockIcon, SpinnerGapIcon } from "@phosphor-icons/react"
+import type { ReactElement, ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -51,15 +51,13 @@ export default function EditBatchDialog({
 
   return (
     <Dialog modal={false} open={dialogOpen} onOpenChange={setOpen}>
-      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
+      {children ? (
+        <DialogTrigger render={() => children as ReactElement} />
+      ) : null}
 
       {dialogOpen ? <DialogBackdrop /> : null}
 
-      <DialogContent
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-        onFocusOutside={(e) => e.preventDefault()}
-      >
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit batch</DialogTitle>
           <DialogDescription>
@@ -69,14 +67,18 @@ export default function EditBatchDialog({
 
         {!detail || !formValues ? (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <Loader2Icon size={20} className="mr-2 animate-spin" />
+            <SpinnerGapIcon
+              weight="fill"
+              size={20}
+              className="mr-2 animate-spin"
+            />
             Loading batch details&hellip;
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             {!canEditQuantities ? (
-              <div className="flex items-start gap-2 px-4 py-3 text-sm border rounded-2xl border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
-                <LockIcon size={16} className="mt-0.5 shrink-0" />
+              <div className="flex items-start gap-2 px-4 py-3 type-body-small border rounded-2xl border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
+                <LockIcon weight="fill" size={16} className="mt-0.5 shrink-0" />
                 <p>
                   Quantity fields are locked because this batch already has
                   dispatch or adjustment history.

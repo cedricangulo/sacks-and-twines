@@ -1,4 +1,4 @@
-import { EllipsisVertical } from "lucide-react"
+import { DotsThreeVerticalIcon } from "@phosphor-icons/react";
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -48,7 +48,7 @@ export default function SkeletonTable({
             ))}
             {actions === "ellipsis" ? (
               <TableCell>
-                <EllipsisVertical size={16} className="text-muted-foreground" />
+                <DotsThreeVerticalIcon weight="bold" size={16} className="text-muted-foreground" />
               </TableCell>
             ) : actions === "text" ? (
               <TableCell>

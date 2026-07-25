@@ -51,7 +51,7 @@ describe("product queries", () => {
     t: ReturnType<typeof convexTest>,
     overrides: { name: string } & Partial<{
       category: "sacks" | "twines" | "thread"
-      baseUom: "piece" | "roll" | "cut"
+      baseUom: "piece" | "roll" | "meter"
       currentQuantity: number
       totalAssetValue: number
       status: "active" | "archived"

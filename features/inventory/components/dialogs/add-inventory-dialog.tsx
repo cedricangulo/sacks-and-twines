@@ -1,6 +1,6 @@
 "use client"
 
-import { InfoIcon } from "lucide-react"
+import { InfoIcon } from "@phosphor-icons/react"
 import dynamic from "next/dynamic"
 import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
@@ -76,18 +76,11 @@ export default function AddInventoryDialog() {
 
   return (
     <Dialog modal={false} open={open} onOpenChange={handleOpen}>
-      <DialogTrigger asChild>
-        <Button>Add Inventory</Button>
-      </DialogTrigger>
+      <DialogTrigger render={<Button />}>Add Inventory</DialogTrigger>
 
       {open ? <DialogBackdrop /> : null}
 
-      <DialogContent
-        className="sm:max-w-5xl!"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-        onFocusOutside={(e) => e.preventDefault()}
-      >
+      <DialogContent className="sm:max-w-5xl!">
         <DialogHeader>
           <DialogTitle>Add Inventory</DialogTitle>
           <DialogDescription>
@@ -119,11 +112,11 @@ export default function AddInventoryDialog() {
               ) : (
                 <div className="flex flex-col gap-4">
                   <div
-                    className="flex items-center justify-between gap-2 px-4 py-3 text-sm border rounded-2xl border-primary/20 bg-accent text-accent-foreground"
+                    className="flex items-center justify-between gap-2 px-4 py-3 type-body-small border rounded-2xl border-primary/20 bg-accent text-accent-foreground"
                     role="alert"
                   >
                     <div className="flex items-center gap-2">
-                      <InfoIcon size={16} className="shrink-0" />
+                      <InfoIcon weight="fill" size={16} className="shrink-0" />
                       <span>Creating a new item</span>
                     </div>
                     <Button

@@ -27,7 +27,7 @@ export default function SignIn() {
     <main className="flex items-center h-screen gap-6 p-4">
       <div className="hidden md:block relative overflow-hidden w-full max-w-2/4 rounded-(--radius) bg-cover bg-center bg-[url('/sacks-and-twines.jpg')] md:h-full">
         <div className="absolute bottom-0 left-0 w-full h-2/4 bg-linear-to-t from-primary/80 to-primary/0" />
-        <h1 className="absolute text-white bottom-4 left-4 type-2xl">
+        <h1 className="absolute text-white bottom-4 left-4 type-h1">
           Sacks and Twines
         </h1>
       </div>

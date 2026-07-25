@@ -1,7 +1,7 @@
 "use client"
 
-import { Loader2Icon, TriangleAlertIcon } from "lucide-react"
-import type { ReactNode } from "react"
+import { SpinnerGapIcon, WarningIcon } from "@phosphor-icons/react"
+import type { ReactElement, ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -46,7 +46,9 @@ export default function VoidBatchDialog({
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setOpen}>
-      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
+      {children ? (
+        <DialogTrigger render={() => children as ReactElement} />
+      ) : null}
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Void batch</DialogTitle>
@@ -64,43 +66,51 @@ export default function VoidBatchDialog({
 
         {!detail ? (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <Loader2Icon size={20} className="mr-2 animate-spin" />
+            <SpinnerGapIcon
+              weight="fill"
+              size={20}
+              className="mr-2 animate-spin"
+            />
             Loading&hellip;
           </div>
         ) : (
           <div className="space-y-6">
             {/* Batch details card */}
             <div className="rounded-2xl border p-4">
-              <h3 className="mb-3 text-sm font-medium text-foreground">
+              <h3 className="mb-3 type-body-small font-medium text-foreground">
                 Batch details
               </h3>
               <dl className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <dt className="text-sm text-muted-foreground">Batch code</dt>
-                  <dd className="font-mono text-sm font-medium text-foreground">
+                  <dt className="type-body-small text-muted-foreground">
+                    Batch code
+                  </dt>
+                  <dd className="font-mono type-body-small font-medium text-foreground">
                     {detail.batchCode}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between">
-                  <dt className="text-sm text-muted-foreground">Product</dt>
-                  <dd className="max-w-[60%] text-right text-sm font-medium text-foreground">
+                  <dt className="type-body-small text-muted-foreground">
+                    Product
+                  </dt>
+                  <dd className="max-w-[60%] text-right type-body-small font-medium text-foreground">
                     {detail.productName ?? "-"}
                   </dd>
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
-                  <dt className="text-sm text-muted-foreground">
+                  <dt className="type-body-small text-muted-foreground">
                     Quantity remaining
                   </dt>
-                  <dd className="text-sm font-semibold text-foreground">
+                  <dd className="type-body-small font-semibold text-foreground">
                     {formatNumber(detail.quantityRemaining)}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between">
-                  <dt className="text-sm text-muted-foreground">
+                  <dt className="type-body-small text-muted-foreground">
                     Procurement cost
                   </dt>
-                  <dd className="text-sm font-medium text-foreground">
+                  <dd className="type-body-small font-medium text-foreground">
                     {formatCurrency(detail.totalProcurementCost)}
                   </dd>
                 </div>
@@ -110,15 +120,16 @@ export default function VoidBatchDialog({
             {/* Warning card */}
             <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
               <div className="mb-3 flex items-center gap-2">
-                <TriangleAlertIcon
+                <WarningIcon
+                  weight="fill"
                   size={18}
                   className="shrink-0 text-destructive"
                 />
-                <h3 className="text-sm font-medium text-foreground">
+                <h3 className="type-body-small font-medium text-foreground">
                   This action will affect:
                 </h3>
               </div>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 type-body-small">
                 <li className="flex gap-2">
                   <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-destructive" />
                   <span className="text-foreground">
@@ -155,7 +166,7 @@ export default function VoidBatchDialog({
                   <FieldLabel htmlFor="void-reason">
                     Reason for voiding
                   </FieldLabel>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="type-caption text-muted-foreground">
                     Optional
                   </span>
                 </div>

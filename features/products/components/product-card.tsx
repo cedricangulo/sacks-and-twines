@@ -1,6 +1,6 @@
 "use client"
 
-import { Minus, Plus } from "lucide-react"
+import { MinusIcon, PlusIcon } from "@phosphor-icons/react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -50,7 +50,7 @@ export default function ProductCard({ product }: Props) {
             className="object-cover"
           />
         ) : (
-          <div className="flex items-center justify-center text-lg font-medium size-full text-muted-foreground">
+          <div className="flex items-center justify-center type-h4 font-medium size-full text-muted-foreground">
             {getInitials(product.name)}
           </div>
         )}
@@ -71,7 +71,7 @@ export default function ProductCard({ product }: Props) {
         </CardTitle>
         <CardDescription>
           {/* <h5 className="type-sm">{product.skuCode}</h5> */}
-          <p className="type-base text-foreground">
+          <p className="type-body-default text-foreground">
             {formatNumber(product.currentQuantity)}{" "}
             <span>
               {product.baseUom}
@@ -89,13 +89,13 @@ export default function ProductCard({ product }: Props) {
             onClick={decrementQuantity}
             disabled={quantity === 0 || isOutOfStock}
           >
-            <Minus />
+            <MinusIcon weight="bold" />
           </Button>
 
           <Input
             ref={inputRef}
             type="number"
-            className="text-center bg-background type-base tabular-nums"
+            className="text-center bg-background type-body-default tabular-nums"
             value={inputValue}
             min={0}
             max={product.currentQuantity}
@@ -118,7 +118,7 @@ export default function ProductCard({ product }: Props) {
             onClick={incrementQuantity}
             disabled={isAtMax || isOutOfStock}
           >
-            <Plus />
+            <PlusIcon weight="bold" />
           </Button>
         </ButtonGroup>
       </CardFooter>

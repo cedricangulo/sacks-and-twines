@@ -95,7 +95,7 @@ describe("supplier mutations", () => {
 
   it("rejects creation for non-owners", async () => {
     const t = makeTest()
-    const [staffId, supplierId] = await Promise.all([
+    const [staffId, _supplierId] = await Promise.all([
       createUser(t, {
         email: "staff@test.com",
         name: "Staff",
@@ -114,7 +114,7 @@ describe("supplier mutations", () => {
         contactNumber: "09171234567",
         address: "Some Address 123 Street City",
       })
-    ).rejects.toThrowError("Only owners can create suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects creation with short company name", async () => {
@@ -179,7 +179,7 @@ describe("supplier mutations", () => {
 
   it("creates a supplier and writes an audit log", async () => {
     const t = makeTest()
-    const [ownerId, phantomId] = await Promise.all([
+    const [ownerId, _phantomId] = await Promise.all([
       createUser(t, {
         email: "owner@test.com",
         name: "Owner",
@@ -271,7 +271,7 @@ describe("supplier mutations", () => {
         contactNumber: "09171234567",
         address: "Some Address 123 Street City",
       })
-    ).rejects.toThrowError("Only owners can create suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   // ── Update ────────────────────────────────────────────────
@@ -404,7 +404,7 @@ describe("supplier mutations", () => {
         supplierId,
         ...supplierData({ companyName: "Updated Corp" }),
       })
-    ).rejects.toThrowError("Only owners can update suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects updating non-existent supplier", async () => {
@@ -583,7 +583,7 @@ describe("supplier mutations", () => {
       t.mutation(api.suppliers.mutations.archive, {
         supplierId,
       })
-    ).rejects.toThrowError("Only owners can archive suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects archiving non-existent supplier", async () => {
@@ -700,7 +700,7 @@ describe("supplier mutations", () => {
       t.mutation(api.suppliers.mutations.unarchive, {
         supplierId,
       })
-    ).rejects.toThrowError("Only owners can unarchive suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects unarchiving non-existent supplier", async () => {
@@ -773,6 +773,6 @@ describe("supplier mutations", () => {
       t.mutation(api.suppliers.mutations.unarchive, {
         supplierId,
       })
-    ).rejects.toThrowError("Only owners can unarchive suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 })

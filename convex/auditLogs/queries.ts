@@ -2,9 +2,10 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { paginationOptsValidator } from "convex/server"
 import { v } from "convex/values"
 import { filter } from "convex-helpers/server/filter"
-import type { Id } from "../_generated/dataModel"
+import type { Doc, Id } from "../_generated/dataModel"
 import type { QueryCtx } from "../_generated/server"
 import { query } from "../_generated/server"
+import { escapeCsv } from "../lib/csv_escape"
 
 /**
  * Paginated audit log listing with optional filters (search, action, user, date range).
@@ -198,7 +199,7 @@ export const listActions = query({
     const caller = await ctx.db.get(callerId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const logs = await ctx.db.query("auditLogs").order("desc").take(5000)
+    const logs = await ctx.db.query("auditLogs").order("desc").take(500)
     const actions = [...new Set(logs.map((l) => l.action))]
     return actions.sort()
   },
@@ -271,7 +272,9 @@ async function fetchExportLogs(
   const logs = await base.order("desc").take(2000)
 
   const userIdSet = new Set(
-    logs.map((log) => log.userId).filter(Boolean) as Id<"users">[]
+    logs
+      .map((log) => log.userId)
+      .filter((id): id is Id<"users"> => id !== undefined)
   )
   const userMap = new Map<
     string,
@@ -343,15 +346,6 @@ export const exportCsv = query({
   },
   handler: async (ctx, args) => {
     const enriched = await fetchExportLogs(ctx, args)
-
-    const escapeCsv = (val: string | number | null | undefined): string => {
-      if (val === null || val === undefined) return ""
-      const s = String(val)
-      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-        return `"${s.replace(/"/g, '""')}"`
-      }
-      return s
-    }
 
     const header = [
       "Timestamp",

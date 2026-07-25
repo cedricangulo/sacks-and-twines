@@ -17,6 +17,7 @@ const fontMono = Geist_Mono({
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL || "https://sacks-and-twines.vercel.app"
+const metadataBase = URL.canParse(siteUrl) ? new URL(siteUrl) : undefined
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -31,7 +32,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase,
   title: {
     default: "Sacks & Twines",
     template: "%s | Sacks & Twines",

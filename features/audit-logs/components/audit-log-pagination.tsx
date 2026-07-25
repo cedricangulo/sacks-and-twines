@@ -44,7 +44,7 @@ export default function AuditLogPagination({
         </PaginationItem>
 
         <PaginationItem>
-          <span className="flex h-9 items-center px-4 text-sm tabular-nums text-muted-foreground">
+          <span className="flex h-9 items-center px-4 type-body-small tabular-nums text-muted-foreground">
             Page {pageNum}
           </span>
         </PaginationItem>

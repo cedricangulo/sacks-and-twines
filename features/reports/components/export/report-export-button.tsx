@@ -1,6 +1,6 @@
 "use client"
 
-import { DownloadIcon, FileSpreadsheetIcon, FileTextIcon } from "lucide-react"
+import { DownloadIcon, FileTextIcon, FileXlsIcon } from "@phosphor-icons/react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -41,28 +41,29 @@ export default function ReportExportButton() {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button>
-            <DownloadIcon />
-            Export
-          </Button>
+        <DropdownMenuTrigger render={<Button />}>
+          <DownloadIcon weight="fill" />
+          Export
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>CSV Export</DropdownMenuLabel>
           <DropdownMenuGroup>
+            <DropdownMenuLabel>CSV Export</DropdownMenuLabel>
             {Object.entries(EXPORT_ENTITY_NAMES).map(([key, label]) => (
               <DropdownMenuItem
                 key={key}
                 onClick={() => handleCsvSelect(key as ExportEntity)}
               >
-                <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
+                <FileXlsIcon
+                  weight="fill"
+                  className="size-4 text-muted-foreground"
+                />
                 {label}
               </DropdownMenuItem>
             ))}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handlePdfSelect}>
-            <FileTextIcon className="size-4 text-primary" />
+            <FileTextIcon weight="fill" className="size-4 text-primary" />
             Monthly Report (PDF)
           </DropdownMenuItem>
         </DropdownMenuContent>

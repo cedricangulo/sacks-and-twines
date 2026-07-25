@@ -1,11 +1,7 @@
 import { v } from "convex/values"
-import type { Id } from "./_generated/dataModel"
+import type { Doc, Id } from "./_generated/dataModel"
 import { internalMutation } from "./_generated/server"
-import {
-  SACKS_PACK_SIZE,
-  SUPPLIER_COUNT,
-  TWINES_CUTS_PER_ROLL,
-} from "./lib/constants"
+import { SACKS_DEFAULT_PACK_SIZE, SUPPLIER_COUNT } from "./lib/constants"
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -50,28 +46,10 @@ function nextBatchCode(): string {
 
 const SUPPLIER_DEFS = [
   {
-    companyName: "Manila Sack Industries",
-    contactPerson: "Roberto Santos",
-    contactNumber: "0917-123-4561",
-    address: "Manila, Metro Manila",
-  },
-  {
-    companyName: "Calabarzon Packaging",
-    contactPerson: "Lita Reyes",
-    contactNumber: "0918-234-5672",
-    address: "Batangas City, Batangas",
-  },
-  {
     companyName: "Central Luzon Sacks Corp.",
     contactPerson: "Miguel Ong",
     contactNumber: "0919-345-6783",
     address: "San Fernando, Pampanga",
-  },
-  {
-    companyName: "Ilocos Fiber Supply",
-    contactPerson: "Ana Cruz",
-    contactNumber: "0920-456-7894",
-    address: "San Fernando, La Union",
   },
   {
     companyName: "Cordillera Twine Traders",
@@ -80,22 +58,10 @@ const SUPPLIER_DEFS = [
     address: "Baguio City, Benguet",
   },
   {
-    companyName: "Cagayan Valley Materials",
-    contactPerson: "Elena Dimaano",
-    contactNumber: "0922-678-9016",
-    address: "Tuguegarao City, Cagayan",
-  },
-  {
-    companyName: "Bicol Thread & Sacks",
-    contactPerson: "Jun Bautista",
-    contactNumber: "0923-789-0127",
-    address: "Legazpi City, Albay",
-  },
-  {
-    companyName: "Cavite Plastics & Packaging",
-    contactPerson: "Rosa Garcia",
-    contactNumber: "0924-890-1238",
-    address: "Imus, Cavite",
+    companyName: "Manila Sack Industries",
+    contactPerson: "Roberto Santos",
+    contactNumber: "0917-123-4561",
+    address: "Manila, Metro Manila",
   },
 ]
 
@@ -104,101 +70,73 @@ const SUPPLIER_DEFS = [
 interface ProductDef {
   name: string
   category: "sacks" | "twines" | "thread"
-  baseUom: "piece" | "roll" | "cut"
+  baseUom: "piece" | "roll" | "meter"
   conversionFactor: number | undefined
   lowStockThreshold: number
 }
 
 const PRODUCT_DEFS: ProductDef[] = [
-  // ── Sacks (9 products) ──
+  // ── Sacks (5 products) ──
   {
-    name: "Sack 50kg White",
+    name: "Laminated Sack",
     category: "sacks",
     baseUom: "piece",
-    conversionFactor: SACKS_PACK_SIZE,
+    conversionFactor: SACKS_DEFAULT_PACK_SIZE,
     lowStockThreshold: 100,
   },
   {
-    name: "Sack 50kg Yellow",
+    name: "Assorted Sack",
     category: "sacks",
     baseUom: "piece",
-    conversionFactor: SACKS_PACK_SIZE,
+    conversionFactor: SACKS_DEFAULT_PACK_SIZE,
     lowStockThreshold: 100,
   },
   {
-    name: "Sack 25kg Pure White",
+    name: "Woven Polypropylene Sack",
     category: "sacks",
     baseUom: "piece",
-    conversionFactor: SACKS_PACK_SIZE,
+    conversionFactor: SACKS_DEFAULT_PACK_SIZE,
     lowStockThreshold: 100,
   },
   {
-    name: "Sack 25kg Green",
+    name: "Sand bag",
     category: "sacks",
     baseUom: "piece",
-    conversionFactor: SACKS_PACK_SIZE,
+    conversionFactor: SACKS_DEFAULT_PACK_SIZE,
     lowStockThreshold: 100,
   },
   {
-    name: "Sack 25kg Green Stripe",
+    name: "Red bag",
     category: "sacks",
     baseUom: "piece",
-    conversionFactor: SACKS_PACK_SIZE,
-    lowStockThreshold: 100,
-  },
-  {
-    name: "Sack 25kg Yellow",
-    category: "sacks",
-    baseUom: "piece",
-    conversionFactor: SACKS_PACK_SIZE,
-    lowStockThreshold: 100,
-  },
-  {
-    name: "Sack 25kg Light Blue",
-    category: "sacks",
-    baseUom: "piece",
-    conversionFactor: SACKS_PACK_SIZE,
-    lowStockThreshold: 100,
-  },
-  {
-    name: "Sibuyas Sack 10kg Red",
-    category: "sacks",
-    baseUom: "piece",
-    conversionFactor: SACKS_PACK_SIZE,
-    lowStockThreshold: 100,
-  },
-  {
-    name: "Calamansi Sack 35kg Red",
-    category: "sacks",
-    baseUom: "piece",
-    conversionFactor: SACKS_PACK_SIZE,
+    conversionFactor: SACKS_DEFAULT_PACK_SIZE,
     lowStockThreshold: 100,
   },
   // ── Twines (3 products) ──
   {
-    name: "Blue Twine",
+    name: "Sewing Twine",
     category: "twines",
-    baseUom: "cut",
-    conversionFactor: TWINES_CUTS_PER_ROLL,
+    baseUom: "meter",
+    conversionFactor: undefined,
     lowStockThreshold: 50,
   },
   {
-    name: "Yellow Twine",
+    name: "Banana Twine",
     category: "twines",
-    baseUom: "cut",
-    conversionFactor: TWINES_CUTS_PER_ROLL,
+    baseUom: "meter",
+    conversionFactor: undefined,
     lowStockThreshold: 50,
   },
   {
-    name: "Black Twine",
+    name: "Twist Twine",
     category: "twines",
-    baseUom: "cut",
-    conversionFactor: TWINES_CUTS_PER_ROLL,
+    baseUom: "meter",
+    conversionFactor: undefined,
     lowStockThreshold: 50,
   },
   // ── Thread (3 products) ──
   {
-    name: "Sewing Thread Large",
+    name: "Sewing Thread Small",
     category: "thread",
     baseUom: "roll",
     conversionFactor: undefined,
@@ -212,7 +150,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     lowStockThreshold: 20,
   },
   {
-    name: "Sewing Thread Small",
+    name: "Sewing Thread Large",
     category: "thread",
     baseUom: "roll",
     conversionFactor: undefined,
@@ -220,30 +158,20 @@ const PRODUCT_DEFS: ProductDef[] = [
   },
 ]
 
-// ─── Product image mapping (Cloudflare Image IDs) ──────────────────────────
-// Remapped to Model B product names.
+// ─── Product image mapping ──────────────────────────────────────────────────
 
 const IMAGE_MAP: Record<string, string> = {
-  // ── Sacks: 50kg ──
-  "Sack 50kg White": "kg28bj21gdww1w9g7zka61nd5s89b694",
-  "Sack 50kg Yellow": "kg293h2zvbecn0f32k9x1he6nx89a3m7",
-  // ── Sacks: 25kg ──
-  "Sack 25kg Pure White": "kg2aaqjzyv5qd4pggx9fb6kh4x89b07w",
-  "Sack 25kg Green": "kg210j12mbj55gc73t1jj8zvc989atbt",
-  "Sack 25kg Green Stripe": "kg2c93pc40cgj0qfb6kyxq9wv589bdme",
-  "Sack 25kg Yellow": "kg286mbpqvjgtt9334yjrwes8589a67h",
-  "Sack 25kg Light Blue": "kg259cban9tn9wsxq9y50s710n89asym",
-  // ── Sacks: Standalone ──
-  "Sibuyas Sack 10kg Red": "kg2a7dp7kytmcctk5y7g3me86x89an78",
-  "Calamansi Sack 35kg Red": "kg2ar0admzjtg8hefa9ndg5j6s89a3pt",
-  // ── Twines ──
-  "Blue Twine": "kg20nnhdxmm9g56txpac7hhav589aegb",
-  "Yellow Twine": "kg28sesk5s4qnvqmva9bpqcd6d89a5my",
-  "Black Twine": "kg2atf72azdmxgny30q4xax7rd89byby",
-  // ── Thread ──
-  "Sewing Thread Large": "kg2f7z73prpat7jgj3g9ty6e3d89bgnq",
-  "Sewing Thread Medium": "kg29hp7ytx4vt1n7wwcnhq7k0n89ba9c",
-  "Sewing Thread Small": "kg24jay9p731s20w2zfkccx9vs89bqwv",
+  "Laminated Sack": "kg2c6ffb9tqyme8qp4znbktm998b4xq4",
+  "Assorted Sack": "kg2fjqx0rrxbdmnsg1peqyppf58b5yyq",
+  "Woven Polypropylene Sack": "kg2fvfybfxk4t6zkhp6cvnpkb98b4mjy",
+  "Sand bag": "kg21k13z862tsgg9s0y5nf695x8b43fv",
+  "Red bag": "kg2bfh4tmqd114vcqr76qv7xws8b4jyf",
+  "Sewing Twine": "kg2dx1xev3ck3phrncjc3ps80s8b4gk9",
+  "Banana Twine": "kg2d46czs8p3kfs8c7b6b13x118b5stt",
+  "Twist Twine": "kg2ecynsrgnfsveqe0cw0vkt798b5n1e",
+  "Sewing Thread Small": "kg2deeyss2z9cqvk0g9zktpnhh8b5nms",
+  "Sewing Thread Medium": "kg294k1ymwbgza5haqhpyh841x8b5rwg",
+  "Sewing Thread Large": "kg2c7ek52qzpc4k0cmf6s2k4cd8b5c4j",
 }
 
 // ─── Internal Mutation: writeAll ───────────────────────────────────────────
@@ -412,7 +340,7 @@ export const writeAll = internalMutation({
       dispatchId: Id<"dispatches">
       batchId: Id<"batches">
       productId: Id<"products">
-      dispatchUom: "piece" | "roll" | "cut"
+      dispatchUom: "piece" | "roll" | "meter"
       dispatchQuantity: number
       quantityDeducted: number
       unitCost: number
@@ -485,7 +413,7 @@ export const writeAll = internalMutation({
               : toFloat(rndInt(2, 30) + Math.random())
 
         const qtyDeducted =
-          product.def.baseUom === "cut" ? toFloat(dispatchQty) : dispatchQty
+          product.def.baseUom === "meter" ? toFloat(dispatchQty) : dispatchQty
 
         // Find an active batch with enough remaining
         const productBatchesList = (
@@ -516,7 +444,7 @@ export const writeAll = internalMutation({
             ? ("piece" as const)
             : product.def.baseUom === "roll"
               ? ("roll" as const)
-              : ("cut" as const)
+              : ("meter" as const)
 
         dispatchItemsToInsert.push({
           dispatchId,
@@ -531,7 +459,7 @@ export const writeAll = internalMutation({
 
         // Deduct from batch
         batch.quantityRemaining =
-          product.def.baseUom === "cut"
+          product.def.baseUom === "meter"
             ? toFloat(batch.quantityRemaining - qtyDeducted)
             : batch.quantityRemaining - qtyDeducted
 
@@ -633,7 +561,7 @@ export const writeAll = internalMutation({
 
         const batch = rnd(activeBatches)
         const qty =
-          def.baseUom === "cut"
+          def.baseUom === "meter"
             ? toFloat(rndInt(1, 20) + Math.random())
             : rndInt(1, 20)
 
@@ -663,7 +591,7 @@ export const writeAll = internalMutation({
         // Apply to batch if not voided
         if (!isVoided) {
           const newRemaining =
-            def.baseUom === "cut"
+            def.baseUom === "meter"
               ? toFloat(batch.quantityRemaining - qty)
               : batch.quantityRemaining - qty
           batch.quantityRemaining = Math.max(0, newRemaining)
@@ -702,7 +630,7 @@ export const writeAll = internalMutation({
           0
         )
         const currentQuantity =
-          def.baseUom === "cut" ? toFloat(totalQty) : Math.round(totalQty)
+          def.baseUom === "meter" ? toFloat(totalQty) : Math.round(totalQty)
 
         let totalAssetValue = 0
         if (activeBatches.length > 0) {
@@ -925,16 +853,23 @@ export const writeClean = internalMutation({
   args: {},
   handler: async (ctx) => {
     // Clear all domain tables (children → parents)
-    const [dispatchItems, logs, adjustments, dispatches, batches, products, suppliers] =
-      await Promise.all([
-        ctx.db.query("dispatchItems").collect(),
-        ctx.db.query("auditLogs").collect(),
-        ctx.db.query("stockAdjustments").collect(),
-        ctx.db.query("dispatches").collect(),
-        ctx.db.query("batches").collect(),
-        ctx.db.query("products").collect(),
-        ctx.db.query("suppliers").collect(),
-      ])
+    const [
+      dispatchItems,
+      logs,
+      adjustments,
+      dispatches,
+      batches,
+      products,
+      suppliers,
+    ] = await Promise.all([
+      ctx.db.query("dispatchItems").collect(),
+      ctx.db.query("auditLogs").collect(),
+      ctx.db.query("stockAdjustments").collect(),
+      ctx.db.query("dispatches").collect(),
+      ctx.db.query("batches").collect(),
+      ctx.db.query("products").collect(),
+      ctx.db.query("suppliers").collect(),
+    ])
     await Promise.all([
       ...dispatchItems.map((d) => ctx.db.delete(d._id)),
       ...logs.map((l) => ctx.db.delete(l._id)),
@@ -973,16 +908,23 @@ export const writeTest = internalMutation({
   },
   handler: async (ctx, { ownerId, staffId, deactivatedStaffId }) => {
     // ── Clear existing data ──────────────────────────────────────────
-    const [oldDispatchItems, oldLogs, oldAdjustments, oldDispatches, oldBatches, oldProducts, oldSuppliers] =
-      await Promise.all([
-        ctx.db.query("dispatchItems").collect(),
-        ctx.db.query("auditLogs").collect(),
-        ctx.db.query("stockAdjustments").collect(),
-        ctx.db.query("dispatches").collect(),
-        ctx.db.query("batches").collect(),
-        ctx.db.query("products").collect(),
-        ctx.db.query("suppliers").collect(),
-      ])
+    const [
+      oldDispatchItems,
+      oldLogs,
+      oldAdjustments,
+      oldDispatches,
+      oldBatches,
+      oldProducts,
+      oldSuppliers,
+    ] = await Promise.all([
+      ctx.db.query("dispatchItems").collect(),
+      ctx.db.query("auditLogs").collect(),
+      ctx.db.query("stockAdjustments").collect(),
+      ctx.db.query("dispatches").collect(),
+      ctx.db.query("batches").collect(),
+      ctx.db.query("products").collect(),
+      ctx.db.query("suppliers").collect(),
+    ])
     await Promise.all([
       ...oldDispatchItems.map((d) => ctx.db.delete(d._id)),
       ...oldLogs.map((l) => ctx.db.delete(l._id)),
@@ -1003,7 +945,7 @@ export const writeTest = internalMutation({
       name: "Archived Sack 10kg",
       category: "sacks",
       baseUom: "piece",
-      conversionFactor: SACKS_PACK_SIZE,
+      conversionFactor: SACKS_DEFAULT_PACK_SIZE,
       lowStockThreshold: 100,
     }
     const testProductDefs = [...PRODUCT_DEFS, archivedProduct]
@@ -1029,12 +971,15 @@ export const writeTest = internalMutation({
       })
     )
 
-    const productMap: Record<string, { id: Id<"products">; def: ProductDef }> = {}
+    const productMap: Record<string, { id: Id<"products">; def: ProductDef }> =
+      {}
     for (const { id, def } of productResults) {
       productMap[def.name] = { id, def }
     }
     const productList = Object.values(productMap)
-    const activeProductList = productList.filter((p) => p.def.name !== "Archived Sack 10kg")
+    const activeProductList = productList.filter(
+      (p) => p.def.name !== "Archived Sack 10kg"
+    )
 
     // ── 3. Insert batches (~20, various states) ─────────────────────
     const userIds = [ownerId, staffId]
@@ -1052,12 +997,14 @@ export const writeTest = internalMutation({
 
     // Create 1-2 batches per active product
     for (const { id: pId, def } of activeProductList) {
-      const numBatches = def.category === "thread" ? 1 : 2
+      const numBatches = 2
       let lastDate = DATE_BASE
 
       for (let i = 0; i < numBatches; i++) {
         const span = DATE_END.getTime() - lastDate.getTime()
-        const batchDate = new Date(lastDate.getTime() + Math.random() * span * 0.7)
+        const batchDate = new Date(
+          lastDate.getTime() + Math.random() * span * 0.7
+        )
         if (batchDate > DATE_END) continue
 
         const supplierId = rnd(supplierIds)
@@ -1107,7 +1054,7 @@ export const writeTest = internalMutation({
     }
 
     // Add 1 depleted batch (Sack 50kg White, first batch)
-    const sackProduct = productMap["Sack 50kg White"]
+    const sackProduct = productMap["Laminated Sack"]
     if (sackProduct) {
       const depletedBatchCode = nextBatchCode()
       const depletedBatchId = await ctx.db.insert("batches", {
@@ -1136,7 +1083,7 @@ export const writeTest = internalMutation({
     }
 
     // Add 1 voided batch (Blue Twine)
-    const twineProduct = productMap["Blue Twine"]
+    const twineProduct = productMap["Sewing Twine"]
     if (twineProduct) {
       const voidedBatchCode = nextBatchCode()
       const voidedBatchId = await ctx.db.insert("batches", {
@@ -1157,7 +1104,7 @@ export const writeTest = internalMutation({
         unitCost: 150,
         quantityReceived: 100,
         quantityRemaining: 100,
-        baseUom: "cut",
+        baseUom: "meter",
         batchCode: voidedBatchCode,
         createdDate: DATE_BASE,
         status: "voided",
@@ -1176,7 +1123,7 @@ export const writeTest = internalMutation({
       dispatchId: Id<"dispatches">
       batchId: Id<"batches">
       productId: Id<"products">
-      dispatchUom: "piece" | "roll" | "cut"
+      dispatchUom: "piece" | "roll" | "meter"
       dispatchQuantity: number
       quantityDeducted: number
       unitCost: number
@@ -1184,7 +1131,10 @@ export const writeTest = internalMutation({
     }> = []
 
     // Build product → active batches index
-    const activeBatchesByProduct = new Map<Id<"products">, typeof batchRecords>()
+    const activeBatchesByProduct = new Map<
+      Id<"products">,
+      typeof batchRecords
+    >()
     const depletedBatchIds = new Set<Id<"batches">>()
     for (const batch of batchRecords) {
       if (batch.status !== "active") {
@@ -1217,14 +1167,21 @@ export const writeTest = internalMutation({
         createdAt: dBase.getTime(),
       })
 
-      dispatchRecords.push({ id: dispatchId, userId, createdDate: dBase, status: isVoided ? "voided" : "completed" })
+      dispatchRecords.push({
+        id: dispatchId,
+        userId,
+        createdDate: dBase,
+        status: isVoided ? "voided" : "completed",
+      })
 
       // 1-3 items per dispatch
       const numItems = rndInt(1, 3)
       const usedProducts = new Set<Id<"products">>()
 
       for (let j = 0; j < numItems; j++) {
-        const available = activeProductList.filter((p) => !usedProducts.has(p.id))
+        const available = activeProductList.filter(
+          (p) => !usedProducts.has(p.id)
+        )
         if (available.length === 0) break
 
         const product = rnd(available)
@@ -1238,7 +1195,7 @@ export const writeTest = internalMutation({
               : toFloat(rndInt(2, 20) + Math.random())
 
         const qtyDeducted =
-          product.def.baseUom === "cut" ? toFloat(dispatchQty) : dispatchQty
+          product.def.baseUom === "meter" ? toFloat(dispatchQty) : dispatchQty
 
         const productBatchesList = (
           activeBatchesByProduct.get(product.id) ?? []
@@ -1258,7 +1215,7 @@ export const writeTest = internalMutation({
             ? ("piece" as const)
             : product.def.baseUom === "roll"
               ? ("roll" as const)
-              : ("cut" as const)
+              : ("meter" as const)
 
         dispatchItemsToInsert.push({
           dispatchId,
@@ -1273,7 +1230,7 @@ export const writeTest = internalMutation({
 
         // Deduct from batch
         batch.quantityRemaining =
-          product.def.baseUom === "cut"
+          product.def.baseUom === "meter"
             ? toFloat(batch.quantityRemaining - qtyDeducted)
             : batch.quantityRemaining - qtyDeducted
 
@@ -1337,7 +1294,7 @@ export const writeTest = internalMutation({
     }
     await Promise.all(
       batchRecords.map((batch) => {
-        const patch: Record<string, unknown> = {
+        const patch: Partial<Doc<"batches">> = {
           quantityRemaining: batch.quantityRemaining,
         }
         if (batch.status === "depleted") {
@@ -1374,7 +1331,7 @@ export const writeTest = internalMutation({
       if (!product) continue
 
       const qty =
-        product.def.baseUom === "cut"
+        product.def.baseUom === "meter"
           ? toFloat(rndInt(1, 10) + Math.random())
           : rndInt(1, 10)
 
@@ -1404,7 +1361,7 @@ export const writeTest = internalMutation({
       // Apply to batch if not voided
       if (!isVoided) {
         const newRemaining =
-          product.def.baseUom === "cut"
+          product.def.baseUom === "meter"
             ? toFloat(batch.quantityRemaining - qty)
             : batch.quantityRemaining - qty
         batch.quantityRemaining = Math.max(0, newRemaining)
@@ -1421,7 +1378,9 @@ export const writeTest = internalMutation({
       batchRecords.map((batch) =>
         ctx.db.patch(batch.id, {
           quantityRemaining: batch.quantityRemaining,
-          ...(batch.status === "depleted" ? { status: "depleted" as const } : {}),
+          ...(batch.status === "depleted"
+            ? { status: "depleted" as const }
+            : {}),
         })
       )
     )
@@ -1438,7 +1397,7 @@ export const writeTest = internalMutation({
           0
         )
         const currentQuantity =
-          def.baseUom === "cut" ? toFloat(totalQty) : Math.round(totalQty)
+          def.baseUom === "meter" ? toFloat(totalQty) : Math.round(totalQty)
 
         let totalAssetValue = 0
         if (activeBatches.length > 0) {
@@ -1507,9 +1466,10 @@ export const writeTest = internalMutation({
           userId: dispatch.userId,
           action: dispatch.status === "voided" ? "dispatch_void" : "stock_out",
           description: JSON.stringify({
-            summary: dispatch.status === "voided"
-              ? `Voided dispatch with ${items.length} product(s)`
-              : `Dispatched ${items.length} product(s) (${toFloat(items.reduce((sum, item) => sum + item.dispatchQuantity, 0))} units)`,
+            summary:
+              dispatch.status === "voided"
+                ? `Voided dispatch with ${items.length} product(s)`
+                : `Dispatched ${items.length} product(s) (${toFloat(items.reduce((sum, item) => sum + item.dispatchQuantity, 0))} units)`,
             details: {
               totalItems: items.length,
               totalQuantity: toFloat(

@@ -1,6 +1,6 @@
 "use client"
 
-import { Package } from "lucide-react"
+import { PackageIcon } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -79,7 +79,7 @@ export default function CalendarDetailPanel() {
 
   return (
     <div ref={panelRef} data-optional="">
-      <h3 className="mb-4 font-semibold type-base">{formattedDate}</h3>
+      <h3 className="mb-4 font-semibold type-body-default">{formattedDate}</h3>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="gap-4">
         <div className="flex items-center justify-between gap-4">
@@ -105,7 +105,7 @@ export default function CalendarDetailPanel() {
               <Empty>
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
-                    <Package />
+                    <PackageIcon weight="fill" />
                   </EmptyMedia>
                   <EmptyTitle>
                     There are no dispatches scheduled for this day.
@@ -128,7 +128,7 @@ export default function CalendarDetailPanel() {
               <Empty>
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
-                    <Package />
+                    <PackageIcon weight="fill" />
                   </EmptyMedia>
                   <EmptyTitle>
                     There are no stock adjustments for this day.

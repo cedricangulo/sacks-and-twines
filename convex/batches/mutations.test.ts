@@ -182,7 +182,7 @@ describe("batch mutations", () => {
         quantityReceived: 50,
         totalProcurementCost: 25000,
       })
-    ).rejects.toThrowError("Only owners can stock in")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("stockIn to existing product creates batch and increments derived fields", async () => {
@@ -814,7 +814,7 @@ describe("batch mutations", () => {
 
     await expect(
       t.mutation(api.batches.mutations.generateUploadUrl, {})
-    ).rejects.toThrowError("Only owners can upload files")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("sets imagePath on new product when stockIn includes imageStorageId", async () => {
@@ -942,7 +942,7 @@ describe("batch mutations", () => {
         quantityReceived: 50,
         totalProcurementCost: 25000,
       })
-    ).rejects.toThrowError("Only owners can stock in")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   // ── Audit Log Descriptions ────────────────────────────────

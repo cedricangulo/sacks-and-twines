@@ -91,7 +91,7 @@ export default function CsvExportDialog({
         {entity && recordCount > 0 ? (
           <div className="space-y-3 overflow-y-auto max-h-52">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Columns</span>
+              <span className="type-body-small font-medium">Columns</span>
               <Button variant="ghost" size="xs" onClick={columns.toggleAll}>
                 Toggle All
               </Button>
@@ -102,7 +102,7 @@ export default function CsvExportDialog({
               ),
             ].map(([section, cols]) => (
               <div key={section}>
-                <div className="px-1 mb-1 text-xs font-medium text-muted-foreground">
+                <div className="px-1 mb-1 type-caption font-medium text-muted-foreground">
                   {section}
                 </div>
                 <FieldGroup className="grid grid-cols-2 gap-2">
@@ -116,7 +116,7 @@ export default function CsvExportDialog({
                         onCheckedChange={() => columns.toggleColumn(col.id)}
                         disabled={col.required}
                       />
-                      <span className="text-sm">{col.label}</span>
+                      <span className="type-body-small">{col.label}</span>
                     </label>
                   ))}
                 </FieldGroup>
@@ -124,7 +124,7 @@ export default function CsvExportDialog({
             ))}
           </div>
         ) : entity && !isLoading ? (
-          <div className="py-4 text-sm text-center text-muted-foreground">
+          <div className="py-4 type-body-small text-center text-muted-foreground">
             No records found for this date range. Try a wider range or use the
             Quick range buttons above.
           </div>

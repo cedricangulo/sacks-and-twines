@@ -83,7 +83,7 @@ describe("product mutations", () => {
         category: "sacks",
         baseUom: "piece",
       })
-    ).rejects.toThrowError("Only owners can create products")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects creation with duplicate name", async () => {
@@ -210,7 +210,7 @@ describe("product mutations", () => {
         category: "sacks",
         baseUom: "piece",
       })
-    ).rejects.toThrowError("Only owners can update products")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("updates product name and category", async () => {
@@ -498,7 +498,7 @@ describe("product mutations", () => {
     expect(product?.conversionFactor).toBe(50)
   })
 
-  it("create sets default conversionFactor = 50 for twines", async () => {
+  it("create does not set default conversionFactor for twines", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
       email: "owner@test.com",
@@ -511,13 +511,13 @@ describe("product mutations", () => {
     const productId = await t.mutation(api.products.mutations.create, {
       name: "Twine Product",
       category: "twines",
-      baseUom: "roll",
+      baseUom: "meter",
     })
 
     const product = await t.run(async (ctx) => {
       return await ctx.db.get(productId)
     })
-    expect(product?.conversionFactor).toBe(50)
+    expect(product?.conversionFactor).toBeUndefined()
   })
 
   it("create sets default lowStockThreshold = 0", async () => {
@@ -682,7 +682,7 @@ describe("product mutations", () => {
 
     await expect(
       t.mutation(api.products.mutations.archive, { productId })
-    ).rejects.toThrowError("Only owners can archive products")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("archives an active product", async () => {
@@ -869,7 +869,7 @@ describe("product mutations", () => {
 
     await expect(
       t.mutation(api.products.mutations.unarchive, { productId })
-    ).rejects.toThrowError("Only owners can unarchive products")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("unarchives an archived product", async () => {
@@ -1064,6 +1064,6 @@ describe("product mutations", () => {
         category: "sacks",
         baseUom: "piece",
       })
-    ).rejects.toThrowError("Only owners can create products")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 })

@@ -9,7 +9,7 @@ export function DateRangeFields({ range }: { range: DateRangeProps }) {
   return (
     <div className="space-y-2">
       <Field orientation="horizontal">
-        <FieldLabel className="w-12 text-xs">Start</FieldLabel>
+        <FieldLabel className="w-12 type-caption">Start</FieldLabel>
         <div className="flex items-center gap-2">
           <DatePicker
             value={range.startDate}
@@ -25,7 +25,7 @@ export function DateRangeFields({ range }: { range: DateRangeProps }) {
         </div>
       </Field>
       <Field orientation="horizontal">
-        <FieldLabel className="w-12 text-xs">End</FieldLabel>
+        <FieldLabel className="w-12 type-caption">End</FieldLabel>
         <div className="flex items-center gap-2">
           <DatePicker
             value={range.endDate}

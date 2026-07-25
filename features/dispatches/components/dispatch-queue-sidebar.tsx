@@ -1,11 +1,12 @@
 "use client"
 
-import { Loader2, XIcon } from "lucide-react"
+import { XIcon } from "@phosphor-icons/react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Spinner } from "@/components/ui/spinner"
 import { formatNumber } from "@/lib/formatters"
 import { getInitials } from "@/lib/utils"
 import { useDispatchQueueContext } from "../hooks/dispatch-queue-context"
@@ -28,7 +29,7 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
   return (
     <div className="flex flex-col w-full h-full border shadow-sm rounded-2xl xl:w-80 bg-card">
       <div className="flex items-center justify-between p-4 pr-16 xl:pr-4">
-        <h3 className="font-medium type-sm">Dispatch Queue</h3>
+        <h3 className="font-medium type-body-small">Dispatch Queue</h3>
         <Badge variant="success">
           {itemCount} {itemCount === 1 ? "item" : "items"} selected
         </Badge>
@@ -53,12 +54,12 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
 
                 <div className="flex flex-col flex-1 min-w-0">
                   <h4
-                    className="line-clamp-1 font-heading font-seminold type-base"
+                    className="line-clamp-1 font-semibold type-body-default"
                     title={item.name}
                   >
                     {item.name}
                   </h4>
-                  <p className="font-mono type-base tabular-nums text-muted-foreground">
+                  <p className="font-mono type-body-default tabular-nums text-muted-foreground">
                     {formatNumber(item.quantity)} {item.dispatchUom}
                     {item.quantity !== 1 ? "s" : ""}
                   </p>
@@ -71,7 +72,7 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
                   onClick={() => removeFromQueue(item.productId)}
                   aria-label={`Remove ${item.name} from dispatch queue`}
                 >
-                  <XIcon />
+                  <XIcon weight="bold" />
                 </Button>
               </li>
             ))}
@@ -95,7 +96,7 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="animate-spin" />
+              <Spinner />
               Dispatching&hellip;
             </>
           ) : (

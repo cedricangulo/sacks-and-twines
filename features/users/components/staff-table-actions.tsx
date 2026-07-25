@@ -1,6 +1,6 @@
 "use client"
 
-import { TriangleAlertIcon } from "lucide-react"
+import { WarningIcon } from "@phosphor-icons/react"
 import { useState } from "react"
 import {
   AlertDialog,
@@ -42,15 +42,13 @@ export default function StaffTableActions({ user }: { user: StaffUser }) {
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          Deactivate
-        </Button>
+      <AlertDialogTrigger render={<Button variant="outline" size="sm" />}>
+        Deactivate
       </AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
           <AlertDialogMedia>
-            <TriangleAlertIcon className="text-destructive" />
+            <WarningIcon weight="fill" className="text-destructive" />
           </AlertDialogMedia>
           <AlertDialogTitle>Deactivate staff user</AlertDialogTitle>
           <AlertDialogDescription>

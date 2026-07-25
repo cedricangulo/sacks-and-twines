@@ -101,13 +101,11 @@ export function useAuditLogs(
     if (!result || result.isDone || isTransitioning) return
     setHistory((prev) => [...prev, cursor ?? ""])
     setCursor(result.continueCursor)
-    setPageNum((prev) => {
-      const next = prev + 1
-      setMaxPage((m) => Math.max(m, next))
-      return next
-    })
+    const next = pageNum + 1
+    setPageNum(next)
+    setMaxPage((m) => Math.max(m, next))
     setIsTransitioning(true)
-  }, [result, cursor, isTransitioning])
+  }, [result, cursor, isTransitioning, pageNum])
 
   const goPrev = useCallback(() => {
     if (history.length === 0 || isTransitioning) return

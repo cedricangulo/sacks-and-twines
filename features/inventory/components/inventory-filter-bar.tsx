@@ -1,4 +1,4 @@
-import { Columns3, SearchIcon, XIcon } from "lucide-react"
+import { ColumnsIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react"
 import type { Dispatch, SetStateAction } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -66,7 +66,10 @@ export default function InventoryFilterBar({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative max-w-xs grow">
-        <SearchIcon className="absolute -translate-y-1/2 left-3 top-1/2 size-4 text-muted-foreground" />
+        <MagnifyingGlassIcon
+          weight="bold"
+          className="absolute -translate-y-1/2 left-3 top-1/2 size-4 text-muted-foreground"
+        />
         <Input
           placeholder="Search products..."
           value={search}
@@ -124,7 +127,11 @@ export default function InventoryFilterBar({
         }
       >
         <SelectTrigger className="w-31.5">
-          <SelectValue />
+          <SelectValue>
+            {(value) =>
+              STOCK_OPTIONS.find((o) => o.value === value)?.label ?? value
+            }
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {STOCK_OPTIONS.map((opt) => (
@@ -136,11 +143,9 @@ export default function InventoryFilterBar({
       </Select>
 
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="secondary">
-            <Columns3 className="text-muted-foreground" />
-            Columns
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="secondary" />}>
+          <ColumnsIcon weight="fill" className="text-muted-foreground" />
+          Columns
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
@@ -152,7 +157,7 @@ export default function InventoryFilterBar({
               <DropdownMenuCheckboxItem
                 key={col.id}
                 checked={inventoryVisibility[col.id] ?? true}
-                onSelect={(e) => e.preventDefault()}
+                closeOnClick={false}
                 onCheckedChange={(checked) =>
                   onInventoryVisibilityChange((prev) => ({
                     ...prev,
@@ -171,7 +176,7 @@ export default function InventoryFilterBar({
               <DropdownMenuCheckboxItem
                 key={col.id}
                 checked={batchVisibility[col.id] ?? true}
-                onSelect={(e) => e.preventDefault()}
+                closeOnClick={false}
                 onCheckedChange={(checked) =>
                   onBatchVisibilityChange((prev) => ({
                     ...prev,
@@ -188,7 +193,7 @@ export default function InventoryFilterBar({
 
       {hasActiveFilters ? (
         <Button type="button" variant="ghost" onClick={onClear}>
-          <XIcon />
+          <XIcon weight="bold" />
           Clear
         </Button>
       ) : null}

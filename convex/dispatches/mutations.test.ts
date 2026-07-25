@@ -60,7 +60,7 @@ describe("dispatch mutations", () => {
     overrides?: Partial<{
       name: string
       category: "sacks" | "twines" | "thread"
-      baseUom: "piece" | "roll" | "cut"
+      baseUom: "piece" | "roll" | "meter"
       conversionFactor: number
       currentQuantity: number
       totalAssetValue: number
@@ -531,5 +531,178 @@ describe("dispatch mutations", () => {
         items: [{ productId, quantity: 1, dispatchUom: "piece" }],
       })
     ).rejects.toThrowError("Account deactivated")
+  })
+
+  it("rejects sacks dispatched by meter", async () => {
+    const t = makeTest()
+    const userId = await createUser(t)
+    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
+
+    const productId = await createProduct(t, {
+      name: "Sack",
+      category: "sacks",
+      baseUom: "piece",
+      currentQuantity: 100,
+    })
+
+    await expect(
+      t.mutation(api.dispatches.mutations.submit, {
+        items: [{ productId, quantity: 5, dispatchUom: "meter" }],
+      })
+    ).rejects.toThrow('Cannot dispatch Sack by "meter"')
+  })
+
+  it("rejects sacks dispatched by roll", async () => {
+    const t = makeTest()
+    const userId = await createUser(t)
+    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
+
+    const productId = await createProduct(t, {
+      name: "Sack",
+      category: "sacks",
+      baseUom: "piece",
+      currentQuantity: 100,
+    })
+
+    await expect(
+      t.mutation(api.dispatches.mutations.submit, {
+        items: [{ productId, quantity: 1, dispatchUom: "roll" }],
+      })
+    ).rejects.toThrow('Cannot dispatch Sack by "roll"')
+  })
+
+  it("rejects twines dispatched by piece", async () => {
+    const t = makeTest()
+    const userId = await createUser(t)
+    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
+
+    const productId = await createProduct(t, {
+      name: "Twine",
+      category: "twines",
+      baseUom: "meter",
+      conversionFactor: 50,
+      currentQuantity: 200,
+    })
+
+    await expect(
+      t.mutation(api.dispatches.mutations.submit, {
+        items: [{ productId, quantity: 5, dispatchUom: "piece" }],
+      })
+    ).rejects.toThrow('Cannot dispatch Twine by "piece"')
+  })
+
+  it("dispatches twines by meter (1:1 conversion)", async () => {
+    const t = makeTest()
+    const userId = await createUser(t)
+    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        name: "Twine",
+        category: "twines",
+        baseUom: "meter",
+        conversionFactor: 50,
+        currentQuantity: 200,
+        totalAssetValue: 20000,
+      }),
+      createSupplier(t),
+    ])
+    const _batchId = await createBatch(t, {
+      productId,
+      supplierId,
+      userId,
+      quantityReceived: 200,
+      quantityRemaining: 200,
+      unitCost: 100,
+    })
+
+    const result = await t.mutation(api.dispatches.mutations.submit, {
+      items: [{ productId, quantity: 15, dispatchUom: "meter" }],
+    })
+
+    await t.run(async (ctx) => {
+      const items = await ctx.db
+        .query("dispatchItems")
+        .filter((q) => q.eq(q.field("dispatchId"), result.dispatchId))
+        .collect()
+      expect(items).toHaveLength(1)
+      expect(items[0].dispatchQuantity).toBe(15)
+      expect(items[0].quantityDeducted).toBe(15)
+      expect(items[0].dispatchUom).toBe("meter")
+    })
+  })
+
+  it("dispatches twines by roll (converted to meters)", async () => {
+    const t = makeTest()
+    const userId = await createUser(t)
+    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        name: "Twine",
+        category: "twines",
+        baseUom: "meter",
+        conversionFactor: 50,
+        currentQuantity: 500,
+        totalAssetValue: 50000,
+      }),
+      createSupplier(t),
+    ])
+    const batchId = await createBatch(t, {
+      productId,
+      supplierId,
+      userId,
+      quantityReceived: 500,
+      quantityRemaining: 500,
+      unitCost: 100,
+    })
+
+    // Dispatch 3 rolls = 150 meters
+    const result = await t.mutation(api.dispatches.mutations.submit, {
+      items: [{ productId, quantity: 3, dispatchUom: "roll" }],
+    })
+
+    await t.run(async (ctx) => {
+      const items = await ctx.db
+        .query("dispatchItems")
+        .filter((q) => q.eq(q.field("dispatchId"), result.dispatchId))
+        .collect()
+      expect(items).toHaveLength(1)
+      expect(items[0].dispatchQuantity).toBe(3)
+      expect(items[0].quantityDeducted).toBe(150)
+      expect(items[0].dispatchUom).toBe("roll")
+    })
+
+    // Verify batch: 500 - 150 = 350
+    await t.run(async (ctx) => {
+      const batch = await ctx.db.get(batchId)
+      expect(batch!.quantityRemaining).toBe(350)
+    })
+
+    // Verify product: 500 - 150 = 350
+    await t.run(async (ctx) => {
+      const product = await ctx.db.get(productId)
+      expect(product!.currentQuantity).toBe(350)
+    })
+  })
+
+  it("rejects twine dispatch by roll when conversionFactor is missing", async () => {
+    const t = makeTest()
+    const userId = await createUser(t)
+    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
+
+    const productId = await createProduct(t, {
+      name: "Twine",
+      category: "twines",
+      baseUom: "meter",
+      conversionFactor: 0,
+      currentQuantity: 200,
+    })
+
+    await expect(
+      t.mutation(api.dispatches.mutations.submit, {
+        items: [{ productId, quantity: 2, dispatchUom: "roll" }],
+      })
+    ).rejects.toThrow("missing conversion factor")
   })
 })

@@ -2,11 +2,11 @@
 
 import {
   ArchiveIcon,
-  EllipsisVerticalIcon,
+  ArrowCounterClockwiseIcon,
+  DotsThreeVerticalIcon,
   PencilIcon,
-  RotateCcwIcon,
-  TriangleAlertIcon,
-} from "lucide-react"
+  WarningIcon,
+} from "@phosphor-icons/react"
 import { useState } from "react"
 import {
   AlertDialog,
@@ -56,14 +56,19 @@ export default function ProductTableActions({ product }: { product: Product }) {
   return (
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <EllipsisVerticalIcon />
-          </Button>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => e.stopPropagation()}
+            />
+          }
+        >
+          <DotsThreeVerticalIcon
+            weight="bold"
+            className="text-muted-foreground"
+          />
         </PopoverTrigger>
         <PopoverContent align="end" className="w-40 p-1">
           <div className="flex flex-col gap-0.5">
@@ -75,7 +80,7 @@ export default function ProductTableActions({ product }: { product: Product }) {
               }}
               variant="ghost"
             >
-              <PencilIcon />
+              <PencilIcon weight="fill" />
               Edit
             </Button>
 
@@ -88,7 +93,7 @@ export default function ProductTableActions({ product }: { product: Product }) {
                 }}
                 variant="ghost"
               >
-                <RotateCcwIcon />
+                <ArrowCounterClockwiseIcon weight="fill" />
                 Unarchive
               </Button>
             ) : (
@@ -100,7 +105,7 @@ export default function ProductTableActions({ product }: { product: Product }) {
                 }}
                 variant="ghost"
               >
-                <ArchiveIcon />
+                <ArchiveIcon weight="fill" />
                 Archive
               </Button>
             )}
@@ -118,7 +123,7 @@ export default function ProductTableActions({ product }: { product: Product }) {
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
             <AlertDialogMedia className="bg-destructive/10 text-destructive">
-              <TriangleAlertIcon />
+              <WarningIcon weight="fill" />
             </AlertDialogMedia>
             <AlertDialogTitle>Archive product</AlertDialogTitle>
             <AlertDialogDescription>
@@ -143,7 +148,7 @@ export default function ProductTableActions({ product }: { product: Product }) {
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
             <AlertDialogMedia className="bg-primary/10 text-primary">
-              <RotateCcwIcon />
+              <ArrowCounterClockwiseIcon weight="fill" />
             </AlertDialogMedia>
             <AlertDialogTitle>Unarchive product</AlertDialogTitle>
             <AlertDialogDescription>

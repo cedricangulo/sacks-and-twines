@@ -11,6 +11,7 @@
 import type * as auditLogs_mutations from "../auditLogs/mutations.js";
 import type * as auditLogs_queries from "../auditLogs/queries.js";
 import type * as auth from "../auth.js";
+import type * as auth_guards from "../auth/guards.js";
 import type * as auth_logAttempt from "../auth/logAttempt.js";
 import type * as auth_verify from "../auth/verify.js";
 import type * as batches_mutations from "../batches/mutations.js";
@@ -21,7 +22,9 @@ import type * as dispatches_queries from "../dispatches/queries.js";
 import type * as dispatches_validators from "../dispatches/validators.js";
 import type * as http from "../http.js";
 import type * as init from "../init.js";
+import type * as lib_codes from "../lib/codes.js";
 import type * as lib_constants from "../lib/constants.js";
+import type * as lib_csv_escape from "../lib/csv_escape.js";
 import type * as migrations from "../migrations.js";
 import type * as products_mutations from "../products/mutations.js";
 import type * as products_queries from "../products/queries.js";
@@ -52,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   "auditLogs/mutations": typeof auditLogs_mutations;
   "auditLogs/queries": typeof auditLogs_queries;
   auth: typeof auth;
+  "auth/guards": typeof auth_guards;
   "auth/logAttempt": typeof auth_logAttempt;
   "auth/verify": typeof auth_verify;
   "batches/mutations": typeof batches_mutations;
@@ -62,7 +66,9 @@ declare const fullApi: ApiFromModules<{
   "dispatches/validators": typeof dispatches_validators;
   http: typeof http;
   init: typeof init;
+  "lib/codes": typeof lib_codes;
   "lib/constants": typeof lib_constants;
+  "lib/csv_escape": typeof lib_csv_escape;
   migrations: typeof migrations;
   "products/mutations": typeof products_mutations;
   "products/queries": typeof products_queries;

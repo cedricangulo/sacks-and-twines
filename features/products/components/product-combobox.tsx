@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronsUpDown, Plus } from "lucide-react"
+import { CaretUpDownIcon, PlusIcon } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -69,7 +69,7 @@ export default function ProductCombobox({
         <span className="truncate">
           {selected?.name ?? "Select an item or add a new one"}
         </span>
-        <ChevronsUpDown className="opacity-50" />
+        <CaretUpDownIcon weight="fill" className="opacity-50" />
       </Button>
 
       {open ? (
@@ -84,7 +84,7 @@ export default function ProductCombobox({
 
           <div className="overflow-y-auto max-h-68" id="product-listbox">
             {filtered.length === 0 ? (
-              <p className="p-4 text-center type-sm text-destructive-foreground">
+              <p className="p-4 text-center type-body-small text-destructive-foreground">
                 No items found.
               </p>
             ) : (
@@ -102,11 +102,11 @@ export default function ProductCombobox({
                     setQuery("")
                   }}
                 >
-                  <p className="flex items-center justify-between w-full gap-2 type-sm">
+                  <p className="flex items-center justify-between w-full gap-2 type-body-small">
                     <span className="font-medium">{product.name}</span>
                     <Badge variant="secondary">{product.category}</Badge>
                   </p>
-                  <span className="type-sm text-muted-foreground">
+                  <span className="type-body-small text-muted-foreground">
                     {product.skuCode}
                   </span>
                 </button>
@@ -125,7 +125,7 @@ export default function ProductCombobox({
                 setQuery("")
               }}
             >
-              <Plus />
+              <PlusIcon weight="bold" />
               Add New Item
             </Button>
           </div>

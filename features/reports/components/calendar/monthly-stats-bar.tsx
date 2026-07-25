@@ -1,6 +1,11 @@
 "use client"
 
-import { ClipboardList, Package, RefreshCw, TrendingUp } from "lucide-react"
+import {
+  ArrowsClockwiseIcon,
+  ClipboardTextIcon,
+  PackageIcon,
+  TrendUpIcon,
+} from "@phosphor-icons/react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -45,17 +50,20 @@ export default function MonthlyStatsBar() {
         <div className="grid grid-cols-2 divide-y md:grid-cols-4 md:divide-y-0 md:divide-x divide-border">
           <div className="flex items-start gap-3 p-3">
             <div className="p-2 bg-yellow-100 rounded-xl dark:bg-yellow-950">
-              <ClipboardList className="text-yellow-800 size-6 dark:text-yellow-400" />
+              <ClipboardTextIcon
+                weight="fill"
+                className="text-yellow-800 size-6 dark:text-yellow-400"
+              />
             </div>
             <div>
               {isLoading ? (
                 <Skeleton className="w-20 h-9" />
               ) : (
-                <div className="font-bold leading-none type-xl tabular-nums">
+                <div className="font-bold leading-none type-h2 tabular-nums">
                   {formatCompact(data.dispatchCount)}
                 </div>
               )}
-              <div className="mt-1 type-sm text-muted-foreground">
+              <div className="mt-1 type-body-small text-muted-foreground">
                 Dispatches
               </div>
             </div>
@@ -63,17 +71,20 @@ export default function MonthlyStatsBar() {
 
           <div className="flex items-start gap-3 p-3">
             <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950">
-              <RefreshCw className="size-6 text-emerald-800 dark:text-emerald-400" />
+              <ArrowsClockwiseIcon
+                weight="fill"
+                className="size-6 text-emerald-800 dark:text-emerald-400"
+              />
             </div>
             <div>
               {isLoading ? (
                 <Skeleton className="w-20 h-9" />
               ) : (
-                <div className="font-bold leading-none type-xl tabular-nums">
+                <div className="font-bold leading-none type-h2 tabular-nums">
                   {formatCompact(data.adjustmentCount)}
                 </div>
               )}
-              <div className="mt-1 type-sm text-muted-foreground">
+              <div className="mt-1 type-body-small text-muted-foreground">
                 Adjustments
               </div>
             </div>
@@ -81,17 +92,17 @@ export default function MonthlyStatsBar() {
 
           <div className="flex items-start gap-3 p-3">
             <div className="p-2 rounded-xl bg-primary/10">
-              <Package className="size-6 text-primary" />
+              <PackageIcon weight="fill" className="size-6 text-primary" />
             </div>
             <div>
               {isLoading ? (
                 <Skeleton className="w-20 h-9" />
               ) : (
-                <div className="font-bold leading-none type-xl tabular-nums">
+                <div className="font-bold leading-none type-h2 tabular-nums">
                   {formatCompact(data.totalItems)}
                 </div>
               )}
-              <div className="mt-1 type-sm text-muted-foreground">
+              <div className="mt-1 type-body-small text-muted-foreground">
                 Items Out
               </div>
             </div>
@@ -99,20 +110,20 @@ export default function MonthlyStatsBar() {
 
           <div className="flex items-start gap-3 p-3">
             <div className="p-2 rounded-xl bg-destructive/10">
-              <TrendingUp className="size-6 text-destructive" />
+              <TrendUpIcon weight="fill" className="size-6 text-destructive" />
             </div>
             <div>
               {isLoading ? (
                 <Skeleton className="w-20 h-9" />
               ) : (
-                <div className="font-bold leading-none type-xl tabular-nums">
+                <div className="font-bold leading-none type-h2 tabular-nums">
                   {formatCurrency(data.totalValue, {
                     notation: "compact",
                     maximumFractionDigits: 1,
                   })}
                 </div>
               )}
-              <div className="mt-1 type-sm text-muted-foreground">
+              <div className="mt-1 type-body-small text-muted-foreground">
                 Total Value
               </div>
             </div>
@@ -122,7 +133,7 @@ export default function MonthlyStatsBar() {
         <div className="border-t" />
 
         {hasDaySelected ? (
-          <div className="text-sm font-medium text-muted-foreground">
+          <div className="type-body-small font-medium text-muted-foreground">
             {formattedDate}
           </div>
         ) : (

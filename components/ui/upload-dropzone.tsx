@@ -1,6 +1,6 @@
 "use client"
 
-import { ImageUp, X } from "lucide-react"
+import { UploadIcon, XIcon } from "@phosphor-icons/react";
 import Image from "next/image"
 import { type DragEvent, type KeyboardEvent, useId, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -69,7 +69,7 @@ export default function UploadDropzone({
           className="absolute top-2 right-2"
           onClick={() => onSelect(null)}
         >
-          <X />
+          <XIcon weight="bold" />
         </Button>
       </div>
     )
@@ -93,7 +93,7 @@ export default function UploadDropzone({
         onClick={() => inputRef.current?.click()}
         onKeyDown={handleKeyDown}
       >
-        <ImageUp className="mb-2 size-6 text-muted-foreground" />
+        <UploadIcon weight="fill" className="mb-2 size-6 text-muted-foreground" />
         <p className="px-2 text-xs text-center text-muted-foreground">
           Click to browse
         </p>

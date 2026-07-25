@@ -1,10 +1,5 @@
-import { History } from "lucide-react"
 import type { Metadata } from "next"
-import Link from "next/link"
-import { PageHeaderSetter } from "@/components/page-header-context"
-import { Button } from "@/components/ui/button"
-import DispatchQueueSidebar from "@/features/dispatches/components/dispatch-queue-sidebar"
-import MobileQueueSheet from "@/features/dispatches/components/mobile-queue-sheet"
+import ProductsClientLayout from "./_client-layout"
 
 interface Props {
   children: React.ReactNode
@@ -33,28 +28,5 @@ export const metadata: Metadata = {
 }
 
 export default function ProductsLayout({ children }: Props) {
-  return (
-    <>
-      <PageHeaderSetter
-        title="Dispatch"
-        actions={
-          <>
-            <Button asChild variant="secondary">
-              <Link href="/dispatch-history">
-                <History />
-                History
-              </Link>
-            </Button>
-            <MobileQueueSheet />
-          </>
-        }
-      />
-      <div className="flex h-[calc(100dvh-4rem)]">
-        <div className="flex-1 px-6 space-y-6 overflow-y-auto">{children}</div>
-        <div className="hidden xl:flex pb-2 pr-2">
-          <DispatchQueueSidebar />
-        </div>
-      </div>
-    </>
-  )
+  return <ProductsClientLayout>{children}</ProductsClientLayout>
 }

@@ -25,7 +25,8 @@ export const seedAll = internalAction({
     // ── Find or create staff user ────────────────────────────────────────
     const rawStaffEmail = process.env.STAFF_EMAIL ?? "juandelacruz@gmail.com"
     const staffEmail = rawStaffEmail.trim().toLowerCase()
-    const staffPassword = process.env.STAFF_PASSWORD ?? "staff123"
+    const staffPassword = process.env.STAFF_PASSWORD
+    if (!staffPassword) throw new Error("STAFF_PASSWORD env var must be set")
 
     const existingUser = await ctx.runQuery(internal.users.queries.getByEmail, {
       email: staffEmail,
@@ -142,7 +143,8 @@ export const seedTest = internalAction({
     // ── Find or create staff user ────────────────────────────────────────
     const rawStaffEmail = process.env.STAFF_EMAIL ?? "juandelacruz@gmail.com"
     const staffEmail = rawStaffEmail.trim().toLowerCase()
-    const staffPassword = process.env.STAFF_PASSWORD ?? "staff123"
+    const staffPassword = process.env.STAFF_PASSWORD
+    if (!staffPassword) throw new Error("STAFF_PASSWORD env var must be set")
 
     const existingUser = await ctx.runQuery(internal.users.queries.getByEmail, {
       email: staffEmail,
@@ -211,7 +213,9 @@ export const seedTest = internalAction({
     let deactivatedStaffId: string
     if (existingDeactivated) {
       deactivatedStaffId = existingDeactivated._id
-      console.log(`  ✓ Deactivated staff exists: ${deactivatedEmail} (${deactivatedStaffId})`)
+      console.log(
+        `  ✓ Deactivated staff exists: ${deactivatedEmail} (${deactivatedStaffId})`
+      )
     } else {
       const { user } = await createAccount(ctx, {
         provider: "password",
@@ -229,7 +233,9 @@ export const seedTest = internalAction({
         shouldLinkViaPhone: false,
       })
       deactivatedStaffId = user._id
-      console.log(`  ✓ Created deactivated staff: ${deactivatedEmail} (${deactivatedStaffId})`)
+      console.log(
+        `  ✓ Created deactivated staff: ${deactivatedEmail} (${deactivatedStaffId})`
+      )
     }
 
     // ── Run the write mutation ───────────────────────────────────────────
@@ -241,13 +247,21 @@ export const seedTest = internalAction({
 
     console.log("\n  ✓ Seed test complete!")
     console.log(`    • ${result.supplierCount} suppliers`)
-    console.log(`    • ${result.productCount} products (15 active + 1 archived)`)
-    console.log(`    • ${result.batchCount} batches (active + depleted + voided)`)
+    console.log(
+      `    • ${result.productCount} products (15 active + 1 archived)`
+    )
+    console.log(
+      `    • ${result.batchCount} batches (active + depleted + voided)`
+    )
     console.log(`    • ${result.dispatchCount} dispatches (completed + voided)`)
     console.log(`    • ${result.dispatchItemCount} dispatch items`)
-    console.log(`    • ${result.adjustmentCount} stock adjustments (applied + voided)`)
+    console.log(
+      `    • ${result.adjustmentCount} stock adjustments (applied + voided)`
+    )
     console.log(`    • ${result.auditLogCount} audit logs`)
-    console.log(`    • 3 user accounts (owner + active staff + deactivated staff)`)
+    console.log(
+      `    • 3 user accounts (owner + active staff + deactivated staff)`
+    )
 
     return result
   },

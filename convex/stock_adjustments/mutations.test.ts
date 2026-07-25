@@ -131,7 +131,7 @@ describe("stock adjustment mutations", () => {
         quantity: 10,
         reason: "recount",
       })
-    ).rejects.toThrowError("Only owners can adjust stock")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects non-existent batch", async () => {
@@ -436,6 +436,6 @@ describe("stock adjustment mutations", () => {
         quantity: 10,
         reason: "recount",
       })
-    ).rejects.toThrowError("Only owners can adjust stock")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 })

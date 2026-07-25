@@ -1,5 +1,6 @@
 import { createAccount, getAuthUserId } from "@convex-dev/auth/server"
 import { internal } from "../_generated/api"
+import { requireOwner } from "../auth/guards"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { createUserArgs, deactivateUserArgs } from "./validators"
@@ -17,15 +18,7 @@ import { createUserArgs, deactivateUserArgs } from "./validators"
 export const create = zMutation({
   args: createUserArgs,
   handler: async (ctx, { name, email, password, userAgent }) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) {
-      throw new Error("Unauthorized")
-    }
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active") {
-      throw new Error("Only owners can create staff users")
-    }
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "createUser", callerId),
@@ -84,15 +77,7 @@ export const create = zMutation({
 export const deactivate = zMutation({
   args: deactivateUserArgs,
   handler: async (ctx, { userId, userAgent }) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) {
-      throw new Error("Unauthorized")
-    }
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active") {
-      throw new Error("Only owners can deactivate users")
-    }
+    const callerId = await requireOwner(ctx)
 
     if (callerId.toString() === userId.toString()) {
       throw new Error("You cannot deactivate yourself")

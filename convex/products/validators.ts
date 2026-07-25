@@ -14,7 +14,7 @@ export const createProductArgs = {
     z.literal("twines"),
     z.literal("thread"),
   ]),
-  baseUom: z.union([z.literal("piece"), z.literal("roll"), z.literal("cut")]),
+  baseUom: z.union([z.literal("piece"), z.literal("roll"), z.literal("meter")]),
   conversionFactor: z.optional(z.number().min(0)),
   lowStockThreshold: z.optional(z.number().min(0)),
   ...auditMeta,

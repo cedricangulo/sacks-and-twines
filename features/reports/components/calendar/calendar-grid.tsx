@@ -1,6 +1,11 @@
 "use client"
 
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react"
+import {
+  CaretDownIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  CaretUpIcon,
+} from "@phosphor-icons/react"
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group"
@@ -109,7 +114,11 @@ export default function CalendarGrid() {
             onClick={() => setCalendarVisible((v) => !v)}
             variant="secondary"
           >
-            {calendarVisible ? <ChevronUp /> : <ChevronDown />}
+            {calendarVisible ? (
+              <CaretUpIcon weight="fill" />
+            ) : (
+              <CaretDownIcon weight="fill" />
+            )}
             {calendarVisible ? "Hide calendar" : "Show calendar"}
           </Button>
           <Button
@@ -118,7 +127,7 @@ export default function CalendarGrid() {
             size="icon"
             variant="outline"
           >
-            <ChevronLeft />
+            <CaretLeftIcon weight="fill" />
           </Button>
           <Button
             aria-label="Next month"
@@ -129,7 +138,7 @@ export default function CalendarGrid() {
             size="icon"
             variant="outline"
           >
-            <ChevronRight />
+            <CaretRightIcon weight="fill" />
           </Button>
         </div>
       </div>
@@ -143,7 +152,7 @@ export default function CalendarGrid() {
             {DAY_NAMES.map((name) => (
               <div
                 key={name}
-                className="py-2 text-sm font-medium text-center border-b text-muted-foreground"
+                className="py-2 type-body-small font-medium text-center border-b text-muted-foreground"
               >
                 {name}
               </div>
@@ -154,7 +163,7 @@ export default function CalendarGrid() {
               return (
                 <div
                   key={`prev-${prevDay}`}
-                  className="flex items-start justify-end h-16 p-1 text-sm text-muted-foreground/50"
+                  className="flex items-start justify-end h-16 p-1 type-body-small text-muted-foreground/50"
                 >
                   {prevDay}
                 </div>
