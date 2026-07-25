@@ -59,7 +59,7 @@ export default function PdfExportDialog({
           ) : summary.summaryLines.length > 0 ? (
             <div className="space-y-1">
               {summary.summaryLines.map((line) => (
-                <div key={line} className="text-xs text-muted-foreground">
+                <div key={line} className="type-caption text-muted-foreground">
                   {line}
                 </div>
               ))}
@@ -68,7 +68,7 @@ export default function PdfExportDialog({
         </div>
 
         {!isLoading && summary.isEmpty ? (
-          <div className="py-4 text-sm text-center text-muted-foreground">
+          <div className="py-4 type-body-small text-center text-muted-foreground">
             No data found for the selected date range. Try a wider range or use
             the Quick range buttons above.
           </div>
@@ -77,7 +77,7 @@ export default function PdfExportDialog({
         {isGenerating ? (
           <div className="space-y-1.5 px-6 pb-2">
             <Progress />
-            <p className="text-xs text-center text-muted-foreground">
+            <p className="type-caption text-center text-muted-foreground">
               Rendering report — this may take up to 30 seconds
             </p>
           </div>

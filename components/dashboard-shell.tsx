@@ -54,7 +54,7 @@ function PageHeaderBar() {
             <ArrowLeftIcon weight="fill" />
           </Button>
         ) : null}
-        <h2 className="font-semibold truncate type-md">{displayTitle}</h2>
+        <h2 className="font-semibold truncate type-h4">{displayTitle}</h2>
       </div>
       {actions ? (
         <div className="flex items-center gap-2 ml-auto shrink-0">

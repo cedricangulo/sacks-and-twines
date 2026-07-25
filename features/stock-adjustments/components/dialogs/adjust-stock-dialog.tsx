@@ -88,7 +88,7 @@ export default function AdjustStockDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-2xl border bg-muted/30 p-4 text-sm space-y-1">
+        <div className="rounded-2xl border bg-muted/30 p-4 type-body-small space-y-1">
           <p>
             <span className="text-muted-foreground">Batch:</span>{" "}
             <span className="font-mono">{batchCode}</span>
@@ -190,7 +190,7 @@ export default function AdjustStockDialog({
                       <SelectItem key={r.value} value={r.value}>
                         <span>{r.label}</span>
                         {" - "}
-                        <span className="text-muted-foreground type-sm font-normal">
+                        <span className="text-muted-foreground type-body-small font-normal">
                           {r.description}
                         </span>
                       </SelectItem>
@@ -204,13 +204,13 @@ export default function AdjustStockDialog({
 
           {parsedQty > 0 && reason ? (
             <div>
-              <p className="text-sm text-muted-foreground">
+              <p className="type-body-small text-muted-foreground">
                 New stock after adjustment:{" "}
                 <span className="font-medium">
                   {formatNumber(newQuantity)} {product?.baseUom ?? "pcs"}
                 </span>
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="type-body-small text-muted-foreground">
                 Adjusted quantity:{" "}
                 <span className="font-medium">
                   {formatNumber(

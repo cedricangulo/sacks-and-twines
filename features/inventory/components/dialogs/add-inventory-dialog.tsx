@@ -112,7 +112,7 @@ export default function AddInventoryDialog() {
               ) : (
                 <div className="flex flex-col gap-4">
                   <div
-                    className="flex items-center justify-between gap-2 px-4 py-3 text-sm border rounded-2xl border-primary/20 bg-accent text-accent-foreground"
+                    className="flex items-center justify-between gap-2 px-4 py-3 type-body-small border rounded-2xl border-primary/20 bg-accent text-accent-foreground"
                     role="alert"
                   >
                     <div className="flex items-center gap-2">

@@ -59,11 +59,11 @@ export default function MonthlyStatsBar() {
               {isLoading ? (
                 <Skeleton className="w-20 h-9" />
               ) : (
-                <div className="font-bold leading-none type-xl tabular-nums">
+                <div className="font-bold leading-none type-h2 tabular-nums">
                   {formatCompact(data.dispatchCount)}
                 </div>
               )}
-              <div className="mt-1 type-sm text-muted-foreground">
+              <div className="mt-1 type-body-small text-muted-foreground">
                 Dispatches
               </div>
             </div>
@@ -80,11 +80,11 @@ export default function MonthlyStatsBar() {
               {isLoading ? (
                 <Skeleton className="w-20 h-9" />
               ) : (
-                <div className="font-bold leading-none type-xl tabular-nums">
+                <div className="font-bold leading-none type-h2 tabular-nums">
                   {formatCompact(data.adjustmentCount)}
                 </div>
               )}
-              <div className="mt-1 type-sm text-muted-foreground">
+              <div className="mt-1 type-body-small text-muted-foreground">
                 Adjustments
               </div>
             </div>
@@ -98,11 +98,11 @@ export default function MonthlyStatsBar() {
               {isLoading ? (
                 <Skeleton className="w-20 h-9" />
               ) : (
-                <div className="font-bold leading-none type-xl tabular-nums">
+                <div className="font-bold leading-none type-h2 tabular-nums">
                   {formatCompact(data.totalItems)}
                 </div>
               )}
-              <div className="mt-1 type-sm text-muted-foreground">
+              <div className="mt-1 type-body-small text-muted-foreground">
                 Items Out
               </div>
             </div>
@@ -116,14 +116,14 @@ export default function MonthlyStatsBar() {
               {isLoading ? (
                 <Skeleton className="w-20 h-9" />
               ) : (
-                <div className="font-bold leading-none type-xl tabular-nums">
+                <div className="font-bold leading-none type-h2 tabular-nums">
                   {formatCurrency(data.totalValue, {
                     notation: "compact",
                     maximumFractionDigits: 1,
                   })}
                 </div>
               )}
-              <div className="mt-1 type-sm text-muted-foreground">
+              <div className="mt-1 type-body-small text-muted-foreground">
                 Total Value
               </div>
             </div>
@@ -133,7 +133,7 @@ export default function MonthlyStatsBar() {
         <div className="border-t" />
 
         {hasDaySelected ? (
-          <div className="text-sm font-medium text-muted-foreground">
+          <div className="type-body-small font-medium text-muted-foreground">
             {formattedDate}
           </div>
         ) : (

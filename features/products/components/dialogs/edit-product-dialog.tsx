@@ -193,7 +193,7 @@ export default function EditProductDialog({
             </FieldGroup>
 
             {hasBatches ? (
-              <div className="flex items-start gap-2 px-4 py-3 text-sm border rounded-2xl border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
+              <div className="flex items-start gap-2 px-4 py-3 type-body-small border rounded-2xl border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
                 <LockIcon weight="fill" size={16} className="mt-0.5 shrink-0" />
                 <p>
                   Category and unit are locked because this product already has

@@ -112,11 +112,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/dashboard" />}>
               <div className="bg-accent rounded-2xl flex aspect-square size-8 items-center justify-center text-sidebar-primary-foreground" />
-              <div className="grid flex-1 text-sm leading-tight text-left">
-                <span className="font-semibold truncate type-base">
+              <div className="grid flex-1 type-body-small leading-tight text-left">
+                <span className="font-semibold truncate type-body-default">
                   Sacks and Twines
                 </span>
-                <span className="truncate type-xs text-blue-100">
+                <span className="truncate type-caption text-blue-100">
                   Inventory Management
                 </span>
               </div>

@@ -152,7 +152,7 @@ export default function CalendarGrid() {
             {DAY_NAMES.map((name) => (
               <div
                 key={name}
-                className="py-2 text-sm font-medium text-center border-b text-muted-foreground"
+                className="py-2 type-body-small font-medium text-center border-b text-muted-foreground"
               >
                 {name}
               </div>
@@ -163,7 +163,7 @@ export default function CalendarGrid() {
               return (
                 <div
                   key={`prev-${prevDay}`}
-                  className="flex items-start justify-end h-16 p-1 text-sm text-muted-foreground/50"
+                  className="flex items-start justify-end h-16 p-1 type-body-small text-muted-foreground/50"
                 >
                   {prevDay}
                 </div>

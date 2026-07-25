@@ -77,36 +77,40 @@ export default function VoidBatchDialog({
           <div className="space-y-6">
             {/* Batch details card */}
             <div className="rounded-2xl border p-4">
-              <h3 className="mb-3 text-sm font-medium text-foreground">
+              <h3 className="mb-3 type-body-small font-medium text-foreground">
                 Batch details
               </h3>
               <dl className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <dt className="text-sm text-muted-foreground">Batch code</dt>
-                  <dd className="font-mono text-sm font-medium text-foreground">
+                  <dt className="type-body-small text-muted-foreground">
+                    Batch code
+                  </dt>
+                  <dd className="font-mono type-body-small font-medium text-foreground">
                     {detail.batchCode}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between">
-                  <dt className="text-sm text-muted-foreground">Product</dt>
-                  <dd className="max-w-[60%] text-right text-sm font-medium text-foreground">
+                  <dt className="type-body-small text-muted-foreground">
+                    Product
+                  </dt>
+                  <dd className="max-w-[60%] text-right type-body-small font-medium text-foreground">
                     {detail.productName ?? "-"}
                   </dd>
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
-                  <dt className="text-sm text-muted-foreground">
+                  <dt className="type-body-small text-muted-foreground">
                     Quantity remaining
                   </dt>
-                  <dd className="text-sm font-semibold text-foreground">
+                  <dd className="type-body-small font-semibold text-foreground">
                     {formatNumber(detail.quantityRemaining)}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between">
-                  <dt className="text-sm text-muted-foreground">
+                  <dt className="type-body-small text-muted-foreground">
                     Procurement cost
                   </dt>
-                  <dd className="text-sm font-medium text-foreground">
+                  <dd className="type-body-small font-medium text-foreground">
                     {formatCurrency(detail.totalProcurementCost)}
                   </dd>
                 </div>
@@ -121,11 +125,11 @@ export default function VoidBatchDialog({
                   size={18}
                   className="shrink-0 text-destructive"
                 />
-                <h3 className="text-sm font-medium text-foreground">
+                <h3 className="type-body-small font-medium text-foreground">
                   This action will affect:
                 </h3>
               </div>
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2 type-body-small">
                 <li className="flex gap-2">
                   <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-destructive" />
                   <span className="text-foreground">
@@ -162,7 +166,7 @@ export default function VoidBatchDialog({
                   <FieldLabel htmlFor="void-reason">
                     Reason for voiding
                   </FieldLabel>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="type-caption text-muted-foreground">
                     Optional
                   </span>
                 </div>

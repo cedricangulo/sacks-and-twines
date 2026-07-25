@@ -74,7 +74,7 @@ export default function InventoryTableContainer({
               <AvatarImage src={info.row.original.imageUrl ?? ""} />
               <AvatarFallback>{getInitials(info.getValue())}</AvatarFallback>
             </Avatar>
-            <span className="font-medium type-sm line-clamp-2 min-w-0">
+            <span className="font-medium type-body-small line-clamp-2 min-w-0">
               {info.getValue()}
             </span>
           </div>

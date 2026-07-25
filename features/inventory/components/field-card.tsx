@@ -118,13 +118,21 @@ const FieldCard = memo(function FieldCard({
         <Field>
           <FieldLabel>SKU</FieldLabel>
           <FieldContent>
-            <Input value={draftSku} disabled className="font-mono text-sm" />
+            <Input
+              value={draftSku}
+              disabled
+              className="font-mono type-body-small"
+            />
           </FieldContent>
         </Field>
         <Field>
           <FieldLabel>Batch ID</FieldLabel>
           <FieldContent>
-            <Input value={draftBatch} disabled className="font-mono text-sm" />
+            <Input
+              value={draftBatch}
+              disabled
+              className="font-mono type-body-small"
+            />
           </FieldContent>
         </Field>
       </FieldGroup>

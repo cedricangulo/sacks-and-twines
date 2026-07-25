@@ -50,7 +50,7 @@ export default function ProductCard({ product }: Props) {
             className="object-cover"
           />
         ) : (
-          <div className="flex items-center justify-center text-lg font-medium size-full text-muted-foreground">
+          <div className="flex items-center justify-center type-h4 font-medium size-full text-muted-foreground">
             {getInitials(product.name)}
           </div>
         )}
@@ -71,7 +71,7 @@ export default function ProductCard({ product }: Props) {
         </CardTitle>
         <CardDescription>
           {/* <h5 className="type-sm">{product.skuCode}</h5> */}
-          <p className="type-base text-foreground">
+          <p className="type-body-default text-foreground">
             {formatNumber(product.currentQuantity)}{" "}
             <span>
               {product.baseUom}
@@ -95,7 +95,7 @@ export default function ProductCard({ product }: Props) {
           <Input
             ref={inputRef}
             type="number"
-            className="text-center bg-background type-base tabular-nums"
+            className="text-center bg-background type-body-default tabular-nums"
             value={inputValue}
             min={0}
             max={product.currentQuantity}

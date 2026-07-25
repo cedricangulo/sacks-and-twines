@@ -40,15 +40,17 @@ export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
       <AccordionTrigger className="hover:no-underline">
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-baseline gap-2">
-            <span className="font-medium truncate type-sm">{displayName}</span>
+            <span className="font-medium truncate type-body-small">
+              {displayName}
+            </span>
             <Badge variant="outline">{log.action}</Badge>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="type-sm shrink-0 text-muted-foreground">
+            <span className="type-body-small shrink-0 text-muted-foreground">
               {relativeTime}
             </span>
-            <span className="text-muted-foreground type-sm">|</span>
-            <span className="type-sm truncate w-full text-muted-foreground">
+            <span className="text-muted-foreground type-body-small">|</span>
+            <span className="type-body-small truncate w-full text-muted-foreground">
               {parsedDesc.summary}
             </span>
           </div>
@@ -62,7 +64,7 @@ export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
           </div>
         ) : (
           detail && (
-            <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 type-sm">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 type-body-small">
               <DetailRow
                 label={FIELD_LABELS.timestamp}
                 value={formattedTimestamp}

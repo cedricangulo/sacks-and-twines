@@ -20,8 +20,10 @@ export default function SignInForm() {
     <FieldGroup className="w-full mx-auto md:max-w-96">
       <form onSubmit={submitSignIn} className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
-          <p className="type-base text-muted-foreground">Welcome back</p>
-          <h2 className="font-semibold type-lg">Sign in</h2>
+          <p className="type-body-default text-muted-foreground">
+            Welcome back
+          </p>
+          <h2 className="font-semibold type-h3">Sign in</h2>
         </div>
 
         <Field data-invalid={!!error}>

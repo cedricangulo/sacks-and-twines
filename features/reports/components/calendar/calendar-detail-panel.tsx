@@ -79,7 +79,7 @@ export default function CalendarDetailPanel() {
 
   return (
     <div ref={panelRef} data-optional="">
-      <h3 className="mb-4 font-semibold type-base">{formattedDate}</h3>
+      <h3 className="mb-4 font-semibold type-body-default">{formattedDate}</h3>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="gap-4">
         <div className="flex items-center justify-between gap-4">
