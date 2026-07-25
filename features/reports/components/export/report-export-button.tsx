@@ -41,11 +41,9 @@ export default function ReportExportButton() {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button>
-            <DownloadIcon weight="fill" />
-            Export
-          </Button>
+        <DropdownMenuTrigger render={<Button />}>
+          <DownloadIcon weight="fill" />
+          Export
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>CSV Export</DropdownMenuLabel>

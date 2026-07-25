@@ -3,12 +3,10 @@
 import { useAuthActions } from "@convex-dev/auth/react"
 import {
   ClipboardTextIcon,
-  CubeIcon,
   ListDashesIcon,
   PackageIcon,
   SignOutIcon,
   SquaresFourIcon,
-  StackSimpleIcon,
   TruckIcon,
   UsersIcon,
   WarehouseIcon,
@@ -112,18 +110,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard">
-                <div className="bg-accent rounded-2xl flex aspect-square size-8 items-center justify-center text-sidebar-primary-foreground" />
-                <div className="grid flex-1 text-sm leading-tight text-left">
-                  <span className="font-semibold truncate type-base">
-                    Sacks and Twines
-                  </span>
-                  <span className="truncate type-xs text-blue-100">
-                    Inventory Management
-                  </span>
-                </div>
-              </Link>
+            <SidebarMenuButton size="lg" render={<Link href="/dashboard" />}>
+              <div className="bg-accent rounded-2xl flex aspect-square size-8 items-center justify-center text-sidebar-primary-foreground" />
+              <div className="grid flex-1 text-sm leading-tight text-left">
+                <span className="font-semibold truncate type-base">
+                  Sacks and Twines
+                </span>
+                <span className="truncate type-xs text-blue-100">
+                  Inventory Management
+                </span>
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -137,15 +133,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenu>
                 {item.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <Link
-                        href={item.url}
-                        transitionTypes={["nav-forward"]}
-                        className="flex items-center gap-2"
-                      >
-                        {item.icon && <item.icon weight="fill" />}
-                        <span>{item.title}</span>
-                      </Link>
+                    <SidebarMenuButton
+                      render={
+                        <Link
+                          href={item.url}
+                          transitionTypes={["nav-forward"]}
+                          className="flex items-center gap-2"
+                        />
+                      }
+                      isActive={isActive(item.url)}
+                    >
+                      {item.icon ? <item.icon weight="fill" /> : null}
+                      <span>{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}

@@ -42,10 +42,8 @@ export default function StaffTableActions({ user }: { user: StaffUser }) {
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          Deactivate
-        </Button>
+      <AlertDialogTrigger render={<Button variant="outline" size="sm" />}>
+        Deactivate
       </AlertDialogTrigger>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>

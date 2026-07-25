@@ -1,7 +1,7 @@
 "use client"
 
 import { SpinnerGapIcon, WarningIcon } from "@phosphor-icons/react"
-import type { ReactNode } from "react"
+import type { ReactElement, ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -46,7 +46,9 @@ export default function VoidBatchDialog({
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setOpen}>
-      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
+      {children ? (
+        <DialogTrigger render={() => children as ReactElement} />
+      ) : null}
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Void batch</DialogTitle>

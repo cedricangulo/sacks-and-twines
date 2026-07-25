@@ -125,7 +125,7 @@ export default function ProductCombobox({
                 setQuery("")
               }}
             >
-              <PlusIcon weight="fill" />
+              <PlusIcon weight="bold" />
               Add New Item
             </Button>
           </div>

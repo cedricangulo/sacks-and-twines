@@ -141,16 +141,20 @@ export default function InventoryTableContainer({
             <div className="flex items-center gap-2">
               {p.status === "active" ? (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="rounded-full size-2 bg-emerald-500 animate-pulse" />
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <span className="rounded-full size-2 bg-emerald-500 animate-pulse" />
+                    }
+                  ></TooltipTrigger>
                   <TooltipContent>Product is active</TooltipContent>
                 </Tooltip>
               ) : p.status === "archived" ? (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="rounded-full size-2 bg-amber-500 animate-pulse" />
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <span className="rounded-full size-2 bg-amber-500 animate-pulse" />
+                    }
+                  ></TooltipTrigger>
                   <TooltipContent>Product is archived</TooltipContent>
                 </Tooltip>
               ) : null}

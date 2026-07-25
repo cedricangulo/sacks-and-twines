@@ -58,13 +58,11 @@ export default function SupplierTableActions({
   return (
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <DotsThreeVerticalIcon
-              weight="bold"
-              className="text-muted-foreground"
-            />
-          </Button>
+        <PopoverTrigger render={<Button variant="ghost" size="icon" />}>
+          <DotsThreeVerticalIcon
+            weight="bold"
+            className="text-muted-foreground"
+          />
         </PopoverTrigger>
         <PopoverContent align="end" className="w-40 p-1">
           <div className="flex flex-col gap-0.5">

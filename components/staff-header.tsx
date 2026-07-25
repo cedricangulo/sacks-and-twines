@@ -22,17 +22,24 @@ export function StaffHeader() {
         Sacks and Twines
       </Link>
       <div className="flex items-center gap-2">
-        <Button variant="secondary" asChild>
-          <Link href="/products" transitionTypes={["nav-forward"]}>
-            <PackageIcon weight="fill" />
-            Dispatch
-          </Link>
+        <Button
+          variant="secondary"
+          render={<Link href="/products" transitionTypes={["nav-forward"]} />}
+        >
+          <PackageIcon weight="fill" />
+          Dispatch
         </Button>
-        <Button variant="secondary" asChild>
-          <Link href="/audit-logs/personal" transitionTypes={["nav-forward"]}>
-            <ListDashesIcon weight="fill" />
-            My Activity
-          </Link>
+        <Button
+          variant="secondary"
+          render={
+            <Link
+              href="/audit-logs/personal"
+              transitionTypes={["nav-forward"]}
+            />
+          }
+        >
+          <ListDashesIcon weight="fill" />
+          My Activity
         </Button>
         {actions ? (
           <>

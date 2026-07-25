@@ -139,11 +139,9 @@ export default function InventoryFilterBar({
       </Select>
 
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="secondary">
-            <ColumnsIcon weight="fill" className="text-muted-foreground" />
-            Columns
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="secondary" />}>
+          <ColumnsIcon weight="fill" className="text-muted-foreground" />
+          Columns
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
@@ -155,7 +153,7 @@ export default function InventoryFilterBar({
               <DropdownMenuCheckboxItem
                 key={col.id}
                 checked={inventoryVisibility[col.id] ?? true}
-                onSelect={(e) => e.preventDefault()}
+                closeOnClick={false}
                 onCheckedChange={(checked) =>
                   onInventoryVisibilityChange((prev) => ({
                     ...prev,
@@ -174,7 +172,7 @@ export default function InventoryFilterBar({
               <DropdownMenuCheckboxItem
                 key={col.id}
                 checked={batchVisibility[col.id] ?? true}
-                onSelect={(e) => e.preventDefault()}
+                closeOnClick={false}
                 onCheckedChange={(checked) =>
                   onBatchVisibilityChange((prev) => ({
                     ...prev,

@@ -24,8 +24,8 @@ export default function Forbidden() {
             You don&apos;t have permission to access this page.
           </EmptyDescription>
         </EmptyHeader>
-        <Button asChild>
-          <Link href="/products">Go to Products</Link>
+        <Button nativeButton={false} render={<Link href="/products" />}>
+          Go to Products
         </Button>
       </Empty>
     </div>

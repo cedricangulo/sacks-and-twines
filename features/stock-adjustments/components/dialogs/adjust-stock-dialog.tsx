@@ -173,7 +173,10 @@ export default function AdjustStockDialog({
           <Field data-invalid={!!errors.reason}>
             <FieldLabel htmlFor="adjust-reason">Reason</FieldLabel>
             <FieldContent>
-              <Select value={reason} onValueChange={setReason}>
+              <Select
+                value={reason}
+                onValueChange={(v) => v != null && setReason(v)}
+              >
                 <SelectTrigger
                   id="adjust-reason"
                   className="w-full"

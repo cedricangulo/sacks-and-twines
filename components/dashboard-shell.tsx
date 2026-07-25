@@ -45,10 +45,13 @@ function PageHeaderBar() {
     <>
       <div className="flex items-center flex-1 min-w-0 gap-2">
         {backHref ? (
-          <Button variant="ghost" size="icon" className="shrink-0" asChild>
-            <Link href={backHref} transitionTypes={["nav-back"]}>
-              <ArrowLeftIcon weight="fill" />
-            </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0"
+            render={<Link href={backHref} transitionTypes={["nav-back"]} />}
+          >
+            <ArrowLeftIcon weight="fill" />
           </Button>
         ) : null}
         <h2 className="font-semibold truncate type-md">{displayTitle}</h2>

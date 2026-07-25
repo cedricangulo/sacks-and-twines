@@ -20,22 +20,24 @@ export default function MobileQueueSheet() {
 
   return (
     <Sheet open={open} onOpenChange={setOpen} modal={false}>
-      <SheetTrigger asChild>
-        <Button
-          className="relative xl:hidden"
-          aria-label={`Dispatch queue (${itemCount} items)`}
-        >
-          <ShoppingBagIcon weight="fill" />
-          Queue
-          {itemCount > 0 ? (
-            <Badge
-              variant="success"
-              className="absolute -top-2 -right-2 flex size-5 items-center justify-center p-0 text-[10px]"
-            >
-              {itemCount}
-            </Badge>
-          ) : null}
-        </Button>
+      <SheetTrigger
+        render={
+          <Button
+            className="relative xl:hidden"
+            aria-label={`Dispatch queue (${itemCount} items)`}
+          />
+        }
+      >
+        <ShoppingBagIcon weight="fill" />
+        Queue
+        {itemCount > 0 ? (
+          <Badge
+            variant="success"
+            className="absolute -top-2 -right-2 flex size-5 items-center justify-center p-0 text-[10px]"
+          >
+            {itemCount}
+          </Badge>
+        ) : null}
       </SheetTrigger>
       <SheetContent
         side="right"

@@ -82,11 +82,9 @@ export default function SupplierFilterBar({
       </Select>
 
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="secondary">
-            <ColumnsIcon weight="fill" className="text-muted-foreground" />
-            Columns
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="secondary" />}>
+          <ColumnsIcon weight="fill" className="text-muted-foreground" />
+          Columns
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuGroup>
@@ -95,7 +93,7 @@ export default function SupplierFilterBar({
               <DropdownMenuCheckboxItem
                 key={col.id}
                 checked={columnVisibility[col.id] ?? true}
-                onSelect={(e) => e.preventDefault()}
+                closeOnClick={false}
                 onCheckedChange={(checked) =>
                   onColumnVisibilityChange((prev) => ({
                     ...prev,

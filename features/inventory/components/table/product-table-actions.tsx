@@ -56,17 +56,19 @@ export default function ProductTableActions({ product }: { product: Product }) {
   return (
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DotsThreeVerticalIcon
-              weight="bold"
-              className="text-muted-foreground"
+        <PopoverTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => e.stopPropagation()}
             />
-          </Button>
+          }
+        >
+          <DotsThreeVerticalIcon
+            weight="bold"
+            className="text-muted-foreground"
+          />
         </PopoverTrigger>
         <PopoverContent align="end" className="w-40 p-1">
           <div className="flex flex-col gap-0.5">

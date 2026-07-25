@@ -42,7 +42,7 @@ interface FieldCardState {
 interface FieldCardActions {
   onFieldChange: (field: string, value: string) => void
   onUnlock: (field: string) => void
-  onCategoryChange: (value: string) => void
+  onCategoryChange: (value: string | null) => void
   clearFieldError: (field: keyof StockInFieldErrors) => void
 }
 
@@ -169,8 +169,10 @@ const FieldCard = memo(function FieldCard({
           <Select
             value={fields.baseUom}
             onValueChange={(v) => {
-              onFieldChange("baseUom", v)
-              clearFieldError("baseUom")
+              if (v != null) {
+                onFieldChange("baseUom", v)
+                clearFieldError("baseUom")
+              }
             }}
             disabled={locked["baseUom"] ?? false}
           >

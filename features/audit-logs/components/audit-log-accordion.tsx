@@ -70,10 +70,8 @@ export default function AuditLogAccordion({
   return (
     <div className="h-[calc(100vh-220px)] overflow-y-auto px-2">
       <Accordion
-        type="single"
-        collapsible
-        value={expandedId ?? ""}
-        onValueChange={(value) => setExpandedId(value || null)}
+        value={expandedId ? [expandedId] : []}
+        onValueChange={(value) => setExpandedId(value[0] ?? null)}
       >
         {page.map((log) => (
           <AuditLogItem

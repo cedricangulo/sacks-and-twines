@@ -1,7 +1,7 @@
 "use client"
 
 import { LockIcon, SpinnerGapIcon } from "@phosphor-icons/react"
-import type { ReactNode } from "react"
+import type { ReactElement, ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -51,15 +51,13 @@ export default function EditBatchDialog({
 
   return (
     <Dialog modal={false} open={dialogOpen} onOpenChange={setOpen}>
-      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
+      {children ? (
+        <DialogTrigger render={() => children as ReactElement} />
+      ) : null}
 
       {dialogOpen ? <DialogBackdrop /> : null}
 
-      <DialogContent
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-        onFocusOutside={(e) => e.preventDefault()}
-      >
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit batch</DialogTitle>
           <DialogDescription>

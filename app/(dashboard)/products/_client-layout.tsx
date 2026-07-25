@@ -18,11 +18,13 @@ export default function ProductsClientLayout({ children }: Props) {
         title="Dispatch"
         actions={
           <>
-            <Button asChild variant="secondary">
-              <Link href="/dispatch-history">
-                <ClockCounterClockwiseIcon weight="bold" />
-                History
-              </Link>
+            <Button
+              variant="secondary"
+              nativeButton={false}
+              render={<Link href="/dispatch-history" />}
+            >
+              <ClockCounterClockwiseIcon weight="bold" />
+              History
             </Button>
             <MobileQueueSheet />
           </>

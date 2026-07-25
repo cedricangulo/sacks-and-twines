@@ -76,10 +76,13 @@ export default function DispatchFilterBar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button asChild size="icon" variant="ghost">
-        <Link href="/products" transitionTypes={["nav-back"]}>
-          <ArrowLeftIcon weight="fill" />
-        </Link>
+      <Button
+        size="icon"
+        variant="ghost"
+        nativeButton={false}
+        render={<Link href="/products" transitionTypes={["nav-back"]} />}
+      >
+        <ArrowLeftIcon weight="fill" />
       </Button>
       <div className="relative max-w-xs grow">
         <MagnifyingGlassIcon
@@ -116,7 +119,9 @@ export default function DispatchFilterBar({
 
       <Select
         value={createdByUserId}
-        onValueChange={(v) => onFilterChange({ createdByUserId: v })}
+        onValueChange={(v) =>
+          v != null && onFilterChange({ createdByUserId: v })
+        }
       >
         <SelectTrigger className="w-40">
           <SelectValue placeholder="All users" />
@@ -132,11 +137,9 @@ export default function DispatchFilterBar({
       </Select>
 
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="secondary">
-            <ColumnsIcon weight="fill" className="text-muted-foreground" />
-            Columns
-          </Button>
+        <DropdownMenuTrigger render={<Button variant="secondary" />}>
+          <ColumnsIcon weight="fill" className="text-muted-foreground" />
+          Columns
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
@@ -148,7 +151,7 @@ export default function DispatchFilterBar({
               <DropdownMenuCheckboxItem
                 key={col.id}
                 checked={dispatchVisibility[col.id] ?? true}
-                onSelect={(e) => e.preventDefault()}
+                closeOnClick={false}
                 onCheckedChange={(checked) =>
                   onDispatchVisibilityChange((prev) => ({
                     ...prev,
@@ -166,7 +169,7 @@ export default function DispatchFilterBar({
               <DropdownMenuCheckboxItem
                 key={col.id}
                 checked={itemsVisibility[col.id] ?? true}
-                onSelect={(e) => e.preventDefault()}
+                closeOnClick={false}
                 onCheckedChange={(checked) =>
                   onItemsVisibilityChange((prev) => ({
                     ...prev,

@@ -28,15 +28,17 @@ export default function BatchActionsMenu({ batch }: { batch: Batch }) {
   return (
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-0 size-8"
-            disabled={!isActive}
-          >
-            <DotsThreeVerticalIcon weight="bold" size={14} />
-          </Button>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-0 size-8"
+              disabled={!isActive}
+            />
+          }
+        >
+          <DotsThreeVerticalIcon weight="bold" size={14} />
         </PopoverTrigger>
         <PopoverContent align="end" className="w-40 p-1">
           <div className="flex flex-col gap-0.5">

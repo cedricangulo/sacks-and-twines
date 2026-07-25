@@ -171,7 +171,8 @@ export function useInventoryDialog() {
   }, [])
 
   const handleCategoryChange = useCallback(
-    (value: string) => {
+    (value: string | null) => {
+      if (value == null) return
       setField("category", value)
       if (value === "sacks") {
         setFields((prev) => ({

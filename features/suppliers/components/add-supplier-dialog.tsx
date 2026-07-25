@@ -27,9 +27,7 @@ export default function AddSupplierDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Add Supplier</Button>
-      </DialogTrigger>
+      <DialogTrigger render={<Button />}>Add Supplier</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add supplier</DialogTitle>

@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode } from "react"
+import type { ReactElement, ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -46,7 +46,7 @@ export default function EditSupplierDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger render={() => children as ReactElement} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit supplier</DialogTitle>
