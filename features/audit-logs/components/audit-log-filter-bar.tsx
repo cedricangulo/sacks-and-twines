@@ -95,7 +95,11 @@ export default function AuditLogFilterBar({
         onValueChange={(v) => v != null && onFilterChange({ action: v })}
       >
         <SelectTrigger className="w-40">
-          <SelectValue placeholder="All Actions" />
+          <SelectValue placeholder="All Actions">
+            {(value) =>
+              value && value !== "all" ? formatAction(value) : "All Actions"
+            }
+          </SelectValue>
         </SelectTrigger>
         {actions !== undefined && (
           <SelectContent>

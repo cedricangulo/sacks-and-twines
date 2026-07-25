@@ -1,5 +1,6 @@
 "use client"
 
+import { useMutation } from "convex/react"
 import { useQuery } from "convex-helpers/react/cache"
 import { useMemo, useState } from "react"
 import { api } from "@/convex/_generated/api"
@@ -109,6 +110,7 @@ type ExportFormat = "csv" | "json"
 export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
   const { isAuthenticated } = useCurrentUser()
   const [isExporting, setIsExporting] = useState(false)
+  const logExport = useMutation(api.auditLogs.mutations.logExport)
   const [exportMenuOpen, setExportMenuOpen] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("csv")
@@ -167,6 +169,17 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
       ? "text/csv;charset=utf-8"
       : "application/json;charset=utf-8"
     const extension = isCsv ? "csv" : "json"
+
+    logExport({
+      format: selectedFormat,
+      recordCount: recordCount,
+      filters: JSON.stringify({
+        search: search || undefined,
+        action: filterArgs.action,
+        dateFrom: filterArgs.dateFrom,
+        dateTo: filterArgs.dateTo,
+      }),
+    })
 
     const blob = new Blob([content], { type: mimeType })
     const url = URL.createObjectURL(blob)

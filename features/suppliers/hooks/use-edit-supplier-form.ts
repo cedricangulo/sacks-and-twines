@@ -36,16 +36,14 @@ export function useEditSupplierForm({
   const [formValues, setFormValues] = useState(initialValue)
 
   const handleChange = (field: keyof SupplierFormData, value: string) => {
-    setFormValues((prev) => {
-      const next = { ...prev, [field]: value }
-      setDirty(
-        next.companyName !== initialValue.companyName ||
-          next.contactPerson !== initialValue.contactPerson ||
-          next.contactNumber !== initialValue.contactNumber ||
-          next.address !== initialValue.address
-      )
-      return next
-    })
+    const next = { ...formValues, [field]: value }
+    setFormValues(next)
+    setDirty(
+      next.companyName !== initialValue.companyName ||
+        next.contactPerson !== initialValue.contactPerson ||
+        next.contactNumber !== initialValue.contactNumber ||
+        next.address !== initialValue.address
+    )
     clearFieldError(field)
   }
 

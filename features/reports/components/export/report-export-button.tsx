@@ -46,8 +46,8 @@ export default function ReportExportButton() {
           Export
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>CSV Export</DropdownMenuLabel>
           <DropdownMenuGroup>
+            <DropdownMenuLabel>CSV Export</DropdownMenuLabel>
             {Object.entries(EXPORT_ENTITY_NAMES).map(([key, label]) => (
               <DropdownMenuItem
                 key={key}

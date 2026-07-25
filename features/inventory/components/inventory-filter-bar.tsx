@@ -127,7 +127,11 @@ export default function InventoryFilterBar({
         }
       >
         <SelectTrigger className="w-31.5">
-          <SelectValue />
+          <SelectValue>
+            {(value) =>
+              STOCK_OPTIONS.find((o) => o.value === value)?.label ?? value
+            }
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {STOCK_OPTIONS.map((opt) => (

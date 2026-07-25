@@ -83,7 +83,11 @@ export default function ProductFilterBar({
         }
       >
         <SelectTrigger className="w-31.5">
-          <SelectValue />
+          <SelectValue>
+            {(value) =>
+              STOCK_OPTIONS.find((o) => o.value === value)?.label ?? value
+            }
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {STOCK_OPTIONS.map((opt) => (
@@ -103,7 +107,11 @@ export default function ProductFilterBar({
         }
       >
         <SelectTrigger className="w-37">
-          <SelectValue />
+          <SelectValue>
+            {(value) =>
+              SORT_OPTIONS.find((o) => o.value === value)?.label ?? value
+            }
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {SORT_OPTIONS.map((opt) => (

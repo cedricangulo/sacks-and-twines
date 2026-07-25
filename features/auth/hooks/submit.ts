@@ -48,7 +48,7 @@ function useSubmitSignIn() {
             email: parsed.data.email,
             resourceType: "user",
             userAgent: navigator.userAgent,
-          }).catch(() => {})
+          }).catch(console.error)
           router.push("/")
         }
       } else if (result === undefined) {
@@ -57,7 +57,7 @@ function useSubmitSignIn() {
           email: parsed.data.email,
           resourceType: "user",
           userAgent: navigator.userAgent,
-        }).catch(() => {})
+        }).catch(console.error)
         router.push("/")
       }
     } catch (err) {
@@ -66,7 +66,7 @@ function useSubmitSignIn() {
         email: parsed.data.email,
         resourceType: "user",
         userAgent: navigator.userAgent,
-      }).catch(() => {})
+      }).catch(console.error)
 
       const errorMessage = err instanceof Error ? err.message : ""
       const errorCause =
