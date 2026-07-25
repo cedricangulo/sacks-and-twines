@@ -25,7 +25,8 @@ export const seedAll = internalAction({
     // ── Find or create staff user ────────────────────────────────────────
     const rawStaffEmail = process.env.STAFF_EMAIL ?? "juandelacruz@gmail.com"
     const staffEmail = rawStaffEmail.trim().toLowerCase()
-    const staffPassword = process.env.STAFF_PASSWORD ?? "staff123"
+    const staffPassword = process.env.STAFF_PASSWORD
+    if (!staffPassword) throw new Error("STAFF_PASSWORD env var must be set")
 
     const existingUser = await ctx.runQuery(internal.users.queries.getByEmail, {
       email: staffEmail,
@@ -142,7 +143,8 @@ export const seedTest = internalAction({
     // ── Find or create staff user ────────────────────────────────────────
     const rawStaffEmail = process.env.STAFF_EMAIL ?? "juandelacruz@gmail.com"
     const staffEmail = rawStaffEmail.trim().toLowerCase()
-    const staffPassword = process.env.STAFF_PASSWORD ?? "staff123"
+    const staffPassword = process.env.STAFF_PASSWORD
+    if (!staffPassword) throw new Error("STAFF_PASSWORD env var must be set")
 
     const existingUser = await ctx.runQuery(internal.users.queries.getByEmail, {
       email: staffEmail,

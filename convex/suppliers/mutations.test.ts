@@ -114,7 +114,7 @@ describe("supplier mutations", () => {
         contactNumber: "09171234567",
         address: "Some Address 123 Street City",
       })
-    ).rejects.toThrowError("Only owners can create suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects creation with short company name", async () => {
@@ -271,7 +271,7 @@ describe("supplier mutations", () => {
         contactNumber: "09171234567",
         address: "Some Address 123 Street City",
       })
-    ).rejects.toThrowError("Only owners can create suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   // ── Update ────────────────────────────────────────────────
@@ -404,7 +404,7 @@ describe("supplier mutations", () => {
         supplierId,
         ...supplierData({ companyName: "Updated Corp" }),
       })
-    ).rejects.toThrowError("Only owners can update suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects updating non-existent supplier", async () => {
@@ -583,7 +583,7 @@ describe("supplier mutations", () => {
       t.mutation(api.suppliers.mutations.archive, {
         supplierId,
       })
-    ).rejects.toThrowError("Only owners can archive suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects archiving non-existent supplier", async () => {
@@ -700,7 +700,7 @@ describe("supplier mutations", () => {
       t.mutation(api.suppliers.mutations.unarchive, {
         supplierId,
       })
-    ).rejects.toThrowError("Only owners can unarchive suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects unarchiving non-existent supplier", async () => {
@@ -773,6 +773,6 @@ describe("supplier mutations", () => {
       t.mutation(api.suppliers.mutations.unarchive, {
         supplierId,
       })
-    ).rejects.toThrowError("Only owners can unarchive suppliers")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 })

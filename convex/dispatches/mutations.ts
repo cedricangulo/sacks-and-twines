@@ -1,5 +1,5 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
 import { internal } from "../_generated/api"
+import { requireActive } from "../auth/guards"
 import { DISPATCH_UOM_BY_CATEGORY, INTEGER_UOMS } from "../lib/constants"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
@@ -18,12 +18,8 @@ import { submitDispatchArgs } from "./validators"
 export const submit = zMutation({
   args: submitDispatchArgs,
   handler: async (ctx, { customerReference, items, userAgent }) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
+    const callerId = await requireActive(ctx)
     const caller = await ctx.db.get(callerId)
-    if (!caller || caller.status !== "active")
-      throw new Error("Account deactivated")
 
     await Promise.all([
       perUserLimit(ctx, "createDispatch", callerId),

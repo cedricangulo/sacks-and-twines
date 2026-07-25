@@ -1,5 +1,6 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
 import { internal } from "../_generated/api"
+import { Doc } from "../_generated/dataModel"
+import { requireOwner } from "../auth/guards"
 import { DEFAULT_CONVERSION_FACTOR } from "../lib/constants"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
@@ -12,12 +13,7 @@ import { stockInArgs, updateBatchArgs, voidBatchArgs } from "./validators"
 export const generateUploadUrl = zMutation({
   args: {},
   handler: async (ctx) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can upload files")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "generateUploadUrl", callerId),
@@ -67,12 +63,7 @@ export const stockIn = zMutation({
       userAgent,
     }
   ) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can stock in")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "createBatch", callerId),
@@ -173,7 +164,7 @@ export const stockIn = zMutation({
     }
 
     if (product) {
-      const patch: Record<string, unknown> = {
+      const patch: Partial<Doc<"products">> = {
         currentQuantity: product.currentQuantity + quantityReceived,
         totalAssetValue: product.totalAssetValue + totalProcurementCost,
       }
@@ -244,12 +235,7 @@ export const update = zMutation({
       userAgent,
     }
   ) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can update batches")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "updateBatch", callerId),
@@ -412,12 +398,7 @@ export const update = zMutation({
 export const voidBatch = zMutation({
   args: voidBatchArgs,
   handler: async (ctx, { batchId, reason, userAgent }) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can void batches")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "voidBatch", callerId),
@@ -448,7 +429,7 @@ export const voidBatch = zMutation({
         ),
         totalAssetValue: Math.max(
           0,
-          product.totalAssetValue - batch.totalProcurementCost
+          product.totalAssetValue - batch.quantityRemaining * batch.unitCost
         ),
       })
     }

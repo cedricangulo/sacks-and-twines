@@ -83,7 +83,7 @@ describe("product mutations", () => {
         category: "sacks",
         baseUom: "piece",
       })
-    ).rejects.toThrowError("Only owners can create products")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("rejects creation with duplicate name", async () => {
@@ -210,7 +210,7 @@ describe("product mutations", () => {
         category: "sacks",
         baseUom: "piece",
       })
-    ).rejects.toThrowError("Only owners can update products")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("updates product name and category", async () => {
@@ -682,7 +682,7 @@ describe("product mutations", () => {
 
     await expect(
       t.mutation(api.products.mutations.archive, { productId })
-    ).rejects.toThrowError("Only owners can archive products")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("archives an active product", async () => {
@@ -869,7 +869,7 @@ describe("product mutations", () => {
 
     await expect(
       t.mutation(api.products.mutations.unarchive, { productId })
-    ).rejects.toThrowError("Only owners can unarchive products")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 
   it("unarchives an archived product", async () => {
@@ -1064,6 +1064,6 @@ describe("product mutations", () => {
         category: "sacks",
         baseUom: "piece",
       })
-    ).rejects.toThrowError("Only owners can create products")
+    ).rejects.toThrowError("Only owners can perform this action")
   })
 })

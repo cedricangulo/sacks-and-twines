@@ -2,21 +2,16 @@ import { createAccount } from "@convex-dev/auth/server"
 import { internal } from "./_generated/api"
 import { internalAction } from "./_generated/server"
 
-const OWNER_EMAIL = process.env.OWNER_EMAIL!.trim().toLowerCase()
-const OWNER_PASSWORD = process.env.OWNER_PASSWORD!
-
-/**
- * Seeds the initial owner account on first deployment.
- * Skips if an owner with the configured email already exists.
- * Uses `OWNER_EMAIL` and `OWNER_PASSWORD` environment variables.
- */
 export const seedOwner = internalAction({
   args: {},
   handler: async (ctx) => {
-    // Make sure OWNER_EMAIL is defined before passing it
-    if (!OWNER_EMAIL || !OWNER_PASSWORD) {
+    const rawEmail = process.env.OWNER_EMAIL
+    const rawPassword = process.env.OWNER_PASSWORD
+    if (!rawEmail || !rawPassword) {
       throw new Error("OWNER_EMAIL and OWNER_PASSWORD env vars must be set")
     }
+    const OWNER_EMAIL = rawEmail.trim().toLowerCase()
+    const OWNER_PASSWORD = rawPassword
 
     const existing = await ctx.runQuery(
       internal.users.queries.getOwnerByEmail,

@@ -1,5 +1,6 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
 import { internal } from "../_generated/api"
+import { Doc } from "../_generated/dataModel"
+import { requireOwner } from "../auth/guards"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { createStockAdjustmentArgs } from "./validators"
@@ -23,12 +24,7 @@ export const create = zMutation({
     ctx,
     { batchId, productId, direction, quantity, reason, userAgent }
   ) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can adjust stock")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "createStockAdjustment", callerId),
@@ -61,7 +57,7 @@ export const create = zMutation({
     })
 
     const newRemaining = Math.max(0, batch.quantityRemaining + quantityAdjusted)
-    const patch: Record<string, unknown> = { quantityRemaining: newRemaining }
+    const patch: Partial<Doc<"batches">> = { quantityRemaining: newRemaining }
     if (newRemaining === 0) {
       patch.status = "depleted"
     }

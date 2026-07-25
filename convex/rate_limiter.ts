@@ -126,7 +126,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     rate: 20,
     capacity: 40,
   },
-  // Placeholder
+  // TODO: implement voidDispatch mutation — remove this comment and tune rate when feature ships
   voidDispatch: {
     kind: "token bucket",
     period: MINUTE,

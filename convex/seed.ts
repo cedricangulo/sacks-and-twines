@@ -1,5 +1,5 @@
 import { v } from "convex/values"
-import type { Id } from "./_generated/dataModel"
+import type { Doc, Id } from "./_generated/dataModel"
 import { internalMutation } from "./_generated/server"
 import { SACKS_DEFAULT_PACK_SIZE, SUPPLIER_COUNT } from "./lib/constants"
 
@@ -1294,7 +1294,7 @@ export const writeTest = internalMutation({
     }
     await Promise.all(
       batchRecords.map((batch) => {
-        const patch: Record<string, unknown> = {
+        const patch: Partial<Doc<"batches">> = {
           quantityRemaining: batch.quantityRemaining,
         }
         if (batch.status === "depleted") {

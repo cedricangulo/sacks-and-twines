@@ -1,5 +1,6 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
 import { internal } from "../_generated/api"
+import { Doc } from "../_generated/dataModel"
+import { requireOwner } from "../auth/guards"
 import { DEFAULT_CONVERSION_FACTOR } from "../lib/constants"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
@@ -28,17 +29,9 @@ export const create = zMutation({
     ctx,
     { name, category, baseUom, conversionFactor, lowStockThreshold, userAgent }
   ) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
+    const callerId = await requireOwner(ctx)
 
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can create products")
-
-    await Promise.all([
-      perUserLimit(ctx, "createBatch", callerId),
-      globalLimit(ctx, "globalMutations"),
-    ])
+    await Promise.all([perUserLimit(ctx, "createBatch", callerId)])
 
     const existing = await ctx.db
       .query("products")
@@ -116,12 +109,7 @@ export const update = zMutation({
       userAgent,
     }
   ) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can update products")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "updateBatch", callerId),
@@ -154,7 +142,7 @@ export const update = zMutation({
         )
     }
 
-    const patch: Record<string, unknown> = {
+    const patch: Partial<Doc<"products">> = {
       name,
       category,
       baseUom,
@@ -162,7 +150,7 @@ export const update = zMutation({
       lowStockThreshold: lowStockThreshold ?? 0,
     }
 
-    if (imageStorageId !== undefined) {
+    if (imageStorageId != null) {
       patch.imagePath = imageStorageId
     }
 
@@ -221,12 +209,7 @@ export const update = zMutation({
 export const archive = zMutation({
   args: archiveProductArgs,
   handler: async (ctx, { productId, userAgent }) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can archive products")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "archiveProduct", callerId),
@@ -264,12 +247,7 @@ export const archive = zMutation({
 export const unarchive = zMutation({
   args: unarchiveProductArgs,
   handler: async (ctx, { productId, userAgent }) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner" || caller.status !== "active")
-      throw new Error("Only owners can unarchive products")
+    const callerId = await requireOwner(ctx)
 
     await Promise.all([
       perUserLimit(ctx, "archiveProduct", callerId),
