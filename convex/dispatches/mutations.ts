@@ -1,9 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { internal } from "../_generated/api"
-import {
-  DISPATCH_UOM_BY_CATEGORY,
-  INTEGER_UOMS,
-} from "../lib/constants"
+import { DISPATCH_UOM_BY_CATEGORY, INTEGER_UOMS } from "../lib/constants"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { submitDispatchArgs } from "./validators"
@@ -53,9 +50,7 @@ export const submit = zMutation({
 
       // Validate UOM is valid for this product category
       const allowedUoms = DISPATCH_UOM_BY_CATEGORY[product.category]
-      if (
-        !(allowedUoms as readonly string[]).includes(item.dispatchUom)
-      ) {
+      if (!(allowedUoms as readonly string[]).includes(item.dispatchUom)) {
         throw new Error(
           `Cannot dispatch ${product.name} by "${item.dispatchUom}" — ${product.category} can only be dispatched as ${allowedUoms.join("/")}`
         )
@@ -151,10 +146,7 @@ export const submit = zMutation({
 
       await ctx.db.patch(item.productId, {
         currentQuantity: Math.max(0, product.currentQuantity - toDeduct),
-        totalAssetValue: Math.max(
-          0,
-          product.totalAssetValue - itemCost
-        ),
+        totalAssetValue: Math.max(0, product.totalAssetValue - itemCost),
       })
     }
 

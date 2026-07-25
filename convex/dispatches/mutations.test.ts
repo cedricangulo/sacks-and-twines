@@ -549,7 +549,7 @@ describe("dispatch mutations", () => {
       t.mutation(api.dispatches.mutations.submit, {
         items: [{ productId, quantity: 5, dispatchUom: "meter" }],
       })
-    ).rejects.toThrow("Cannot dispatch Sack by \"meter\"")
+    ).rejects.toThrow('Cannot dispatch Sack by "meter"')
   })
 
   it("rejects sacks dispatched by roll", async () => {
@@ -568,7 +568,7 @@ describe("dispatch mutations", () => {
       t.mutation(api.dispatches.mutations.submit, {
         items: [{ productId, quantity: 1, dispatchUom: "roll" }],
       })
-    ).rejects.toThrow("Cannot dispatch Sack by \"roll\"")
+    ).rejects.toThrow('Cannot dispatch Sack by "roll"')
   })
 
   it("rejects twines dispatched by piece", async () => {
@@ -588,7 +588,7 @@ describe("dispatch mutations", () => {
       t.mutation(api.dispatches.mutations.submit, {
         items: [{ productId, quantity: 5, dispatchUom: "piece" }],
       })
-    ).rejects.toThrow("Cannot dispatch Twine by \"piece\"")
+    ).rejects.toThrow('Cannot dispatch Twine by "piece"')
   })
 
   it("dispatches twines by meter (1:1 conversion)", async () => {
@@ -607,7 +607,7 @@ describe("dispatch mutations", () => {
       }),
       createSupplier(t),
     ])
-    const batchId = await createBatch(t, {
+    const _batchId = await createBatch(t, {
       productId,
       supplierId,
       userId,

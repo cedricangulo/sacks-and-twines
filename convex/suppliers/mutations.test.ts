@@ -95,7 +95,7 @@ describe("supplier mutations", () => {
 
   it("rejects creation for non-owners", async () => {
     const t = makeTest()
-    const [staffId, supplierId] = await Promise.all([
+    const [staffId, _supplierId] = await Promise.all([
       createUser(t, {
         email: "staff@test.com",
         name: "Staff",
@@ -179,7 +179,7 @@ describe("supplier mutations", () => {
 
   it("creates a supplier and writes an audit log", async () => {
     const t = makeTest()
-    const [ownerId, phantomId] = await Promise.all([
+    const [ownerId, _phantomId] = await Promise.all([
       createUser(t, {
         email: "owner@test.com",
         name: "Owner",
