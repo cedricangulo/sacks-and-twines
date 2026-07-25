@@ -43,15 +43,7 @@ function DatePicker({
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="secondary"
-          disabled={disabled}
-          className={cn(
-            "justify-start gap-2 font-normal",
-            !value ? "text-muted-foreground" : ""
-          )}
-        >
+      <PopoverTrigger render={<Button variant="secondary" disabled={disabled} className={cn("justify-start gap-2 font-normal", !value ? "text-muted-foreground" : "")} />}>
           <CalendarIcon weight="fill" />
           {value
             ? formatDate(value, {
@@ -61,7 +53,6 @@ function DatePicker({
                 locale: "en-PH",
               })
             : placeholder}
-        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
