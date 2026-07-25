@@ -3,3 +3,7 @@ allowBuilds:
   msw: true       # Allow msw
   sharp: true     # Allow sharp
   # some-other-package: false  # Explicitly block
+
+overrides:
+  esbuild@>=0.17.0 <0.28.1: ^0.28.1
+  postcss@<8.5.10: ^8.5.15
