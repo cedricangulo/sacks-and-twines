@@ -8,15 +8,22 @@
  * @module
  */
 
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 import type * as auditLogs_mutations from "../auditLogs/mutations.js";
 import type * as auditLogs_queries from "../auditLogs/queries.js";
-import type * as auth from "../auth.js";
 import type * as auth_guards from "../auth/guards.js";
 import type * as auth_logAttempt from "../auth/logAttempt.js";
 import type * as auth_verify from "../auth/verify.js";
+import type * as auth from "../auth.js";
 import type * as batches_mutations from "../batches/mutations.js";
 import type * as batches_queries from "../batches/queries.js";
 import type * as batches_validators from "../batches/validators.js";
+import type * as dashboard_queries from "../dashboard/queries.js";
 import type * as dispatches_mutations from "../dispatches/mutations.js";
 import type * as dispatches_queries from "../dispatches/queries.js";
 import type * as dispatches_validators from "../dispatches/validators.js";
@@ -25,6 +32,7 @@ import type * as init from "../init.js";
 import type * as lib_codes from "../lib/codes.js";
 import type * as lib_constants from "../lib/constants.js";
 import type * as lib_csv_escape from "../lib/csv_escape.js";
+import type * as lib_fetch_entities from "../lib/fetch_entities.js";
 import type * as migrations from "../migrations.js";
 import type * as products_mutations from "../products/mutations.js";
 import type * as products_queries from "../products/queries.js";
@@ -45,12 +53,6 @@ import type * as users_queries from "../users/queries.js";
 import type * as users_validators from "../users/validators.js";
 import type * as validators_helpers from "../validators/helpers.js";
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-
 declare const fullApi: ApiFromModules<{
   "auditLogs/mutations": typeof auditLogs_mutations;
   "auditLogs/queries": typeof auditLogs_queries;
@@ -61,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   "batches/mutations": typeof batches_mutations;
   "batches/queries": typeof batches_queries;
   "batches/validators": typeof batches_validators;
+  "dashboard/queries": typeof dashboard_queries;
   "dispatches/mutations": typeof dispatches_mutations;
   "dispatches/queries": typeof dispatches_queries;
   "dispatches/validators": typeof dispatches_validators;
@@ -69,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   "lib/codes": typeof lib_codes;
   "lib/constants": typeof lib_constants;
   "lib/csv_escape": typeof lib_csv_escape;
+  "lib/fetch_entities": typeof lib_fetch_entities;
   migrations: typeof migrations;
   "products/mutations": typeof products_mutations;
   "products/queries": typeof products_queries;

@@ -136,5 +136,7 @@ export default defineSchema({
   })
     .index("by_action", ["action"])
     .index("by_userId", ["userId"])
-    .index("by_action_userId", ["action", "userId"]),
+    .index("by_action_userId", ["action", "userId"])
+    .index("by_createdAt", ["createdAt"])
+    .index("by_userId_createdAt", ["userId", "createdAt"]),
 })
