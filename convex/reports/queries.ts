@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { query } from "../_generated/server"
+import { fetchAdjustments, fetchDispatches } from "../lib/fetch_entities"
 
 /**
  * Returns dispatch and adjustment timestamps within a date range.
@@ -88,28 +89,7 @@ export const monthlyAggregates = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const [byCreationTime, byCreatedAt] = await Promise.all([
-      ctx.db
-        .query("dispatches")
-        .withIndex("by_creation_time", (q) =>
-          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-        )
-        .collect()
-        .then((rows) => rows.filter((d) => d.createdAt === undefined)),
-      ctx.db
-        .query("dispatches")
-        .withIndex("by_createdAt", (q) =>
-          q.gte("createdAt", startMs).lte("createdAt", endMs)
-        )
-        .collect(),
-    ])
-
-    const seen = new Set<string>()
-    const merged = [...byCreationTime, ...byCreatedAt].filter((d) => {
-      if (seen.has(d._id)) return false
-      seen.add(d._id)
-      return true
-    })
+    const merged = await fetchDispatches(ctx, startMs, endMs, "completed")
 
     let totalItems = 0
     let totalValue = 0
@@ -129,34 +109,11 @@ export const monthlyAggregates = query({
       })
     )
 
-    const [byCreationTimeAdj, byCreatedAtAdj] = await Promise.all([
-      ctx.db
-        .query("stockAdjustments")
-        .withIndex("by_creation_time", (q) =>
-          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-        )
-        .collect()
-        .then((rows) => rows.filter((a) => a.createdAt === undefined)),
-      ctx.db
-        .query("stockAdjustments")
-        .withIndex("by_createdAt", (q) =>
-          q.gte("createdAt", startMs).lte("createdAt", endMs)
-        )
-        .collect(),
-    ])
-
-    const seenAdj = new Set<string>()
-    const adjustmentCount = [...byCreationTimeAdj, ...byCreatedAtAdj].filter(
-      (a) => {
-        if (seenAdj.has(a._id)) return false
-        seenAdj.add(a._id)
-        return true
-      }
-    ).length
+    const adjustments = await fetchAdjustments(ctx, startMs, endMs)
 
     return {
       dispatchCount: merged.length,
-      adjustmentCount,
+      adjustmentCount: adjustments.length,
       totalItems,
       totalValue,
     }
@@ -311,28 +268,7 @@ export const exportDispatches = query({
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const [byCreationTime, byCreatedAt] = await Promise.all([
-      ctx.db
-        .query("dispatches")
-        .withIndex("by_creation_time", (q) =>
-          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-        )
-        .collect()
-        .then((rows) => rows.filter((d) => d.createdAt === undefined)),
-      ctx.db
-        .query("dispatches")
-        .withIndex("by_createdAt", (q) =>
-          q.gte("createdAt", startMs).lte("createdAt", endMs)
-        )
-        .collect(),
-    ])
-
-    const seen = new Set<string>()
-    const merged = [...byCreationTime, ...byCreatedAt].filter((d) => {
-      if (seen.has(d._id)) return false
-      seen.add(d._id)
-      return true
-    })
+    const merged = await fetchDispatches(ctx, startMs, endMs)
 
     const enriched = await Promise.all(
       merged.map(async (d) => {
@@ -383,28 +319,7 @@ export const exportDispatchItems = query({
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const [byCreationTime, byCreatedAt] = await Promise.all([
-      ctx.db
-        .query("dispatches")
-        .withIndex("by_creation_time", (q) =>
-          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-        )
-        .collect()
-        .then((rows) => rows.filter((d) => d.createdAt === undefined)),
-      ctx.db
-        .query("dispatches")
-        .withIndex("by_createdAt", (q) =>
-          q.gte("createdAt", startMs).lte("createdAt", endMs)
-        )
-        .collect(),
-    ])
-
-    const seen = new Set<string>()
-    const merged = [...byCreationTime, ...byCreatedAt].filter((d) => {
-      if (seen.has(d._id)) return false
-      seen.add(d._id)
-      return true
-    })
+    const merged = await fetchDispatches(ctx, startMs, endMs)
 
     const rows: Array<{
       date: number
@@ -469,28 +384,7 @@ export const exportAdjustments = query({
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const [byCreationTime, byCreatedAt] = await Promise.all([
-      ctx.db
-        .query("stockAdjustments")
-        .withIndex("by_creation_time", (q) =>
-          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-        )
-        .collect()
-        .then((rows) => rows.filter((a) => a.createdAt === undefined)),
-      ctx.db
-        .query("stockAdjustments")
-        .withIndex("by_createdAt", (q) =>
-          q.gte("createdAt", startMs).lte("createdAt", endMs)
-        )
-        .collect(),
-    ])
-
-    const seen = new Set<string>()
-    const merged = [...byCreationTime, ...byCreatedAt].filter((a) => {
-      if (seen.has(a._id)) return false
-      seen.add(a._id)
-      return true
-    })
+    const merged = await fetchAdjustments(ctx, startMs, endMs)
 
     const enriched = await Promise.all(
       merged.map(async (a) => {
@@ -531,53 +425,9 @@ export const exportMonthlyReport = query({
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const [byCreationTime, byCreatedAt] = await Promise.all([
-      ctx.db
-        .query("dispatches")
-        .withIndex("by_creation_time", (q) =>
-          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-        )
-        .collect()
-        .then((rows) => rows.filter((d) => d.createdAt === undefined)),
-      ctx.db
-        .query("dispatches")
-        .withIndex("by_createdAt", (q) =>
-          q.gte("createdAt", startMs).lte("createdAt", endMs)
-        )
-        .collect(),
-    ])
+    const mergedDispatches = await fetchDispatches(ctx, startMs, endMs)
 
-    const seenD = new Set<string>()
-    const mergedDispatches = [...byCreationTime, ...byCreatedAt].filter((d) => {
-      if (seenD.has(d._id)) return false
-      seenD.add(d._id)
-      return true
-    })
-
-    const [byCreationTimeAdj, byCreatedAtAdj] = await Promise.all([
-      ctx.db
-        .query("stockAdjustments")
-        .withIndex("by_creation_time", (q) =>
-          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-        )
-        .collect()
-        .then((rows) => rows.filter((a) => a.createdAt === undefined)),
-      ctx.db
-        .query("stockAdjustments")
-        .withIndex("by_createdAt", (q) =>
-          q.gte("createdAt", startMs).lte("createdAt", endMs)
-        )
-        .collect(),
-    ])
-
-    const seenA = new Set<string>()
-    const mergedAdjustments = [...byCreationTimeAdj, ...byCreatedAtAdj].filter(
-      (a) => {
-        if (seenA.has(a._id)) return false
-        seenA.add(a._id)
-        return true
-      }
-    )
+    const mergedAdjustments = await fetchAdjustments(ctx, startMs, endMs)
 
     let totalItems = 0
     let totalValue = 0
