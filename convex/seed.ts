@@ -14,9 +14,17 @@ function rndInt(min: number, max: number): number {
 }
 
 function randDate(start: Date, end: Date): Date {
-  return new Date(
-    start.getTime() + Math.random() * (end.getTime() - start.getTime())
-  )
+  const ts = start.getTime() + Math.random() * (end.getTime() - start.getTime())
+  const offset = 8 * 60 * 60 * 1000
+  const localTs = ts + offset
+  const localDate = new Date(localTs)
+  const year = localDate.getUTCFullYear()
+  const month = localDate.getUTCMonth()
+  const day = localDate.getUTCDate()
+  const hour = rndInt(8, 17)
+  const minute = rndInt(0, 59)
+  const second = rndInt(0, 59)
+  return new Date(Date.UTC(year, month, day, hour - 8, minute, second))
 }
 
 function toFloat(n: number, decimals = 2): number {
@@ -24,7 +32,7 @@ function toFloat(n: number, decimals = 2): number {
 }
 
 const DATE_BASE = new Date("2025-05-01T00:00:00+08:00")
-const DATE_END = new Date("2026-05-10T00:00:00+08:00")
+const DATE_END = new Date("2026-07-24T00:00:00+08:00")
 
 let skuCounter = 0
 function nextSkuCode(): string {
@@ -328,7 +336,7 @@ export const writeAll = internalMutation({
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // 5. Insert dispatches + items (~100 dispatches, peak-weighted)
+    // 5. Insert dispatches + items (~150 dispatches, peak-weighted)
     // ═══════════════════════════════════════════════════════════════════════
     const NUM_DISPATCHES = 150
     const dispatchRecords: Array<{

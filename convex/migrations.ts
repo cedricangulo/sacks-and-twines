@@ -114,6 +114,19 @@ export const replaceProductCutWithMeter = migrations.define({
 })
 
 /**
+ * Backfills `createdAt` on audit logs using Convex's `_creationTime`
+ * so that the by_createdAt index includes all existing records.
+ */
+export const backfillAuditLogCreatedAt = migrations.define({
+  table: "auditLogs",
+  migrateOne: async (ctx, log) => {
+    if (log.createdAt !== undefined) return
+    if (log._creationTime === undefined) return
+    await ctx.db.patch(log._id, { createdAt: log._creationTime })
+  },
+})
+
+/**
  * Renames `weightPerUnit` to `conversionFactor` on existing product records.
  * Strips the old field that no longer exists in the schema.
  */

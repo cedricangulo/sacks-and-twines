@@ -53,14 +53,16 @@ export const list = query({
         .query("auditLogs")
         .withIndex("by_userId", (q) => q.eq("userId", userId))
     } else {
-      base = ctx.db.query("auditLogs")
+      base = ctx.db
+        .query("auditLogs")
+        .withIndex("by_createdAt", (q) => q.gte("createdAt", 0))
     }
 
     if (dateFrom !== undefined) {
-      base = base.filter((q) => q.gte(q.field("_creationTime"), dateFrom))
+      base = base.filter((q) => q.gte(q.field("createdAt"), dateFrom))
     }
     if (dateTo !== undefined) {
-      base = base.filter((q) => q.lte(q.field("_creationTime"), dateTo))
+      base = base.filter((q) => q.lte(q.field("createdAt"), dateTo))
     }
 
     if (search) {
@@ -156,19 +158,50 @@ export const getPersonalById = query({
  * @param paginationOpts - Pagination options for cursor-based navigation.
  */
 export const listByUser = query({
-  args: { paginationOpts: paginationOptsValidator },
-  handler: async (ctx, { paginationOpts }) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+    dateFrom: v.optional(v.number()),
+    dateTo: v.optional(v.number()),
+  },
+  handler: async (ctx, { paginationOpts, dateFrom, dateTo }) => {
     const callerId = await getAuthUserId(ctx)
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
     if (!caller || caller.status !== "active") throw new Error("Unauthorized")
 
-    const result = await ctx.db
-      .query("auditLogs")
-      .withIndex("by_userId", (q) => q.eq("userId", callerId))
-      .order("desc")
-      .paginate(paginationOpts)
+    let base
+
+    if (dateFrom !== undefined && dateTo !== undefined) {
+      base = ctx.db
+        .query("auditLogs")
+        .withIndex("by_userId_createdAt", (q) =>
+          q
+            .eq("userId", callerId)
+            .gte("createdAt", dateFrom)
+            .lte("createdAt", dateTo)
+        )
+    } else if (dateFrom !== undefined) {
+      base = ctx.db
+        .query("auditLogs")
+        .withIndex("by_userId_createdAt", (q) =>
+          q.eq("userId", callerId).gte("createdAt", dateFrom)
+        )
+    } else if (dateTo !== undefined) {
+      base = ctx.db
+        .query("auditLogs")
+        .withIndex("by_userId_createdAt", (q) =>
+          q.eq("userId", callerId).lte("createdAt", dateTo)
+        )
+    } else {
+      base = ctx.db
+        .query("auditLogs")
+        .withIndex("by_userId_createdAt", (q) =>
+          q.eq("userId", callerId).gte("createdAt", 0)
+        )
+    }
+
+    const result = await base.order("desc").paginate(paginationOpts)
 
     return {
       ...result,
@@ -249,14 +282,16 @@ async function fetchExportLogs(
       .query("auditLogs")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
   } else {
-    base = ctx.db.query("auditLogs")
+    base = ctx.db
+      .query("auditLogs")
+      .withIndex("by_createdAt", (q) => q.gte("createdAt", 0))
   }
 
   if (dateFrom !== undefined) {
-    base = base.filter((q) => q.gte(q.field("_creationTime"), dateFrom))
+    base = base.filter((q) => q.gte(q.field("createdAt"), dateFrom))
   }
   if (dateTo !== undefined) {
-    base = base.filter((q) => q.lte(q.field("_creationTime"), dateTo))
+    base = base.filter((q) => q.lte(q.field("createdAt"), dateTo))
   }
 
   if (search) {

@@ -61,6 +61,7 @@ export const logAttempt = mutation({
       resourceId: userId,
       ipAddress: ip,
       userAgent: args.userAgent,
+      createdAt: Date.now(),
     })
   },
 })

@@ -33,6 +33,7 @@ export const log = internalMutation({
     }
     await ctx.db.insert("auditLogs", {
       ...args,
+      createdAt: args.createdAt ?? Date.now(),
       ipAddress: ip ?? undefined,
     })
   },
@@ -61,6 +62,7 @@ export const logExport = mutation({
       }),
       resourceType: "auditLog",
       userAgent: undefined,
+      createdAt: Date.now(),
     })
   },
 })

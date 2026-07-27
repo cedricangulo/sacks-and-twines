@@ -62,6 +62,7 @@ describe("audit log queries", () => {
       return await ctx.db.insert("auditLogs", {
         action: fields.action,
         description: fields.description,
+        createdAt: Date.now(),
         ...(fields.userId ? { userId: fields.userId } : {}),
         ...(fields.userAgent ? { userAgent: fields.userAgent } : {}),
         ...(fields.resourceType ? { resourceType: fields.resourceType } : {}),
@@ -280,21 +281,24 @@ describe("audit log queries", () => {
       authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
       const ids = await t.run(async (ctx) => {
+        const base = Date.now()
         const firstId = await ctx.db.insert("auditLogs", {
           action: "product_create",
           description: "Old action",
           userId: ownerId,
+          createdAt: base,
         })
         const firstDoc = await ctx.db.get(firstId)
         const secondId = await ctx.db.insert("auditLogs", {
           action: "product_create",
           description: "New action",
           userId: ownerId,
+          createdAt: base + 1,
         })
         const secondDoc = await ctx.db.get(secondId)
         return {
-          firstTime: firstDoc!._creationTime,
-          secondTime: secondDoc!._creationTime,
+          firstTime: firstDoc!.createdAt,
+          secondTime: secondDoc!.createdAt,
         }
       })
 
@@ -319,18 +323,21 @@ describe("audit log queries", () => {
       authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
       const ids = await t.run(async (ctx) => {
+        const base = Date.now()
         const firstId = await ctx.db.insert("auditLogs", {
           action: "product_create",
           description: "Keep this",
           userId: ownerId,
+          createdAt: base,
         })
         const firstDoc = await ctx.db.get(firstId)
         await ctx.db.insert("auditLogs", {
           action: "product_create",
           description: "Exclude this",
           userId: ownerId,
+          createdAt: base + 1,
         })
-        return { firstTime: firstDoc!._creationTime }
+        return { firstTime: firstDoc!.createdAt }
       })
 
       // Include only logs created at or before firstTime
@@ -574,21 +581,24 @@ describe("audit log queries", () => {
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     const ids = await t.run(async (ctx) => {
+      const base = Date.now()
       const firstId = await ctx.db.insert("auditLogs", {
         action: "product_create",
         description: "Old product",
         userId: ownerId,
+        createdAt: base,
       })
       const first = await ctx.db.get(firstId)
       const secondId = await ctx.db.insert("auditLogs", {
         action: "product_create",
         description: "New product",
         userId: ownerId,
+        createdAt: base + 1,
       })
       const second = await ctx.db.get(secondId)
       return {
-        firstTime: first!._creationTime,
-        secondTime: second!._creationTime,
+        firstTime: first!.createdAt,
+        secondTime: second!.createdAt,
       }
     })
 
@@ -613,18 +623,21 @@ describe("audit log queries", () => {
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     const ids = await t.run(async (ctx) => {
+      const base = Date.now()
       const firstId = await ctx.db.insert("auditLogs", {
         action: "product_create",
         description: "Old product",
         userId: ownerId,
+        createdAt: base,
       })
       const first = await ctx.db.get(firstId)
       await ctx.db.insert("auditLogs", {
         action: "product_create",
         description: "New product",
         userId: ownerId,
+        createdAt: base + 1,
       })
-      return { firstTime: first!._creationTime }
+      return { firstTime: first!.createdAt }
     })
 
     const result = await t.query(api.auditLogs.queries.list, {
@@ -648,26 +661,30 @@ describe("audit log queries", () => {
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     const ids = await t.run(async (ctx) => {
+      const base = Date.now()
       const firstId = await ctx.db.insert("auditLogs", {
         action: "product_create",
         description: "Old product",
         userId: ownerId,
+        createdAt: base,
       })
       const first = await ctx.db.get(firstId)
       const secondId = await ctx.db.insert("auditLogs", {
         action: "product_create",
         description: "Middle product",
         userId: ownerId,
+        createdAt: base + 1,
       })
       const second = await ctx.db.get(secondId)
       await ctx.db.insert("auditLogs", {
         action: "product_create",
         description: "New product",
         userId: ownerId,
+        createdAt: base + 2,
       })
       return {
-        firstTime: first!._creationTime,
-        secondTime: second!._creationTime,
+        firstTime: first!.createdAt,
+        secondTime: second!.createdAt,
       }
     })
 
@@ -720,6 +737,7 @@ describe("audit log queries", () => {
         const id = await ctx.db.insert("auditLogs", {
           action: "temp",
           description: "temp",
+          createdAt: Date.now(),
         })
         await ctx.db.delete(id)
         return id
@@ -744,6 +762,7 @@ describe("audit log queries", () => {
         const id = await ctx.db.insert("auditLogs", {
           action: "temp",
           description: "temp",
+          createdAt: Date.now(),
         })
         await ctx.db.delete(id)
         return id
@@ -849,6 +868,7 @@ describe("audit log queries", () => {
         const id = await ctx.db.insert("auditLogs", {
           action: "temp",
           description: "temp",
+          createdAt: Date.now(),
         })
         await ctx.db.delete(id)
         return id
@@ -1309,26 +1329,30 @@ describe("audit log queries", () => {
       authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
       const ids = await t.run(async (ctx) => {
+        const base = Date.now()
         const firstId = await ctx.db.insert("auditLogs", {
           action: "product_create",
           description: "Old product",
           userId: ownerId,
+          createdAt: base,
         })
         const first = await ctx.db.get(firstId)
         const secondId = await ctx.db.insert("auditLogs", {
           action: "product_create",
           description: "Middle product",
           userId: ownerId,
+          createdAt: base + 1,
         })
         const second = await ctx.db.get(secondId)
         await ctx.db.insert("auditLogs", {
           action: "product_create",
           description: "New product",
           userId: ownerId,
+          createdAt: base + 2,
         })
         return {
-          firstTime: first!._creationTime,
-          secondTime: second!._creationTime,
+          firstTime: first!.createdAt,
+          secondTime: second!.createdAt,
         }
       })
 
@@ -1490,26 +1514,30 @@ describe("audit log queries", () => {
       authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
       const ids = await t.run(async (ctx) => {
+        const base = Date.now()
         const firstId = await ctx.db.insert("auditLogs", {
           action: "product_create",
           description: "Old product",
           userId: ownerId,
+          createdAt: base,
         })
         const first = await ctx.db.get(firstId)
         const secondId = await ctx.db.insert("auditLogs", {
           action: "product_create",
           description: "Middle product",
           userId: ownerId,
+          createdAt: base + 1,
         })
         const second = await ctx.db.get(secondId)
         await ctx.db.insert("auditLogs", {
           action: "product_create",
           description: "New product",
           userId: ownerId,
+          createdAt: base + 2,
         })
         return {
-          firstTime: first!._creationTime,
-          secondTime: second!._creationTime,
+          firstTime: first!.createdAt,
+          secondTime: second!.createdAt,
         }
       })
 
