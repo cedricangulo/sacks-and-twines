@@ -19,7 +19,7 @@ export default function DashboardPageLayout({ children }: Props) {
       <PageHeaderSetter
         title={`Good ${greetings}, ${isLoading ? "..." : user?.name}!`}
       />
-      <div className="p-6 space-y-6">{children}</div>
+      <div className="p-6 pt-0 space-y-6">{children}</div>
     </>
   )
 }

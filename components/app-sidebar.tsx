@@ -11,6 +11,7 @@ import {
   UsersIcon,
   WarehouseIcon,
 } from "@phosphor-icons/react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import * as React from "react"
@@ -105,18 +106,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar
       {...props}
       variant="floating"
+      collapsible="icon"
       style={{ viewTransitionName: "app-sidebar" }}
     >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/dashboard" />}>
-              <div className="bg-accent rounded-2xl flex aspect-square size-8 items-center justify-center text-sidebar-primary-foreground" />
-              <div className="grid flex-1 type-body-small leading-tight text-left">
+              <Image
+                src="/logo.png"
+                alt="Sacks and Twines"
+                className="rounded-full"
+                width={32}
+                height={32}
+              />
+              <div className="grid flex-1 type-body-small text-left">
                 <span className="font-semibold truncate type-body-default">
                   Sacks and Twines
                 </span>
-                <span className="truncate type-caption text-blue-100">
+                <span className="truncate type-caption text-sidebar-primary-foreground">
                   Inventory Management
                 </span>
               </div>
@@ -142,6 +150,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         />
                       }
                       isActive={isActive(item.url)}
+                      tooltip={item.title}
                     >
                       {item.icon ? <item.icon weight="fill" /> : null}
                       <span>{item.title}</span>

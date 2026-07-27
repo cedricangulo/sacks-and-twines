@@ -134,6 +134,7 @@ export default function AuditLogFilterBar({
         <DropdownMenuTrigger
           render={
             <Button
+              nativeButton={true}
               type="button"
               variant="secondary"
               disabled={isExporting || !exportResult || disabled}

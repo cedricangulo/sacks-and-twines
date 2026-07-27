@@ -47,85 +47,77 @@ export default function MonthlyStatsBar() {
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 divide-y md:grid-cols-4 md:divide-y-0 md:divide-x divide-border">
-          <div className="flex items-start gap-3 p-3">
+        <div className="grid grid-cols-2 gap-3 divide-y md:grid-cols-4 md:divide-y-0 md:divide-x divide-border">
+          <div className="flex items-end gap-3">
             <div className="p-2 bg-yellow-100 rounded-xl dark:bg-yellow-950">
               <ClipboardTextIcon
                 weight="fill"
-                className="text-yellow-800 size-6 dark:text-yellow-400"
+                className="text-yellow-600 size-6 dark:text-yellow-400"
               />
             </div>
-            <div>
-              {isLoading ? (
-                <Skeleton className="w-20 h-9" />
-              ) : (
-                <div className="font-bold leading-none type-h2 tabular-nums">
-                  {formatCompact(data.dispatchCount)}
-                </div>
-              )}
-              <div className="mt-1 type-body-small text-muted-foreground">
-                Dispatches
+            {isLoading ? (
+              <Skeleton className="w-20 h-9" />
+            ) : (
+              <div className="font-mono type-h2 tabular-nums">
+                {formatCompact(data.dispatchCount)}
               </div>
+            )}
+            <div className="type-body-small text-muted-foreground">
+              Dispatches
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3">
+          <div className="flex items-end gap-3">
             <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950">
               <ArrowsClockwiseIcon
                 weight="fill"
-                className="size-6 text-emerald-800 dark:text-emerald-400"
+                className="size-6 text-emerald-600 dark:text-emerald-400"
               />
             </div>
-            <div>
-              {isLoading ? (
-                <Skeleton className="w-20 h-9" />
-              ) : (
-                <div className="font-bold leading-none type-h2 tabular-nums">
-                  {formatCompact(data.adjustmentCount)}
-                </div>
-              )}
-              <div className="mt-1 type-body-small text-muted-foreground">
-                Adjustments
+            {isLoading ? (
+              <Skeleton className="w-20 h-9" />
+            ) : (
+              <div className="font-mono type-h2 tabular-nums">
+                {formatCompact(data.adjustmentCount)}
               </div>
+            )}
+            <div className="type-body-small text-muted-foreground">
+              Adjustments
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3">
+          <div className="flex items-end gap-3">
             <div className="p-2 rounded-xl bg-primary/10">
               <PackageIcon weight="fill" className="size-6 text-primary" />
             </div>
-            <div>
-              {isLoading ? (
-                <Skeleton className="w-20 h-9" />
-              ) : (
-                <div className="font-bold leading-none type-h2 tabular-nums">
-                  {formatCompact(data.totalItems)}
-                </div>
-              )}
-              <div className="mt-1 type-body-small text-muted-foreground">
-                Items Out
+            {isLoading ? (
+              <Skeleton className="w-20 h-9" />
+            ) : (
+              <div className="font-mono type-h2 tabular-nums">
+                {formatCompact(data.totalItems)}
               </div>
+            )}
+            <div className="type-body-small text-muted-foreground">
+              Items Out
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3">
+          <div className="flex items-end gap-3">
             <div className="p-2 rounded-xl bg-destructive/10">
               <TrendUpIcon weight="fill" className="size-6 text-destructive" />
             </div>
-            <div>
-              {isLoading ? (
-                <Skeleton className="w-20 h-9" />
-              ) : (
-                <div className="font-bold leading-none type-h2 tabular-nums">
-                  {formatCurrency(data.totalValue, {
-                    notation: "compact",
-                    maximumFractionDigits: 1,
-                  })}
-                </div>
-              )}
-              <div className="mt-1 type-body-small text-muted-foreground">
-                Total Value
+            {isLoading ? (
+              <Skeleton className="w-20 h-9" />
+            ) : (
+              <div className="font-mono type-h2 tabular-nums">
+                {formatCurrency(data.totalValue, {
+                  notation: "compact",
+                  maximumFractionDigits: 1,
+                })}
               </div>
+            )}
+            <div className="type-body-small text-muted-foreground">
+              Dispatch Value
             </div>
           </div>
         </div>
@@ -133,7 +125,7 @@ export default function MonthlyStatsBar() {
         <div className="border-t" />
 
         {hasDaySelected ? (
-          <div className="type-body-small font-medium text-muted-foreground">
+          <div className="font-medium type-body-small text-muted-foreground">
             {formattedDate}
           </div>
         ) : (

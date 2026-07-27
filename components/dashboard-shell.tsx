@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import LoadingPage from "./loading-page"
+import { StockBanner } from "./stock-banner"
 
 interface Props {
   children: ReactNode
@@ -112,6 +113,7 @@ export function DashboardShell({ children, initialRole }: Props) {
                 <PageHeaderBar />
               </div>
             </header>
+            <StockBanner />
             <ViewTransition
               enter={{
                 "nav-forward": "nav-forward",
