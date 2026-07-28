@@ -80,7 +80,7 @@ export default function AddInventoryDialog() {
 
       {open ? <DialogBackdrop /> : null}
 
-      <DialogContent className="sm:max-w-5xl!">
+      <DialogContent scrollable className="sm:max-w-5xl!">
         <DialogHeader>
           <DialogTitle>Add Inventory</DialogTitle>
           <DialogDescription>

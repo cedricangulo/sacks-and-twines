@@ -65,7 +65,7 @@ export default function EditProductDialog({
       {children ? (
         <DialogTrigger render={() => children as ReactElement} />
       ) : null}
-      <DialogContent>
+      <DialogContent scrollable>
         <DialogHeader>
           <DialogTitle>Edit product</DialogTitle>
           <DialogDescription>

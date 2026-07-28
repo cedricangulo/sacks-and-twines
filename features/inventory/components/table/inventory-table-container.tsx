@@ -13,11 +13,6 @@ import type { Dispatch, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/formatters"
 import { cn, getInitials } from "@/lib/utils"
 import type { Product } from "../../validation"
@@ -134,39 +129,21 @@ export default function InventoryTableContainer({
         header: "Status",
         cell: ({ row }) => {
           const p = row.original
-          const noStock = p.status === "active" && p.currentQuantity === 0
+          const isArchived = p.status === "archived"
+          const noStock = p.currentQuantity === 0
           const isLowStock =
-            p.status === "active" && p.currentQuantity <= p.lowStockThreshold
+            !noStock && p.currentQuantity <= p.lowStockThreshold
           return (
             <div className="flex items-center gap-2">
-              {p.status === "active" ? (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <span className="rounded-full size-2 bg-emerald-500 animate-pulse" />
-                    }
-                  ></TooltipTrigger>
-                  <TooltipContent>Product is active</TooltipContent>
-                </Tooltip>
-              ) : p.status === "archived" ? (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <span className="rounded-full size-2 bg-amber-500 animate-pulse" />
-                    }
-                  ></TooltipTrigger>
-                  <TooltipContent>Product is archived</TooltipContent>
-                </Tooltip>
-              ) : null}
-              {!isLowStock && !noStock ? (
-                <Badge variant="success">Good</Badge>
-              ) : null}
-              {isLowStock && !noStock ? (
-                <Badge variant="warning">Low</Badge>
-              ) : null}
-              {noStock ? (
+              {isArchived ? (
+                <Badge variant="secondary">Archived</Badge>
+              ) : noStock ? (
                 <Badge variant="destructive">Out of Stock</Badge>
-              ) : null}
+              ) : isLowStock ? (
+                <Badge variant="warning">Low</Badge>
+              ) : (
+                <Badge variant="success">Good</Badge>
+              )}
             </div>
           )
         },

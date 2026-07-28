@@ -57,7 +57,7 @@ export default function EditBatchDialog({
 
       {dialogOpen ? <DialogBackdrop /> : null}
 
-      <DialogContent>
+      <DialogContent scrollable>
         <DialogHeader>
           <DialogTitle>Edit batch</DialogTitle>
           <DialogDescription>
