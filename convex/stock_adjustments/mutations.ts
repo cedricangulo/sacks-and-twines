@@ -44,6 +44,12 @@ export const create = zMutation({
     if (product.status !== "active")
       throw new Error("Cannot adjust stock on an archived product")
 
+    if (product.baseUom !== "meter" && !Number.isInteger(quantity)) {
+      throw new Error(
+        `${product.name} is tracked in whole ${product.baseUom} units — ${quantity} is not valid`
+      )
+    }
+
     const quantityAdjusted = direction === "add" ? quantity : -quantity
     const costDelta = quantityAdjusted * batch.unitCost
 

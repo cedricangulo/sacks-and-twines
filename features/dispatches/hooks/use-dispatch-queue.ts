@@ -70,7 +70,7 @@ export function useDispatchQueue() {
     (product: DispatchReadyProduct, quantity: number) => {
       setItems((prev) => {
         const sanitized =
-          product.category === "sacks" ? Math.round(quantity) : quantity
+          product.baseUom === "meter" ? quantity : Math.round(quantity)
         const clamped = Math.max(
           0,
           Math.min(sanitized, product.currentQuantity)

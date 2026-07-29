@@ -99,7 +99,7 @@ export default function ProductCard({ product }: Props) {
             value={inputValue}
             min={0}
             max={product.currentQuantity}
-            step={product.category === "twines" ? 0.1 : 1}
+            step={1}
             onChange={(e) => setInputValue(e.target.value)}
             onBlur={() => commitInput(inputValue)}
             onKeyDown={(e) => {

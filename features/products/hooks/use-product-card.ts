@@ -34,7 +34,7 @@ export function useProductCard(product: DispatchReadyProduct) {
       setInputValue(String(quantity))
       return
     }
-    if (product.category !== "twines") {
+    if (product.baseUom !== "meter") {
       val = Math.round(val)
     }
     const clamped = Math.min(val, product.currentQuantity)

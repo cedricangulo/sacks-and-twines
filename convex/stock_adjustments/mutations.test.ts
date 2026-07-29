@@ -276,6 +276,79 @@ describe("stock adjustment mutations", () => {
     ).rejects.toThrowError("Cannot adjust stock on an archived product")
   })
 
+  it("rejects fractional adjustment for whole-unit products", async () => {
+    const t = makeTest()
+    const ownerId = await createOwner(t)
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const { batchId, productId } = await seedData(t, ownerId)
+
+    await expect(
+      t.mutation(api.stock_adjustments.mutations.create, {
+        batchId,
+        productId,
+        direction: "add",
+        quantity: 2.5,
+        reason: "recount",
+      })
+    ).rejects.toThrowError("tracked in whole piece units")
+  })
+
+  it("allows fractional adjustment for meter-based products", async () => {
+    const t = makeTest()
+    const ownerId = await createOwner(t)
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const [productId, supplierId] = await Promise.all([
+      t.run(async (ctx) => {
+        return await ctx.db.insert("products", {
+          skuCode: "SKU-TWINE",
+          name: "Test Twine",
+          category: "twines",
+          baseUom: "meter",
+          conversionFactor: 0,
+          currentQuantity: 100,
+          totalAssetValue: 2000,
+          lowStockThreshold: 10,
+          status: "active",
+        })
+      }),
+      t.run(async (ctx) => {
+        return await ctx.db.insert("suppliers", {
+          companyName: "Supplier",
+          contactPerson: "Contact",
+          contactNumber: "09171234567",
+          address: "Address",
+        })
+      }),
+    ])
+
+    const batchId = await t.run(async (ctx) => {
+      return await ctx.db.insert("batches", {
+        productId,
+        supplierId,
+        userId: ownerId,
+        batchCode: "BAT-TWINE",
+        totalProcurementCost: 2000,
+        unitCost: 20,
+        quantityReceived: 100,
+        quantityRemaining: 100,
+        status: "active",
+      })
+    })
+
+    await t.mutation(api.stock_adjustments.mutations.create, {
+      batchId,
+      productId,
+      direction: "add",
+      quantity: 2.5,
+      reason: "recount",
+    })
+
+    const product = await t.run(async (ctx) => ctx.db.get(productId))
+    expect(product?.currentQuantity).toBe(102.5)
+  })
+
   it("adds stock via adjustment and updates batch quantity", async () => {
     const t = makeTest()
     const ownerId = await createOwner(t)

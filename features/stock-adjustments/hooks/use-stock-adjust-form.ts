@@ -20,12 +20,14 @@ export function useStockAdjustForm({
   batchId,
   productId,
   currentQuantity,
+  allowDecimal,
   open: openProp,
   onOpenChange,
 }: {
   batchId: Id<"batches">
   productId: Id<"products">
   currentQuantity: number
+  allowDecimal?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
@@ -73,7 +75,7 @@ export function useStockAdjustForm({
       reason: reason as StockAdjustmentFormData["reason"],
     }
 
-    const result = validateStockAdjustment(data)
+    const result = validateStockAdjustment(data, { allowDecimal })
 
     if (!result.success) {
       setErrors(result.errors)

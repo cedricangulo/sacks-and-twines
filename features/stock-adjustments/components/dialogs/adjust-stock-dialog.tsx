@@ -54,6 +54,7 @@ export default function AdjustStockDialog({
     api.products.queries.getById,
     isAuthenticated ? { productId } : "skip"
   )
+  const allowDecimal = product?.baseUom === "meter"
 
   const {
     open: dialogOpen,
@@ -72,6 +73,7 @@ export default function AdjustStockDialog({
     batchId,
     productId,
     currentQuantity: product?.currentQuantity ?? 0,
+    allowDecimal,
     open,
     onOpenChange,
   })
@@ -156,8 +158,8 @@ export default function AdjustStockDialog({
                 <Input
                   id="adjust-quantity"
                   type="number"
-                  step="0.01"
-                  min="0.01"
+                  step={allowDecimal ? "any" : "1"}
+                  min={allowDecimal ? "0.01" : "1"}
                   placeholder="0"
                   value={quantity}
                   aria-invalid={!!errors.quantity}
