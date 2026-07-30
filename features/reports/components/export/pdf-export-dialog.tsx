@@ -22,6 +22,8 @@ interface PdfExportDialogProps {
   summary: PdfSummaryProps
   isLoading: boolean
   isGenerating: boolean
+  queryFailed?: boolean
+  error?: string | null
   onOpenChange: (open: boolean) => void
   applyQuickRange: (preset: QuickRange) => void
   onGenerate: () => void
@@ -33,6 +35,8 @@ export default function PdfExportDialog({
   summary,
   isLoading,
   isGenerating,
+  queryFailed,
+  error,
   onOpenChange,
   applyQuickRange,
   onGenerate,
@@ -83,15 +87,27 @@ export default function PdfExportDialog({
           </div>
         ) : null}
 
+        {error ? (
+          <p className="px-6 py-3 type-body-small text-center border border-destructive/30 bg-destructive/5 text-destructive rounded-2xl">
+            {error}
+          </p>
+        ) : null}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
             onClick={onGenerate}
-            disabled={summary.isEmpty || isGenerating}
+            disabled={
+              isLoading || queryFailed || summary.isEmpty || isGenerating
+            }
           >
-            {isGenerating ? "Rendering…" : "Generate PDF"}
+            {isLoading
+              ? "Loading data…"
+              : isGenerating
+                ? "Rendering…"
+                : "Generate PDF"}
           </Button>
         </DialogFooter>
       </DialogContent>

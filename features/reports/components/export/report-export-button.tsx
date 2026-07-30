@@ -117,6 +117,8 @@ export default function ReportExportButton() {
         }}
         isLoading={pdfExport.isLoading}
         isGenerating={pdfExport.isGenerating}
+        queryFailed={pdfExport.queryFailed}
+        error={pdfExport.error}
         onGenerate={pdfExport.generate}
       />
     </>

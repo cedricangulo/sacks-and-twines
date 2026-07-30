@@ -1,7 +1,8 @@
 "use client"
 
 import { useMutation } from "convex/react"
-import { useQuery } from "convex-helpers/react/cache"
+import type { FunctionReturnType } from "convex/server"
+import { useQueries, useQuery } from "convex-helpers/react/cache"
 import { useMemo, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Doc } from "@/convex/_generated/dataModel"
@@ -125,30 +126,34 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
       | string[]
       | undefined) ?? []
 
-  const exportArgs = useMemo(
-    () =>
-      isAuthenticated && (exportMenuOpen || exportDialogOpen)
-        ? {
-            search: search || undefined,
-            action: filterArgs.action,
-            userId: filterArgs.userId,
-            dateFrom: filterArgs.dateFrom,
-            dateTo: filterArgs.dateTo,
-          }
-        : "skip",
-    [
-      isAuthenticated,
-      exportMenuOpen,
-      exportDialogOpen,
-      search,
-      filterArgs.action,
-      filterArgs.userId,
-      filterArgs.dateFrom,
-      filterArgs.dateTo,
-    ]
-  )
+  const exportResult = useQueries(
+    isAuthenticated && (exportMenuOpen || exportDialogOpen)
+      ? {
+          _default: {
+            query: api.auditLogs.queries.exportData,
+            args: {
+              ...(search ? { search } : {}),
+              ...(filterArgs.action ? { action: filterArgs.action } : {}),
+              ...(filterArgs.userId ? { userId: filterArgs.userId } : {}),
+              ...(filterArgs.dateFrom !== undefined
+                ? { dateFrom: filterArgs.dateFrom }
+                : {}),
+              ...(filterArgs.dateTo !== undefined
+                ? { dateTo: filterArgs.dateTo }
+                : {}),
+            },
+          },
+        }
+      : {}
+  )._default
 
-  const exportResult = useQuery(api.auditLogs.queries.exportData, exportArgs)
+  const exportFailed = exportResult instanceof Error
+  const exportError = exportFailed ? (exportResult as Error).message : null
+  const exportData = exportFailed
+    ? undefined
+    : (exportResult as
+        | Awaited<FunctionReturnType<typeof api.auditLogs.queries.exportData>>
+        | undefined)
 
   const handleFormatSelect = (format: ExportFormat) => {
     setSelectedFormat(format)
@@ -157,14 +162,12 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
   }
 
   const handleExportConfirm = () => {
-    if (!exportResult) return
+    if (!exportData) return
     setIsExporting(true)
     setExportDialogOpen(false)
 
     const isCsv = selectedFormat === "csv"
-    const content = isCsv
-      ? formatAsCsv(exportResult)
-      : formatAsJson(exportResult)
+    const content = isCsv ? formatAsCsv(exportData) : formatAsJson(exportData)
     const mimeType = isCsv
       ? "text/csv;charset=utf-8"
       : "application/json;charset=utf-8"
@@ -193,7 +196,7 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
     setTimeout(() => setIsExporting(false), 500)
   }
 
-  const recordCount = exportResult?.length ?? 0
+  const recordCount = exportData?.length ?? 0
 
   const summaryLines: string[] = []
   if (filterArgs.dateFrom || filterArgs.dateTo) {
@@ -226,6 +229,8 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
     handleExportConfirm,
     recordCount,
     summaryLines,
-    exportResult,
+    exportResult: exportData,
+    exportFailed,
+    exportError,
   }
 }

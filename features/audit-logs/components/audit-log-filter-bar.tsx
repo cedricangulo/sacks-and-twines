@@ -66,6 +66,8 @@ export default function AuditLogFilterBar({
     exportDialogOpen,
     exportMenuOpen,
     exportResult,
+    exportFailed,
+    exportError,
     recordCount,
     summaryLines,
     handleFormatSelect,
@@ -137,7 +139,7 @@ export default function AuditLogFilterBar({
               nativeButton={true}
               type="button"
               variant="secondary"
-              disabled={isExporting || !exportResult || disabled}
+              disabled={isExporting || disabled}
             />
           }
         >
@@ -162,10 +164,19 @@ export default function AuditLogFilterBar({
             </AlertDialogMedia>
             <AlertDialogTitle>Export Audit Logs</AlertDialogTitle>
             <AlertDialogDescription>
-              <div className="mb-3">
-                Export {recordCount} audit log entr
-                {recordCount === 1 ? "y" : "ies"} matching your current filters:
-              </div>
+              {exportFailed ? (
+                <div className="mb-3 text-destructive">
+                  Failed to load export data: {exportError}
+                </div>
+              ) : exportResult === undefined ? (
+                <div className="mb-3">Preparing export data…</div>
+              ) : (
+                <div className="mb-3">
+                  Export {recordCount} audit log entr
+                  {recordCount === 1 ? "y" : "ies"} matching your current
+                  filters:
+                </div>
+              )}
               <div className="space-y-1 text-left">
                 {summaryLines.map((line) => (
                   <div key={line}>• {line}</div>
@@ -175,7 +186,10 @@ export default function AuditLogFilterBar({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleExportConfirm}>
+            <AlertDialogAction
+              disabled={exportResult === undefined}
+              onClick={handleExportConfirm}
+            >
               Export
             </AlertDialogAction>
           </AlertDialogFooter>

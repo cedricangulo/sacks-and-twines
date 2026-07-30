@@ -1,13 +1,17 @@
 "use client"
 
 import type { FunctionReturnType } from "convex/server"
-import { useQuery } from "convex-helpers/react/cache"
+import { useQueries } from "convex-helpers/react/cache"
 import { useCallback, useState } from "react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import { downloadPdf } from "@/lib/csv"
 import { setCachedPrimitives } from "../components/export/report/pdf-primitives"
 import { computeQuickRange, type QuickRange } from "../constants"
+
+type MonthlyReportData = Awaited<
+  FunctionReturnType<typeof api.reports.queries.exportMonthlyReport>
+>
 
 export function usePdfExport() {
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -16,6 +20,7 @@ export function usePdfExport() {
   const [startTime, setStartTime] = useState("00:00")
   const [endTime, setEndTime] = useState("23:59")
   const [isGenerating, setIsGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState<string | null>(null)
 
   const startMs = (() => {
     if (!startDate) return 0
@@ -33,17 +38,27 @@ export function usePdfExport() {
     return d.getTime()
   })()
 
-  const data = useQuery(
-    api.reports.queries.exportMonthlyReport,
-    dialogOpen ? { startMs, endMs } : "skip"
-  ) as
-    | Awaited<
-        FunctionReturnType<typeof api.reports.queries.exportMonthlyReport>
-      >
-    | undefined
+  const result = useQueries(
+    dialogOpen
+      ? {
+          _default: {
+            query: api.reports.queries.exportMonthlyReport,
+            args: { startMs, endMs },
+          },
+        }
+      : {}
+  )._default
+
+  const queryFailed = result instanceof Error
+  const data = queryFailed
+    ? undefined
+    : (result as MonthlyReportData | undefined)
+  const queryError = queryFailed ? (result as Error).message : null
+  const error = queryError ?? generateError
 
   const initForEntity = useCallback(
     (defaultStartMs?: number, defaultEndMs?: number) => {
+      setGenerateError(null)
       if (defaultStartMs && defaultStartMs > 0) {
         setStartDate(new Date(defaultStartMs))
       } else {
@@ -61,6 +76,7 @@ export function usePdfExport() {
   )
 
   const applyQuickRange = useCallback((preset: QuickRange) => {
+    setGenerateError(null)
     if (preset === "all") {
       setStartDate(undefined)
       setEndDate(undefined)
@@ -73,8 +89,24 @@ export function usePdfExport() {
     setEndTime("23:59")
   }, [])
 
+  const isLoading = dialogOpen && data === undefined && !queryFailed
+  const hasData = Boolean(data)
+  const isEmpty = data
+    ? data.dispatchCount === 0 && data.adjustmentCount === 0
+    : false
+
   const generate = useCallback(async () => {
-    if (!data) return
+    if (queryFailed) {
+      setGenerateError("Report data failed to load. Please try again.")
+      return
+    }
+    if (isLoading || !data) {
+      setGenerateError(
+        "Report data is still loading. Please wait and try again."
+      )
+      return
+    }
+    setGenerateError(null)
     setIsGenerating(true)
 
     try {
@@ -110,18 +142,13 @@ export function usePdfExport() {
       sileo.success({ title: "Monthly report downloaded" })
     } catch (err) {
       console.error("PDF generation failed:", err)
+      setGenerateError("PDF generation failed. Please try again.")
       sileo.error({ title: "PDF generation failed" })
       setCachedPrimitives(null)
     } finally {
       setIsGenerating(false)
     }
-  }, [data, startMs, endMs])
-
-  const isLoading = dialogOpen && data === undefined
-  const hasData = Boolean(data)
-  const isEmpty = data
-    ? data.dispatchCount === 0 && data.adjustmentCount === 0
-    : false
+  }, [data, startMs, endMs, isLoading, queryFailed])
 
   const summaryLines: string[] = []
   if (startDate) {
@@ -153,8 +180,10 @@ export function usePdfExport() {
     setEndTime,
     isGenerating,
     isLoading,
+    queryFailed,
     hasData,
     isEmpty,
+    error,
     summaryLines,
     generate,
     initForEntity,
