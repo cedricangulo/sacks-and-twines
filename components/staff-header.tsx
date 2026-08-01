@@ -24,6 +24,7 @@ export function StaffHeader() {
       <div className="flex items-center gap-2">
         <Button
           variant="secondary"
+          nativeButton={false}
           render={<Link href="/products" transitionTypes={["nav-forward"]} />}
         >
           <PackageIcon weight="fill" />
@@ -31,6 +32,7 @@ export function StaffHeader() {
         </Button>
         <Button
           variant="secondary"
+          nativeButton={false}
           render={
             <Link
               href="/audit-logs/personal"
@@ -41,12 +43,7 @@ export function StaffHeader() {
           <ListDashesIcon weight="fill" />
           My Activity
         </Button>
-        {actions ? (
-          <>
-            <Separator orientation="vertical" />
-            {actions}
-          </>
-        ) : null}
+        {actions}
         <Separator orientation="vertical" />
         <Button
           variant="destructive"

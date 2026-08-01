@@ -50,6 +50,7 @@ function PageHeaderBar() {
             variant="ghost"
             size="icon"
             className="shrink-0"
+            nativeButton={false}
             render={<Link href={backHref} transitionTypes={["nav-back"]} />}
           >
             <ArrowLeftIcon weight="fill" />
