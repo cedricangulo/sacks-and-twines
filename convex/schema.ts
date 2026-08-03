@@ -23,6 +23,7 @@ export default defineSchema({
     name: v.optional(v.string()),
     role: v.optional(v.union(v.literal("owner"), v.literal("staff"))),
     status: v.optional(v.union(v.literal("active"), v.literal("deactivated"))),
+    emailVerificationTime: v.optional(v.number()),
   })
     .index("by_email", ["email"])
     .index("by_role", ["role"]),

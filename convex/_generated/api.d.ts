@@ -8,18 +8,13 @@
  * @module
  */
 
-
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
+import type * as ResendOTP from "../ResendOTP.js";
 import type * as auditLogs_mutations from "../auditLogs/mutations.js";
 import type * as auditLogs_queries from "../auditLogs/queries.js";
+import type * as auth from "../auth.js";
 import type * as auth_guards from "../auth/guards.js";
 import type * as auth_logAttempt from "../auth/logAttempt.js";
 import type * as auth_verify from "../auth/verify.js";
-import type * as auth from "../auth.js";
 import type * as batches_mutations from "../batches/mutations.js";
 import type * as batches_queries from "../batches/queries.js";
 import type * as batches_validators from "../batches/validators.js";
@@ -53,7 +48,14 @@ import type * as users_queries from "../users/queries.js";
 import type * as users_validators from "../users/validators.js";
 import type * as validators_helpers from "../validators/helpers.js";
 
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+
 declare const fullApi: ApiFromModules<{
+  ResendOTP: typeof ResendOTP;
   "auditLogs/mutations": typeof auditLogs_mutations;
   "auditLogs/queries": typeof auditLogs_queries;
   auth: typeof auth;

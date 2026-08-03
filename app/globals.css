@@ -45,6 +45,7 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
   --animate-fade-in: fade-in 0.35s ease-out;
+  --animate-caret-blink: caret-blink 1s step-end infinite;
 
   --text-h1: 39px;
   --text-h2: 31px;
@@ -81,6 +82,16 @@
 
 @keyframes fade-in {
   from {
+    opacity: 0;
+  }
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
     opacity: 0;
   }
 }

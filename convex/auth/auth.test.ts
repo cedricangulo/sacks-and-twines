@@ -1,10 +1,31 @@
 import { register as registerRateLimiter } from "@convex-dev/rate-limiter/test"
 import { convexTest } from "convex-test"
 import { Scrypt } from "lucia"
-import { beforeAll, describe, expect, it } from "vitest"
+import { beforeAll, describe, expect, it, vi } from "vitest"
 import { api } from "../_generated/api"
 import schema from "../schema"
 import { ERROR_MESSAGES, verifyCredentials } from "./verify"
+
+vi.mock("../ResendOTP", async () => {
+  const { Email } = await import("@convex-dev/auth/providers/Email")
+  let lastCode: string | null = null
+  return {
+    ResendOTP: Email({
+      id: "resend-otp",
+      maxAge: 60 * 15,
+      async generateVerificationToken() {
+        lastCode = "12345678"
+        return lastCode
+      },
+      async sendVerificationRequest() {},
+    }),
+    getLastCode: () => lastCode,
+  }
+})
+
+const { getLastCode } = (await import("../ResendOTP")) as unknown as {
+  getLastCode: () => string | null
+}
 
 const TEST_RSA_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCkMdkcjNNTa0Xm
@@ -44,60 +65,131 @@ beforeAll(() => {
 // ── Unit tests: verifyCredentials (pure, no Convex) ───────────
 
 describe("verifyCredentials", () => {
-  it("passes with valid signIn flow and credentials", () => {
-    expect(() =>
-      verifyCredentials({
-        flow: "signIn",
-        email: "a@b.com",
-        password: "secret",
-      })
-    ).not.toThrow()
+  describe("signIn flow", () => {
+    it("passes with valid flow and credentials", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "signIn",
+          email: "a@b.com",
+          password: "secret",
+          code: "",
+        })
+      ).not.toThrow()
+    })
+
+    it("rejects empty email", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "signIn",
+          email: "",
+          password: "secret",
+          code: "",
+        })
+      ).toThrow(ERROR_MESSAGES.REQUIRED)
+    })
+
+    it("rejects empty password", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "signIn",
+          email: "a@b.com",
+          password: "",
+          code: "",
+        })
+      ).toThrow(ERROR_MESSAGES.REQUIRED)
+    })
+
+    it("rejects both empty", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "signIn",
+          email: "",
+          password: "",
+          code: "",
+        })
+      ).toThrow(ERROR_MESSAGES.REQUIRED)
+    })
+
+    it("passes whitespace email (trimming is caller's responsibility)", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "signIn",
+          email: "  ",
+          password: "secret",
+          code: "",
+        })
+      ).not.toThrow()
+    })
+
+    it("rejects missing email as empty string", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "signIn",
+          email: "",
+          password: "secret",
+          code: "",
+        })
+      ).toThrow(ERROR_MESSAGES.REQUIRED)
+    })
   })
 
-  it("rejects unsupported flow (signUp)", () => {
-    expect(() =>
-      verifyCredentials({
-        flow: "signUp",
-        email: "a@b.com",
-        password: "secret",
-      })
-    ).toThrow("Unsupported auth flow: signUp")
+  describe("email-verification flow", () => {
+    it("passes with valid email and code", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "email-verification",
+          email: "a@b.com",
+          password: "",
+          code: "12345678",
+        })
+      ).not.toThrow()
+    })
+
+    it("rejects empty email", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "email-verification",
+          email: "",
+          password: "",
+          code: "12345678",
+        })
+      ).toThrow("Email and password are required")
+    })
+
+    it("rejects empty code", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "email-verification",
+          email: "a@b.com",
+          password: "",
+          code: "",
+        })
+      ).toThrow("Email and password are required")
+    })
   })
 
-  it("rejects unsupported flow (empty)", () => {
-    expect(() =>
-      verifyCredentials({ flow: "", email: "a@b.com", password: "secret" })
-    ).toThrow("Unsupported auth flow: ")
-  })
+  describe("unsupported flows", () => {
+    it("rejects signUp", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "signUp",
+          email: "a@b.com",
+          password: "secret",
+          code: "",
+        })
+      ).toThrow("Unsupported auth flow: signUp")
+    })
 
-  it("rejects empty email", () => {
-    expect(() =>
-      verifyCredentials({ flow: "signIn", email: "", password: "secret" })
-    ).toThrow(ERROR_MESSAGES.REQUIRED)
-  })
-
-  it("rejects empty password", () => {
-    expect(() =>
-      verifyCredentials({ flow: "signIn", email: "a@b.com", password: "" })
-    ).toThrow(ERROR_MESSAGES.REQUIRED)
-  })
-
-  it("rejects both empty", () => {
-    expect(() =>
-      verifyCredentials({ flow: "signIn", email: "", password: "" })
-    ).toThrow(ERROR_MESSAGES.REQUIRED)
-  })
-
-  it("passes whitespace email (trimming is caller's responsibility)", () => {
-    expect(() =>
-      verifyCredentials({ flow: "signIn", email: "  ", password: "secret" })
-    ).not.toThrow()
-  })
-
-  it("rejects missing email as empty string", () => {
-    expect(() =>
-      verifyCredentials({ flow: "signIn", email: "", password: "secret" })
-    ).toThrow(ERROR_MESSAGES.REQUIRED)
+    it("rejects empty flow", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "",
+          email: "a@b.com",
+          password: "secret",
+          code: "",
+        })
+      ).toThrow("Unsupported auth flow: ")
+    })
   })
 })
 
@@ -110,10 +202,14 @@ describe("ERROR_MESSAGES", () => {
       "Too many sign-in attempts. Please try again later."
     )
     expect(ERROR_MESSAGES.REQUIRED).toBe("Email and password are required")
+    expect(ERROR_MESSAGES.INVALID_CODE).toBe("Invalid or expired code")
+    expect(ERROR_MESSAGES.ACCOUNT_DEACTIVATED).toBe(
+      "Your account has been deactivated"
+    )
   })
 })
 
-// ── Integration tests: full signIn action ──────────────────────
+// ── Integration tests: full 2FA signIn action ──────────────────
 
 describe("signIn action", () => {
   const SLOW = { timeout: 60_000 }
@@ -152,16 +248,41 @@ describe("signIn action", () => {
         providerAccountId: email,
         secret: hashedSecret,
       })
-      return userId
+      return { userId, email }
     })
   }
 
-  // Scenario 3: Correct credentials → success
-  it("succeeds with correct email and password", SLOW, async () => {
+  async function completeTwoStepSignIn(
+    t: ReturnType<typeof convexTest>,
+    email: string,
+    password: string
+  ) {
+    await t.action(api.auth.signIn, {
+      provider: "password",
+      params: {
+        flow: "signIn",
+        email,
+        password,
+      },
+    })
+
+    const testCode = getLastCode() ?? "12345678"
+
+    return t.action(api.auth.signIn, {
+      provider: "password",
+      params: {
+        flow: "email-verification",
+        email,
+        code: testCode,
+      },
+    })
+  }
+
+  it("succeeds with correct email, password, and code", SLOW, async () => {
     const t = makeTest()
     await seedUserWithPassword(t, "correct@test.com", "my-password")
 
-    const result = await t.action(api.auth.signIn, {
+    await t.action(api.auth.signIn, {
       provider: "password",
       params: {
         flow: "signIn",
@@ -170,11 +291,63 @@ describe("signIn action", () => {
       },
     })
 
+    const code = getLastCode()
+    expect(code).toBe("12345678")
+
+    const result = await t.action(api.auth.signIn, {
+      provider: "password",
+      params: {
+        flow: "email-verification",
+        email: "correct@test.com",
+        code,
+      },
+    })
+
     expect(result).toHaveProperty("tokens")
     expect(result.tokens).not.toBeNull()
   })
 
-  // Scenario 4: Wrong password, known email (≤10 attempts) → throw
+  it("step 1 does not return tokens (only sends code)", SLOW, async () => {
+    const t = makeTest()
+    await seedUserWithPassword(t, "verify@test.com", "my-password")
+
+    const step1 = await t.action(api.auth.signIn, {
+      provider: "password",
+      params: {
+        flow: "signIn",
+        email: "verify@test.com",
+        password: "my-password",
+      },
+    })
+
+    expect(step1.tokens).toBeNull()
+  })
+
+  it("throws invalid code for wrong verification code", SLOW, async () => {
+    const t = makeTest()
+    await seedUserWithPassword(t, "wrongcode@test.com", "my-password")
+
+    await t.action(api.auth.signIn, {
+      provider: "password",
+      params: {
+        flow: "signIn",
+        email: "wrongcode@test.com",
+        password: "my-password",
+      },
+    })
+
+    await expect(
+      t.action(api.auth.signIn, {
+        provider: "password",
+        params: {
+          flow: "email-verification",
+          email: "wrongcode@test.com",
+          code: "00000000",
+        },
+      })
+    ).rejects.toThrow(ERROR_MESSAGES.INVALID_CODE)
+  })
+
   it("throws invalid credentials for wrong password", SLOW, async () => {
     const t = makeTest()
     await seedUserWithPassword(t, "wrongpass@test.com", "correct-password")
@@ -191,7 +364,6 @@ describe("signIn action", () => {
     ).rejects.toThrow(ERROR_MESSAGES.INVALID_CREDENTIALS)
   })
 
-  // Scenario 6: Non-existent email (≤10 attempts) → throw
   it("throws invalid credentials for non-existent email", SLOW, async () => {
     const t = makeTest()
     await seedUserWithPassword(t, "exists@test.com", "pw")
@@ -208,7 +380,6 @@ describe("signIn action", () => {
     ).rejects.toThrow(ERROR_MESSAGES.INVALID_CREDENTIALS)
   })
 
-  // Missing email → throws required error
   it("throws required error when email is empty", async () => {
     const t = makeTest()
     await seedUserWithPassword(t, "any@test.com", "pw")
@@ -216,12 +387,16 @@ describe("signIn action", () => {
     await expect(
       t.action(api.auth.signIn, {
         provider: "password",
-        params: { flow: "signIn", email: "", password: "anything" },
+        params: {
+          flow: "signIn",
+          email: "",
+          password: "anything",
+          code: "",
+        },
       })
     ).rejects.toThrow(ERROR_MESSAGES.REQUIRED)
   })
 
-  // Missing password → throws required error
   it("throws required error when password is empty", async () => {
     const t = makeTest()
     await seedUserWithPassword(t, "any@test.com", "pw")
@@ -229,12 +404,16 @@ describe("signIn action", () => {
     await expect(
       t.action(api.auth.signIn, {
         provider: "password",
-        params: { flow: "signIn", email: "any@test.com", password: "" },
+        params: {
+          flow: "signIn",
+          email: "any@test.com",
+          password: "",
+          code: "",
+        },
       })
     ).rejects.toThrow(ERROR_MESSAGES.REQUIRED)
   })
 
-  // Unsupported flow
   it("throws unsupported flow error", async () => {
     const t = makeTest()
     await seedUserWithPassword(t, "any@test.com", "pw")
@@ -242,34 +421,46 @@ describe("signIn action", () => {
     await expect(
       t.action(api.auth.signIn, {
         provider: "password",
-        params: { flow: "signUp", email: "any@test.com", password: "pw" },
+        params: {
+          flow: "signUp",
+          email: "any@test.com",
+          password: "pw",
+          code: "",
+        },
       })
     ).rejects.toThrow("Unsupported auth flow: signUp")
   })
 
-  // Scenario 5+7: Rate limiting — 11 failed attempts should be blocked
-  it("rate limits after 10 failed attempts per email", SLOW, async () => {
-    const t = makeTest()
-    await seedUserWithPassword(t, "ratelimit@test.com", "correct-pw")
+  it(
+    "rate limits after 10 failed password attempts per email",
+    SLOW,
+    async () => {
+      const t = makeTest()
+      await seedUserWithPassword(t, "ratelimit@test.com", "correct-pw")
 
-    const attempt = (password: string) =>
-      t.action(api.auth.signIn, {
-        provider: "password",
-        params: { flow: "signIn", email: "ratelimit@test.com", password },
-      })
+      const attempt = (password: string) =>
+        t.action(api.auth.signIn, {
+          provider: "password",
+          params: {
+            flow: "signIn",
+            email: "ratelimit@test.com",
+            password,
+            code: "",
+          },
+        })
 
-    for (let i = 0; i < 10; i++) {
-      await expect(attempt("wrong-" + i)).rejects.toThrow(
-        ERROR_MESSAGES.INVALID_CREDENTIALS
+      for (let i = 0; i < 10; i++) {
+        await expect(attempt("wrong-" + i)).rejects.toThrow(
+          ERROR_MESSAGES.INVALID_CREDENTIALS
+        )
+      }
+
+      await expect(attempt("wrong-11")).rejects.toThrow(
+        ERROR_MESSAGES.RATE_LIMITED
       )
     }
+  )
 
-    await expect(attempt("wrong-11")).rejects.toThrow(
-      ERROR_MESSAGES.RATE_LIMITED
-    )
-  })
-
-  // Scenario 9: Different email has independent rate limit bucket
   it("different emails have separate rate limit buckets", SLOW, async () => {
     const t = makeTest()
     await seedUserWithPassword(t, "bucket1@test.com", "pw1")
@@ -283,6 +474,7 @@ describe("signIn action", () => {
             flow: "signIn",
             email: "bucket1@test.com",
             password: "wrong",
+            code: "",
           },
         })
       ).rejects.toThrow()
@@ -295,38 +487,40 @@ describe("signIn action", () => {
           flow: "signIn",
           email: "bucket1@test.com",
           password: "wrong",
+          code: "",
         },
       })
     ).rejects.toThrow(ERROR_MESSAGES.RATE_LIMITED)
 
     await expect(
-      t.action(api.auth.signIn, {
-        provider: "password",
-        params: {
-          flow: "signIn",
-          email: "bucket2@test.com",
-          password: "pw2",
-        },
-      })
+      completeTwoStepSignIn(t, "bucket2@test.com", "pw2")
     ).resolves.toHaveProperty("tokens")
   })
 
-  // Scenario 8: Successful sign-in resets rate limit counter
-  it("resets rate limit on successful sign-in", SLOW, async () => {
+  it("resets rate limit on successful two-step sign-in", SLOW, async () => {
     const t = makeTest()
     await seedUserWithPassword(t, "reset@test.com", "correct-pw")
 
     const attempt = (password: string) =>
       t.action(api.auth.signIn, {
         provider: "password",
-        params: { flow: "signIn", email: "reset@test.com", password },
+        params: {
+          flow: "signIn",
+          email: "reset@test.com",
+          password,
+          code: "",
+        },
       })
 
     for (let i = 0; i < 5; i++) {
       await expect(attempt("wrong-" + i)).rejects.toThrow()
     }
 
-    const result = await attempt("correct-pw")
+    const result = await completeTwoStepSignIn(
+      t,
+      "reset@test.com",
+      "correct-pw"
+    )
     expect(result.tokens).not.toBeNull()
 
     for (let i = 0; i < 10; i++) {
@@ -338,5 +532,30 @@ describe("signIn action", () => {
     await expect(attempt("wrong-final")).rejects.toThrow(
       ERROR_MESSAGES.RATE_LIMITED
     )
+  })
+
+  it("blocks deactivated users", SLOW, async () => {
+    const t = makeTest()
+    const seeded = await seedUserWithPassword(
+      t,
+      "deactivated@test.com",
+      "correct-pw"
+    )
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(seeded.userId, { status: "deactivated" })
+    })
+
+    await expect(
+      t.action(api.auth.signIn, {
+        provider: "password",
+        params: {
+          flow: "signIn",
+          email: "deactivated@test.com",
+          password: "correct-pw",
+          code: "",
+        },
+      })
+    ).rejects.toThrow(ERROR_MESSAGES.ACCOUNT_DEACTIVATED)
   })
 })

@@ -7,21 +7,68 @@ import { SubmitEvent, useState } from "react"
 import { z } from "zod"
 import { api } from "@/convex/_generated/api"
 
-// Validates sign-in form payload before submission.
 const SignInSchema = z.object({
   email: z.email(),
   password: z.string().min(1),
 })
 
-// Manages sign-in form state: submitted credentials, pending flag, and error display. Submits the password flow via Convex auth and logs the attempt.
+const OtpSchema = z.object({
+  code: z.string().min(8),
+})
+
+type Step = "credentials" | { email: string }
+
 function useSubmitSignIn() {
   const { signIn } = useAuthActions()
   const router = useRouter()
   const logAttempt = useMutation(api.auth.logAttempt.logAttempt)
+  const [step, setStep] = useState<Step>("credentials")
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  const submitSignIn = async (event: SubmitEvent<HTMLFormElement>) => {
+  const handleError = (err: unknown, email: string, fallback: string) => {
+    logAttempt({
+      action: "auth_sign_in_failed",
+      email,
+      resourceType: "user",
+      userAgent: navigator.userAgent,
+    }).catch(console.error)
+
+    const errorMessage = err instanceof Error ? err.message : ""
+    const errorCause =
+      err instanceof Error && err.cause instanceof Error ? err.cause : undefined
+    const causeCode =
+      errorCause && "code" in errorCause ? String(errorCause.code) : ""
+    const isRateLimited =
+      errorMessage.includes("RateLimited") ||
+      errorMessage.includes("rate limit") ||
+      errorMessage.includes("Too many sign-in")
+    const isNetworkError =
+      errorMessage.includes("fetch failed") ||
+      causeCode.includes("UND_ERR_CONNECT_TIMEOUT") ||
+      causeCode.includes("ECONNREFUSED") ||
+      causeCode.includes("ECONNRESET") ||
+      causeCode.includes("ENOTFOUND") ||
+      causeCode.includes("NetworkError")
+
+    const isDeactivated = errorMessage.includes("deactivated")
+
+    setError(
+      isRateLimited
+        ? "Too many sign-in attempts. Please try again later."
+        : isDeactivated
+          ? "Your account has been deactivated. Please contact the administrator."
+          : isNetworkError
+            ? "Unable to connect. Please check your connection and try again."
+            : fallback
+    )
+
+    if (!isRateLimited) {
+      console.error("Sign in failed", err)
+    }
+  }
+
+  const submitCredentials = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
 
@@ -33,80 +80,69 @@ function useSubmitSignIn() {
 
     const parsed = SignInSchema.safeParse(payload)
     if (!parsed.success) {
-      // Generic error for any validation failure (empty or invalid)
       setError("Please enter your email and password.")
       return
     }
 
     setPending(true)
     try {
-      const result = await signIn("password", formData)
-      if (result && typeof result === "object" && "signingIn" in result) {
-        if (result.signingIn) {
-          logAttempt({
-            action: "auth_sign_in",
-            email: parsed.data.email,
-            resourceType: "user",
-            userAgent: navigator.userAgent,
-          }).catch(console.error)
-          router.push("/")
-        }
-      } else if (result === undefined) {
-        logAttempt({
-          action: "auth_sign_in",
-          email: parsed.data.email,
-          resourceType: "user",
-          userAgent: navigator.userAgent,
-        }).catch(console.error)
-        router.push("/")
-      }
+      await signIn("password", formData)
+      setStep({ email: parsed.data.email })
     } catch (err) {
-      logAttempt({
-        action: "auth_sign_in_failed",
-        email: parsed.data.email,
-        resourceType: "user",
-        userAgent: navigator.userAgent,
-      }).catch(console.error)
-
-      const errorMessage = err instanceof Error ? err.message : ""
-      const errorCause =
-        err instanceof Error && err.cause instanceof Error
-          ? err.cause
-          : undefined
-      const causeCode =
-        errorCause && "code" in errorCause ? String(errorCause.code) : ""
-      const isRateLimited =
-        errorMessage.includes("RateLimited") ||
-        errorMessage.includes("rate limit") ||
-        errorMessage.includes("Too many sign-in")
-      const isNetworkError =
-        errorMessage.includes("fetch failed") ||
-        causeCode.includes("UND_ERR_CONNECT_TIMEOUT") ||
-        causeCode.includes("ECONNREFUSED") ||
-        causeCode.includes("ECONNRESET") ||
-        causeCode.includes("ENOTFOUND") ||
-        causeCode.includes("NetworkError")
-
-      setError(
-        isRateLimited
-          ? "Too many sign-in attempts. Please try again later."
-          : isNetworkError
-            ? "Unable to connect. Please check your connection and try again."
-            : "Invalid email or password. Please try again."
+      handleError(
+        err,
+        parsed.data.email,
+        "Invalid email or password. Please try again."
       )
-
-      if (!isRateLimited) {
-        console.error("Sign in failed", err)
-      }
     } finally {
       setPending(false)
     }
   }
 
+  const submitOtp = async (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setError(null)
+
+    const formData = new FormData(event.currentTarget)
+    const email = String(formData.get("email") ?? "").trim()
+    const code = String(formData.get("code") ?? "")
+
+    const parsed = OtpSchema.safeParse({ code })
+    if (!parsed.success) {
+      setError("Please enter the code we emailed you.")
+      return
+    }
+
+    setPending(true)
+    try {
+      await signIn("password", formData)
+
+      logAttempt({
+        action: "auth_sign_in",
+        email,
+        resourceType: "user",
+        userAgent: navigator.userAgent,
+      }).catch(console.error)
+      router.push("/")
+    } catch (err) {
+      handleError(err, email, "Invalid or expired code. Please try again.")
+    } finally {
+      setPending(false)
+    }
+  }
+
+  const reset = () => {
+    setStep("credentials")
+    setError(null)
+  }
+
   return {
+    step,
     error,
     pending,
-    submitSignIn,
+    submitCredentials,
+    submitOtp,
+    reset,
   }
 }
 
