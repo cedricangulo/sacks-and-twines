@@ -231,6 +231,28 @@ describe("user queries", () => {
     )
   })
 
+  it("excludes deactivated users from listNames", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    await createUser(t, {
+      email: "staff@test.com",
+      name: "Staff",
+      role: "staff",
+      status: "deactivated",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const result = await t.query(api.users.queries.listNames)
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({ _id: ownerId, name: "Owner" })
+  })
+
   it("listNames includes users with undefined names", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
