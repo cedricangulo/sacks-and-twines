@@ -165,23 +165,25 @@ export default function AuditLogFilterBar({
             <AlertDialogTitle>Export Audit Logs</AlertDialogTitle>
             <AlertDialogDescription>
               {exportFailed ? (
-                <div className="mb-3 text-destructive">
+                <span className="mb-3 block text-destructive">
                   Failed to load export data: {exportError}
-                </div>
+                </span>
               ) : exportResult === undefined ? (
-                <div className="mb-3">Preparing export data…</div>
+                <span className="mb-3 block">Preparing export data…</span>
               ) : (
-                <div className="mb-3">
+                <span className="mb-3 block">
                   Export {recordCount} audit log entr
                   {recordCount === 1 ? "y" : "ies"} matching your current
                   filters:
-                </div>
+                </span>
               )}
-              <div className="space-y-1 text-left">
+              <span className="block space-y-1 text-left">
                 {summaryLines.map((line) => (
-                  <div key={line}>• {line}</div>
+                  <span key={line} className="block">
+                    • {line}
+                  </span>
                 ))}
-              </div>
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

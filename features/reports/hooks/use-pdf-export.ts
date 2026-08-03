@@ -1,8 +1,15 @@
 "use client"
 
+import type { DocumentProps } from "@react-pdf/renderer"
 import type { FunctionReturnType } from "convex/server"
 import { useQueries } from "convex-helpers/react/cache"
-import { useCallback, useState } from "react"
+import {
+  createElement,
+  type ReactElement,
+  useCallback,
+  useMemo,
+  useState,
+} from "react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import { downloadPdf } from "@/lib/csv"
@@ -22,21 +29,21 @@ export function usePdfExport() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
 
-  const startMs = (() => {
+  const startMs = useMemo(() => {
     if (!startDate) return 0
     const [h, m] = startTime.split(":").map(Number)
     const d = new Date(startDate)
     d.setHours(h, m, 0, 0)
     return d.getTime()
-  })()
+  }, [startDate, startTime])
 
-  const endMs = (() => {
-    if (!endDate) return Date.now() + 24 * 60 * 60 * 1000
+  const endMs = useMemo(() => {
+    if (!endDate) return Infinity
     const [h, m] = endTime.split(":").map(Number)
     const d = new Date(endDate)
     d.setHours(h, m, 59, 999)
     return d.getTime()
-  })()
+  }, [endDate, endTime])
 
   const result = useQueries(
     dialogOpen
@@ -125,11 +132,11 @@ export function usePdfExport() {
 
       const blob = await pdfModule
         .pdf(
-          MonthlyReport({
+          createElement(MonthlyReport, {
             data,
             startDate: new Date(startMs),
-            endDate: new Date(endMs),
-          })
+            endDate: Number.isFinite(endMs) ? new Date(endMs) : new Date(),
+          }) as ReactElement<DocumentProps>
         )
         .toBlob()
 
