@@ -301,4 +301,83 @@ describe("user queries", () => {
       status: "active",
     })
   })
+
+  // ── getOwnerForOtp ──────────────────────────────────────────
+
+  it("returns null when no owner exists", async () => {
+    const t = makeTest()
+    await createUser(t, {
+      email: "staff@test.com",
+      name: "Staff",
+      role: "staff",
+      status: "active",
+    })
+
+    const owner = await t.query(internal.users.queries.getOwnerForOtp, {})
+
+    expect(owner).toBeNull()
+  })
+
+  it("returns the active owner", async () => {
+    const t = makeTest()
+    await createUser(t, {
+      email: "staff@test.com",
+      name: "Staff",
+      role: "staff",
+      status: "active",
+    })
+    await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+
+    const owner = await t.query(internal.users.queries.getOwnerForOtp, {})
+
+    expect(owner).toMatchObject({
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+  })
+
+  it("returns null when the only owner is deactivated", async () => {
+    const t = makeTest()
+    await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "deactivated",
+    })
+
+    const owner = await t.query(internal.users.queries.getOwnerForOtp, {})
+
+    expect(owner).toBeNull()
+  })
+
+  it("returns the active owner even when a deactivated owner exists", async () => {
+    const t = makeTest()
+    await createUser(t, {
+      email: "old-owner@test.com",
+      name: "Old Owner",
+      role: "owner",
+      status: "deactivated",
+    })
+    await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+
+    const owner = await t.query(internal.users.queries.getOwnerForOtp, {})
+
+    expect(owner).toMatchObject({
+      email: "owner@test.com",
+      role: "owner",
+      status: "active",
+    })
+  })
 })

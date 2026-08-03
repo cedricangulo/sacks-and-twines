@@ -40,8 +40,8 @@ export default function SignInForm() {
             </p>
             <h2 className="font-semibold type-h3">Enter verification code</h2>
             <p className="text-sm text-muted-foreground">
-              We sent an 8-digit code to{" "}
-              <span className="font-medium text-foreground">{step.email}</span>
+              We sent a code to your email. If your account is managed by an
+              administrator, check with them for the code.
             </p>
           </div>
 

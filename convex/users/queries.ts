@@ -79,3 +79,18 @@ export const getOwnerByEmail = internalQuery({
       .first()
   },
 })
+
+/**
+ * Returns the first active owner. Used as the OTP delivery destination for
+ * staff sign-ins (Resend test keys can only deliver to the owner's inbox).
+ */
+export const getOwnerForOtp = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_role", (q) => q.eq("role", "owner"))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first()
+  },
+})

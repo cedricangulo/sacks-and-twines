@@ -1,6 +1,8 @@
 import { Email } from "@convex-dev/auth/providers/Email"
 import { generateRandomString, RandomReader } from "@oslojs/crypto/random"
 import { Resend as ResendAPI } from "resend"
+import { internal } from "./_generated/api"
+import type { ActionCtx } from "./_generated/server"
 
 const OTP_ALPHABET = "0123456789"
 const OTP_LENGTH = 8
@@ -8,6 +10,12 @@ const OTP_LENGTH = 8
 /**
  * Email provider that sends 8-digit one-time passcodes via Resend.
  * Used as the second factor in the sign-in flow (see `convex/auth.ts`).
+ *
+ * Delivery is routed so that only the owner's inbox receives OTP emails:
+ * - owner sign-ins → the owner's email
+ * - staff sign-ins → the owner's email (the owner relays the code)
+ * This keeps delivery working under Resend test keys, which can only
+ * reach the account owner's address.
  */
 export const ResendOTP = Email({
   id: "resend-otp",
@@ -21,14 +29,32 @@ export const ResendOTP = Email({
     }
     return generateRandomString(random, OTP_ALPHABET, OTP_LENGTH)
   },
-  async sendVerificationRequest({ identifier: email, provider, token }) {
+  async sendVerificationRequest(
+    { identifier: email, provider, token },
+    ctx?: ActionCtx
+  ) {
+    let recipient = email
+
+    if (ctx) {
+      const user = await ctx.runQuery(internal.users.queries.getByEmail, {
+        email,
+      })
+      if (user && user.role !== "owner") {
+        const owner = await ctx.runQuery(
+          internal.users.queries.getOwnerForOtp,
+          {}
+        )
+        recipient = owner?.email ?? email
+      }
+    }
+
     const resend = new ResendAPI(provider.apiKey)
     const appName = "Sacks & Twines"
     const displayCode = `${token.slice(0, 4)}-${token.slice(4)}`
 
     const { error } = await resend.emails.send({
       from: `${appName} <onboarding@resend.dev>`,
-      to: [email],
+      to: [recipient],
       subject: `${appName} verification code`,
       text: [
         `NEVER SHARE YOUR OTP. ${appName} will only ask for your OTP when signing in to the ${appName} app.`,
