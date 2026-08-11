@@ -97,10 +97,8 @@ export default function AuditLogFilterBar({
         onValueChange={(v) => v != null && onFilterChange({ action: v })}
       >
         <SelectTrigger className="w-40">
-          <SelectValue placeholder="All Actions">
-            {(value) =>
-              value && value !== "all" ? formatAction(value) : "All Actions"
-            }
+          <SelectValue>
+            {action && action !== "all" ? formatAction(action) : "All Actions"}
           </SelectValue>
         </SelectTrigger>
         {actions !== undefined && (
@@ -121,7 +119,9 @@ export default function AuditLogFilterBar({
         onValueChange={(v) => v != null && onDatePresetChange(v)}
       >
         <SelectTrigger className="w-36">
-          <SelectValue placeholder="All Time" />
+          <SelectValue>
+            {DATE_PRESETS.find((o) => o.value === dateFrom)?.label ?? dateFrom}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {DATE_PRESETS.map((opt) => (

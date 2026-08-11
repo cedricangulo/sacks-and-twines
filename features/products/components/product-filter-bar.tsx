@@ -62,8 +62,11 @@ export default function ProductFilterBar({
           })
         }
       >
-        <SelectTrigger className="w-23.25">
-          <SelectValue />
+        <SelectTrigger className="w-37">
+          <SelectValue>
+            {CATEGORY_OPTIONS.find((o) => o.value === category)?.label ??
+              category}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {CATEGORY_OPTIONS.map((opt) => (
@@ -84,9 +87,7 @@ export default function ProductFilterBar({
       >
         <SelectTrigger className="w-31.5">
           <SelectValue>
-            {(value) =>
-              STOCK_OPTIONS.find((o) => o.value === value)?.label ?? value
-            }
+            {STOCK_OPTIONS.find((o) => o.value === stock)?.label ?? stock}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -108,9 +109,7 @@ export default function ProductFilterBar({
       >
         <SelectTrigger className="w-37">
           <SelectValue>
-            {(value) =>
-              SORT_OPTIONS.find((o) => o.value === value)?.label ?? value
-            }
+            {SORT_OPTIONS.find((o) => o.value === sort)?.label ?? sort}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>

@@ -54,9 +54,9 @@ export default function SuppliersPage() {
       />
       {isUserLoading || filtered === undefined ? (
         <SkeletonTable
-          headers={[
-            "Company Name",
-            ...SUPPLIER_TABLE_COLUMNS.map((c) => c.label),
+          columns={[
+            { label: "Company Name", type: "text" },
+            ...SUPPLIER_TABLE_COLUMNS,
           ]}
           actions="ellipsis"
         />

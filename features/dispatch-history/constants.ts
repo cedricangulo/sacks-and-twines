@@ -7,10 +7,10 @@ export const STATUS_OPTIONS = [
 
 // Column definitions for the dispatch-level table.
 export const DISPATCH_TABLE_COLUMNS = [
-  { id: "status", label: "Status" },
-  { id: "userName", label: "Dispatched By" },
-  { id: "itemCount", label: "Total Items" },
-  { id: "createdAt", label: "Dispatched At" },
+  { id: "status", label: "Status", type: "badge" },
+  { id: "userName", label: "Dispatched By", type: "text" },
+  { id: "itemCount", label: "Total Items", type: "mono" },
+  { id: "createdAt", label: "Dispatched At", type: "date" },
 ] as const
 
 export type DispatchColumnId = (typeof DISPATCH_TABLE_COLUMNS)[number]["id"]

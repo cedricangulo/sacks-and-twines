@@ -7,9 +7,9 @@ export const STATUS_OPTIONS = [
 
 // Column definitions for the staff table.
 export const STAFF_TABLE_COLUMNS = [
-  { id: "email", label: "Email" },
-  { id: "status", label: "Status" },
-  { id: "created", label: "Created" },
+  { id: "email", label: "Email", type: "text" },
+  { id: "status", label: "Status", type: "badge" },
+  { id: "created", label: "Created", type: "date" },
 ] as const
 
 export type StaffColumnId = (typeof STAFF_TABLE_COLUMNS)[number]["id"]

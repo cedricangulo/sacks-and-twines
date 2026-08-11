@@ -1,14 +1,15 @@
 "use client"
 
-import { SpinnerGapIcon } from "@phosphor-icons/react"
 import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { formatDateTime } from "@/lib/formatters"
-import { FIELD_LABELS } from "../constants"
+import { AUDIT_LOG_DETAIL_FIELDS, FIELD_LABELS } from "../constants"
+import { formatAction } from "../helpers/format-action"
 import { formatRelativeTime } from "../helpers/format-relative-time"
 import {
   formatChangeLabel,
@@ -43,7 +44,7 @@ export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
             <span className="font-medium truncate type-body-small">
               {displayName}
             </span>
-            <Badge variant="outline">{log.action}</Badge>
+            <Badge variant="outline">{formatAction(log.action)}</Badge>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="type-body-small shrink-0 text-muted-foreground">
@@ -58,10 +59,7 @@ export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
       </AccordionTrigger>
       <AccordionContent className="h-full border-t pt-2.5">
         {isLoading ? (
-          <div className="flex items-center justify-center py-4 text-muted-foreground">
-            <SpinnerGapIcon weight="fill" className="mr-2 animate-spin" />
-            Loading details&hellip;
-          </div>
+          <DetailSkeleton parsedDesc={parsedDesc} />
         ) : (
           detail && (
             <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 type-body-small">
@@ -69,7 +67,10 @@ export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
                 label={FIELD_LABELS.timestamp}
                 value={formattedTimestamp}
               />
-              <DetailRow label={FIELD_LABELS.action} value={detail.action} />
+              <DetailRow
+                label={FIELD_LABELS.action}
+                value={formatAction(detail.action)}
+              />
               <DetailRow
                 label={FIELD_LABELS.userName}
                 value={detail.userName ?? "—"}
@@ -182,6 +183,110 @@ function GroupedField({ label, value }: { label: string; value: string }) {
     <>
       <span className="text-muted-foreground">{label}</span>
       <span className="font-mono text-foreground">{value}</span>
+    </>
+  )
+}
+
+// Fields rendered before the details/changes sections in the detail panel.
+const DETAIL_CORE_FIELDS = AUDIT_LOG_DETAIL_FIELDS.slice(0, -2)
+
+// Fields rendered after the details/changes sections in the detail panel.
+const DETAIL_TRAILING_FIELDS = AUDIT_LOG_DETAIL_FIELDS.slice(-2)
+
+// Skeleton mirror of the detail panel. Renders the same <dl> grid as the loaded
+// state — labels are known, values are placeholder blocks — so the real rows swap
+// in place without shifting. Section presence is known synchronously via parsedDesc.
+function DetailSkeleton({
+  parsedDesc,
+}: {
+  parsedDesc: ReturnType<typeof parseDescription>
+}) {
+  const hasDetails =
+    parsedDesc.details && Object.keys(parsedDesc.details).length > 0
+  const hasChanges =
+    parsedDesc.changes && Object.keys(parsedDesc.changes).length > 0
+
+  return (
+    <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 type-body-small">
+      {DETAIL_CORE_FIELDS.map((field) => (
+        <DetailSkeletonRow key={field} label={FIELD_LABELS[field]} />
+      ))}
+      {parsedDesc.isFlat ? (
+        hasDetails &&
+        Object.keys(parsedDesc.details!).map((key) => (
+          <DetailSkeletonRow key={key} label={key} />
+        ))
+      ) : (
+        <>
+          {hasDetails && (
+            <>
+              <dt className="text-muted-foreground">{FIELD_LABELS.details}</dt>
+              <dd>
+                <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
+                  {Object.keys(parsedDesc.details!).map((key) => (
+                    <GroupedSkeletonRow key={key} label={key} />
+                  ))}
+                </div>
+              </dd>
+            </>
+          )}
+          {hasChanges && (
+            <>
+              <dt className="text-muted-foreground">{FIELD_LABELS.changes}</dt>
+              <dd>
+                <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
+                  {Object.keys(parsedDesc.changes!).map((key) => (
+                    <GroupedSkeletonRow
+                      key={key}
+                      label={formatChangeLabel(key)}
+                      valueWidth="w-44"
+                    />
+                  ))}
+                </div>
+              </dd>
+            </>
+          )}
+        </>
+      )}
+      {DETAIL_TRAILING_FIELDS.map((field) => (
+        <DetailSkeletonRow key={field} label={FIELD_LABELS[field]} />
+      ))}
+    </dl>
+  )
+}
+
+// Skeleton row matching the DetailRow layout: known label text + placeholder value.
+function DetailSkeletonRow({
+  label,
+  valueWidth = "w-40",
+}: {
+  label: string
+  valueWidth?: string
+}) {
+  return (
+    <>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd>
+        <Skeleton className={`h-5 ${valueWidth}`} />
+      </dd>
+    </>
+  )
+}
+
+// Skeleton row matching the GroupedField layout inside nested sections.
+function GroupedSkeletonRow({
+  label,
+  valueWidth = "w-40",
+}: {
+  label: string
+  valueWidth?: string
+}) {
+  return (
+    <>
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-mono text-foreground">
+        <Skeleton className={`h-5 ${valueWidth}`} />
+      </span>
     </>
   )
 }

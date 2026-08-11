@@ -203,7 +203,7 @@ const FieldCard = memo(function FieldCard({
       <FieldGroup className="grid grid-cols-2">
         <RenderInput
           field="conversionFactor"
-          label="Conversion Factor"
+          label="Units Per Product"
           mode={mode}
           isLocked={locked["conversionFactor"] ?? false}
           onUnlock={onUnlock}
@@ -216,7 +216,7 @@ const FieldCard = memo(function FieldCard({
               clearFieldError("conversionFactor")
             }}
             type="number"
-            step="0.0001"
+            step="1"
             min="0"
             placeholder="Optional"
             disabled={locked["conversionFactor"] ?? false}
@@ -261,7 +261,7 @@ const FieldCard = memo(function FieldCard({
               clearFieldError("lowStockThreshold")
             }}
             type="number"
-            step="0.01"
+            step="1"
             min="0"
             placeholder="0"
             disabled={locked["lowStockThreshold"] ?? false}
@@ -278,7 +278,7 @@ const FieldCard = memo(function FieldCard({
               id="quantityReceived"
               name="quantityReceived"
               type="number"
-              step="0.01"
+              step="1"
               min="0.01"
               placeholder="0"
               aria-invalid={!!errors.quantityReceived}
@@ -299,7 +299,7 @@ const FieldCard = memo(function FieldCard({
               id="totalProcurementCost"
               name="totalProcurementCost"
               type="number"
-              step="0.01"
+              step="1"
               min="0.01"
               placeholder="0"
               aria-invalid={!!errors.totalProcurementCost}

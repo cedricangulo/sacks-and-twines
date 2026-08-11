@@ -86,8 +86,10 @@ export default function InventoryFilterBar({
           })
         }
       >
-        <SelectTrigger className="w-27">
-          <SelectValue />
+        <SelectTrigger className="w-34">
+          <SelectValue>
+            {STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {STATUS_OPTIONS.map((opt) => (
@@ -106,8 +108,11 @@ export default function InventoryFilterBar({
           })
         }
       >
-        <SelectTrigger className="w-23.25">
-          <SelectValue />
+        <SelectTrigger className="w-37">
+          <SelectValue>
+            {CATEGORY_OPTIONS.find((o) => o.value === category)?.label ??
+              category}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {CATEGORY_OPTIONS.map((opt) => (
@@ -128,9 +133,7 @@ export default function InventoryFilterBar({
       >
         <SelectTrigger className="w-31.5">
           <SelectValue>
-            {(value) =>
-              STOCK_OPTIONS.find((o) => o.value === value)?.label ?? value
-            }
+            {STOCK_OPTIONS.find((o) => o.value === stock)?.label ?? stock}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>

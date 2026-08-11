@@ -11,6 +11,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import type { AuditLogEntry } from "../hooks/use-audit-logs"
 import AuditLogItem from "./audit-log-item"
 
@@ -33,10 +34,24 @@ export default function AuditLogAccordion({
 
   if (isLoading) {
     return (
-      <div className="h-[calc(100vh-220px)] overflow-y-auto space-y-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full rounded-xl" />
-        ))}
+      <div className="h-[calc(100vh-220px)] overflow-y-auto px-2">
+        <div className="flex w-full flex-col overflow-hidden rounded-2xl border">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className={cn("flex flex-col gap-2 p-4", i < 4 && "border-b")}
+            >
+              <div className="flex items-baseline gap-2">
+                <Skeleton className="h-5 w-28" />
+                <Skeleton className="h-5 w-20 rounded-3xl" />
+              </div>
+              <div className="flex items-baseline gap-2">
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-5 w-56" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

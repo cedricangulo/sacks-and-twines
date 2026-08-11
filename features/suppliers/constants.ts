@@ -7,10 +7,10 @@ export const STATUS_OPTIONS = [
 
 // Column definitions for the supplier table.
 export const SUPPLIER_TABLE_COLUMNS = [
-  { id: "contactPerson", label: "Contact Person" },
-  { id: "contactNumber", label: "Contact Number" },
-  { id: "address", label: "Address" },
-  { id: "archivedAt", label: "Status" },
+  { id: "contactPerson", label: "Contact Person", type: "text" },
+  { id: "contactNumber", label: "Contact Number", type: "mono" },
+  { id: "address", label: "Address", type: "text" },
+  { id: "archivedAt", label: "Status", type: "badge" },
 ] as const
 
 export type SupplierColumnId = (typeof SUPPLIER_TABLE_COLUMNS)[number]["id"]

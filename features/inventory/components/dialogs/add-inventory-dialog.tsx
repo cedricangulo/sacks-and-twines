@@ -92,6 +92,7 @@ export default function AddInventoryDialog() {
         <form
           id="inventory-form"
           onSubmit={handleSubmit}
+          noValidate
           className="flex flex-col gap-6"
         >
           <FieldGroup className="grid grid-cols-1 md:grid-cols-2">

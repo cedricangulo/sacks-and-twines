@@ -23,13 +23,13 @@ export const STOCK_OPTIONS = [
 
 // Column definitions for the inventory (product-level) table.
 export const INVENTORY_TABLE_COLUMNS = [
-  { id: "skuCode", label: "SKU" },
-  { id: "category", label: "Category" },
-  { id: "baseUom", label: "Unit" },
-  { id: "currentQuantity", label: "Stock" },
-  { id: "totalAssetValue", label: "Asset Value" },
-  { id: "createdAt", label: "Created" },
-  { id: "status", label: "Status" },
+  { id: "skuCode", label: "SKU", type: "mono" },
+  { id: "category", label: "Category", type: "badge" },
+  { id: "baseUom", label: "Unit", type: "text" },
+  { id: "currentQuantity", label: "Stock", type: "number" },
+  { id: "totalAssetValue", label: "Asset Value", type: "currency" },
+  { id: "createdAt", label: "Created", type: "date" },
+  { id: "status", label: "Status", type: "badge" },
 ] as const
 
 export type InventoryColumnId = (typeof INVENTORY_TABLE_COLUMNS)[number]["id"]

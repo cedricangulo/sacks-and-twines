@@ -1,10 +1,6 @@
 "use client"
 
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  DotsThreeVerticalIcon,
-} from "@phosphor-icons/react"
+import { ArrowDownIcon, ArrowUpIcon } from "@phosphor-icons/react"
 import type { VisibilityState } from "@tanstack/react-table"
 import {
   createColumnHelper,
@@ -16,7 +12,10 @@ import {
 } from "@tanstack/react-table"
 import type { Dispatch, ReactNode, SetStateAction } from "react"
 import { useMemo, useState } from "react"
-import { Skeleton } from "@/components/ui/skeleton"
+import {
+  SkeletonCell,
+  type SkeletonCellType,
+} from "@/components/ui/skeleton-table"
 import {
   Table,
   TableBody,
@@ -31,6 +30,17 @@ import { useDispatchItems } from "../../hooks/use-dispatch-items"
 import type { DispatchItem } from "../../validation"
 
 const columnHelper = createColumnHelper<DispatchItem>()
+
+// Skeleton cell shape per column id so loading rows mirror the real cells.
+const SKELETON_BY_COLUMN_ID: Record<string, SkeletonCellType> = {
+  productName: "text",
+  productSku: "mono",
+  batchCode: "mono",
+  dispatchQuantity: "mono",
+  quantityDeducted: "mono",
+  unitCost: "mono",
+  lineTotal: "mono",
+}
 
 // Dispatched-items table for a single dispatch, shown in an expandable row with sorting and column toggling.
 export default function DispatchItemsRow({
@@ -173,21 +183,15 @@ export default function DispatchItemsRow({
       </TableHeader>
       <TableBody className="animate-fade-in">
         {items === undefined ? (
-          Array.from({ length: 1 }).map((_, i) => (
-            <TableRow className="h-15" key={i}>
+          Array.from({ length: 3 }).map((_, i) => (
+            <TableRow key={i}>
               {table.getAllLeafColumns().reduce<ReactNode[]>((acc, col) => {
                 if (!col.getIsVisible()) return acc
                 acc.push(
                   <TableCell key={col.id}>
-                    {col.id === "actions" ? (
-                      <DotsThreeVerticalIcon
-                        size={16}
-                        weight="bold"
-                        className="text-muted-foreground"
-                      />
-                    ) : (
-                      <Skeleton className="w-20 h-4" />
-                    )}
+                    <SkeletonCell
+                      type={SKELETON_BY_COLUMN_ID[col.id] ?? "text"}
+                    />
                   </TableCell>
                 )
                 return acc

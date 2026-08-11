@@ -69,8 +69,10 @@ export default function SupplierFilterBar({
           })
         }
       >
-        <SelectTrigger className="w-27">
-          <SelectValue />
+        <SelectTrigger className="w-34">
+          <SelectValue>
+            {STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {STATUS_OPTIONS.map((opt) => (

@@ -69,9 +69,9 @@ export default function InventoryPage() {
       />
       {isUserLoading || filtered === undefined ? (
         <SkeletonTable
-          headers={[
-            "Product Name",
-            ...INVENTORY_TABLE_COLUMNS.map((c) => c.label),
+          columns={[
+            { label: "Product Name", type: "name" },
+            ...INVENTORY_TABLE_COLUMNS,
           ]}
           actions="ellipsis"
         />

@@ -1,4 +1,4 @@
-import { DotsThreeVerticalIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, DotsThreeVerticalIcon } from "@phosphor-icons/react"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -8,15 +8,84 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
+
+// Cell shape hints used to render skeletons that mirror each column's real content.
+export type SkeletonCellType =
+  | "text"
+  | "name"
+  | "expand"
+  | "mono"
+  | "badge"
+  | "number"
+  | "currency"
+  | "date"
+
+// A table column with an optional cell-shape hint for the loading skeleton.
+export interface SkeletonColumn {
+  label: string
+  type?: SkeletonCellType
+}
+
+interface SkeletonCellProps {
+  type?: SkeletonCellType
+  className?: string
+}
+
+// Renders a placeholder block that matches the real cell's shape for a column type.
+export function SkeletonCell({ type = "text", className }: SkeletonCellProps) {
+  switch (type) {
+    case "name":
+      return (
+        <div className="flex items-center gap-2 min-w-0">
+          <CaretDownIcon
+            weight="fill"
+            size={16}
+            className="shrink-0 text-muted-foreground"
+          />
+          <Skeleton className="h-10 w-10 shrink-0 rounded-sm" />
+          <Skeleton className={cn("h-5 w-32", className)} />
+        </div>
+      )
+    case "expand":
+      return (
+        <CaretDownIcon
+          weight="fill"
+          size={16}
+          className="text-muted-foreground"
+        />
+      )
+    case "badge":
+      return <Skeleton className={cn("h-5 w-16 rounded-3xl", className)} />
+    case "mono":
+      return <Skeleton className={cn("h-5 w-16", className)} />
+    case "number":
+      return (
+        <div className="flex w-full justify-end">
+          <Skeleton className={cn("h-5 w-12", className)} />
+        </div>
+      )
+    case "currency":
+      return (
+        <div className="flex w-full justify-end">
+          <Skeleton className={cn("h-5 w-20", className)} />
+        </div>
+      )
+    case "date":
+      return <Skeleton className={cn("h-5 w-28", className)} />
+    default:
+      return <Skeleton className={cn("h-5 w-20", className)} />
+  }
+}
 
 interface SkeletonTableProps {
-  headers: string[]
+  columns: SkeletonColumn[]
   actions?: "ellipsis" | "text" | "none"
   rowCount?: number
 }
 
 export default function SkeletonTable({
-  headers,
+  columns,
   actions = "ellipsis",
   rowCount = 5,
 }: SkeletonTableProps) {
@@ -24,9 +93,9 @@ export default function SkeletonTable({
     <Table>
       <TableHeader>
         <TableRow className="border-border/70">
-          {headers.map((header) => (
-            <TableHead key={header} className="text-muted-foreground">
-              {header}
+          {columns.map((column) => (
+            <TableHead key={column.label} className="text-muted-foreground">
+              {column.label}
             </TableHead>
           ))}
           {actions !== "none" ? (
@@ -37,22 +106,26 @@ export default function SkeletonTable({
       <TableBody>
         {Array.from({ length: rowCount }).map((_, i) => (
           <TableRow
-            className="border-border/25"
             key={i}
+            className="border-border/25"
             style={{ opacity: Math.max(1 - i * 0.2, 0.3) }}
           >
-            {headers.map((header) => (
-              <TableCell className="h-15" key={header}>
-                <Skeleton className="w-20 h-4" />
+            {columns.map((column) => (
+              <TableCell key={column.label}>
+                <SkeletonCell type={column.type} />
               </TableCell>
             ))}
             {actions === "ellipsis" ? (
               <TableCell>
-                <DotsThreeVerticalIcon weight="bold" size={16} className="text-muted-foreground" />
+                <DotsThreeVerticalIcon
+                  weight="bold"
+                  size={16}
+                  className="text-muted-foreground"
+                />
               </TableCell>
             ) : actions === "text" ? (
               <TableCell>
-                <Skeleton className="w-16 h-4" />
+                <Skeleton className="h-5 w-16" />
               </TableCell>
             ) : null}
           </TableRow>

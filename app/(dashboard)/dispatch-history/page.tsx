@@ -66,12 +66,13 @@ export default function DispatchHistoryPage() {
       />
       {isLoading ? (
         <SkeletonTable
-          headers={[
-            "Customer Ref",
-            "Dispatched By",
-            "Status",
-            "Total Items",
-            "Dispatched At",
+          columns={[
+            { label: "", type: "expand" },
+            { label: "Customer Ref", type: "text" },
+            { label: "Dispatched By", type: "text" },
+            { label: "Status", type: "badge" },
+            { label: "Total Items", type: "mono" },
+            { label: "Dispatched At", type: "date" },
           ]}
           actions="none"
         />

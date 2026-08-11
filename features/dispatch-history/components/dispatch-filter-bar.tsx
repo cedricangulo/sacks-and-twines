@@ -105,8 +105,10 @@ export default function DispatchFilterBar({
           })
         }
       >
-        <SelectTrigger className="w-27">
-          <SelectValue />
+        <SelectTrigger className="w-34">
+          <SelectValue>
+            {STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {STATUS_OPTIONS.map((opt) => (
@@ -124,10 +126,15 @@ export default function DispatchFilterBar({
         }
       >
         <SelectTrigger className="w-40">
-          <SelectValue placeholder="All users" />
+          <SelectValue>
+            {createdByUserId === "all"
+              ? "All Users"
+              : ((users ?? []).find((u) => u._id === createdByUserId)?.name ??
+                createdByUserId)}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All users</SelectItem>
+          <SelectItem value="all">All Users</SelectItem>
           {(users ?? []).map((user) => (
             <SelectItem key={user._id} value={user._id}>
               {user.name ?? "Unknown"}

@@ -83,7 +83,11 @@ export default function EditProductDialog({
             Loading product details&hellip;
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className="flex flex-col gap-6"
+          >
             <Field data-invalid={!!errors.name}>
               <Field>
                 <FieldLabel>Item Image</FieldLabel>
@@ -213,7 +217,7 @@ export default function EditProductDialog({
                         : undefined
                     }
                   >
-                    Conversion Factor
+                    Units Per Product
                   </FieldLabel>
                   {lockedFields.conversionFactor ? (
                     <Button
@@ -233,7 +237,7 @@ export default function EditProductDialog({
                     value={formValues.conversionFactor ?? ""}
                     disabled={lockedFields.conversionFactor}
                     type="number"
-                    step="0.1"
+                    step="1"
                     min="0"
                     aria-invalid={!!errors.conversionFactor}
                     onInput={(e) =>

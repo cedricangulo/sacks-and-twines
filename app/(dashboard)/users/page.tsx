@@ -55,7 +55,7 @@ export default function UsersPage() {
       />
       {isUserLoading || filtered === undefined ? (
         <SkeletonTable
-          headers={["Name", ...STAFF_TABLE_COLUMNS.map((c) => c.label)]}
+          columns={[{ label: "Name", type: "text" }, ...STAFF_TABLE_COLUMNS]}
           actions="text"
         />
       ) : user?.role !== "owner" ? (

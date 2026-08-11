@@ -17,7 +17,10 @@ import {
 import type { Dispatch, ReactNode, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
+import {
+  SkeletonCell,
+  type SkeletonCellType,
+} from "@/components/ui/skeleton-table"
 import {
   Table,
   TableBody,
@@ -33,6 +36,17 @@ import type { Batch } from "../../validation"
 import BatchActionsMenu from "./batch-actions-menu"
 
 const columnHelper = createColumnHelper<Batch>()
+
+// Skeleton cell shape per column id so loading rows mirror the real cells.
+const SKELETON_BY_COLUMN_ID: Record<string, SkeletonCellType> = {
+  batchCode: "mono",
+  quantityReceived: "number",
+  quantityRemaining: "number",
+  unitCost: "currency",
+  totalProcurementCost: "currency",
+  status: "badge",
+  createdAt: "date",
+}
 
 // Batches table for a single product, shown in an expandable row with sorting and column toggling.
 export default function BatchDetailsRow({
@@ -198,7 +212,7 @@ export default function BatchDetailsRow({
       <TableBody>
         {batches === undefined ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <TableRow className="border-border/50 h-15" key={i}>
+            <TableRow className="border-border/50" key={i}>
               {table.getAllLeafColumns().reduce<ReactNode[]>((acc, col) => {
                 if (!col.getIsVisible()) return acc
                 acc.push(
@@ -210,7 +224,9 @@ export default function BatchDetailsRow({
                         className="text-muted-foreground"
                       />
                     ) : (
-                      <Skeleton className="w-20 h-4" />
+                      <SkeletonCell
+                        type={SKELETON_BY_COLUMN_ID[col.id] ?? "text"}
+                      />
                     )}
                   </TableCell>
                 )

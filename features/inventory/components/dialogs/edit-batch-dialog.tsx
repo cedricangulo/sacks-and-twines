@@ -75,7 +75,11 @@ export default function EditBatchDialog({
             Loading batch details&hellip;
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className="flex flex-col gap-6"
+          >
             {!canEditQuantities ? (
               <div className="flex items-start gap-2 px-4 py-3 type-body-small border rounded-2xl border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-300">
                 <LockIcon weight="fill" size={16} className="mt-0.5 shrink-0" />
@@ -111,7 +115,7 @@ export default function EditBatchDialog({
                     id="edit-quantityReceived"
                     name="quantityReceived"
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0.01"
                     value={formValues.quantityReceived}
                     disabled={!canEditQuantities}
@@ -138,7 +142,7 @@ export default function EditBatchDialog({
                     id="edit-totalProcurementCost"
                     name="totalProcurementCost"
                     type="number"
-                    step="0.01"
+                    step="1"
                     min="0.01"
                     value={formValues.totalProcurementCost}
                     disabled={!canEditQuantities}
