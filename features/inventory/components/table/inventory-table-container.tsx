@@ -12,7 +12,7 @@ import {
 import Image from "next/image"
 import type { Dispatch, SetStateAction } from "react"
 import { useMemo, useState } from "react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/formatters"
 import { cn, getInitials } from "@/lib/utils"
@@ -66,17 +66,19 @@ export default function InventoryTableContainer({
                 )?.expandedProductId === info.row.original._id && "rotate-180"
               )}
             />
-            <Image
-              alt={info.row.original.name}
-              className="rounded-sm border object-cover"
-              src={info.row.original.imageUrl ?? ""}
-              width={40}
-              height={40}
-            />
-            {/* <Avatar className="rounded-sm border-none">
-              <AvatarImage className="rounded-sm" src={info.row.original.imageUrl ?? ""} />
-              <AvatarFallback>{getInitials(info.getValue())}</AvatarFallback>
-            </Avatar> */}
+            {info.row.original.imageUrl ? (
+              <Image
+                alt={info.row.original.name}
+                className="rounded-sm border object-cover"
+                src={info.row.original.imageUrl}
+                width={40}
+                height={40}
+              />
+            ) : (
+              <Avatar className="rounded-sm border">
+                <AvatarFallback>{getInitials(info.getValue())}</AvatarFallback>
+              </Avatar>
+            )}
             <span className="font-medium type-body-small line-clamp-2 min-w-0">
               {info.getValue()}
             </span>

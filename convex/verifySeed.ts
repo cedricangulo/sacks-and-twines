@@ -11,7 +11,7 @@ export const verifyDense = query({
     const dispatches = await ctx.db.query("dispatches").collect()
     for (const d of dispatches) {
       const t = d.createdAt ?? 0
-      if (t < start.getTime() || t > end.getTime()) continue
+      if (t < start.getTime() || t >= end.getTime() + dayMs) continue
       const local = new Date(t + 8 * 3600 * 1000)
       const day = `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, "0")}-${String(local.getUTCDate()).padStart(2, "0")}`
       counts[day] = (counts[day] ?? 0) + 1
