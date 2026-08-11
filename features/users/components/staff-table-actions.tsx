@@ -1,6 +1,6 @@
 "use client"
 
-import { WarningIcon } from "@phosphor-icons/react"
+import { PowerIcon, WarningIcon } from "@phosphor-icons/react"
 import { useState } from "react"
 import {
   AlertDialog,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import type { Id } from "@/convex/_generated/dataModel"
+import { useActivateStaff } from "../hooks/use-activate-staff"
 import { useDeactivateStaff } from "../hooks/use-deactivate-staff"
 
 // Shape of a staff user row for the actions component.
@@ -29,10 +30,43 @@ type StaffUser = {
 // Deactivate button with confirmation dialog for a staff user row.
 export default function StaffTableActions({ user }: { user: StaffUser }) {
   const deactivate = useDeactivateStaff()
+  const activate = useActivateStaff()
   const [open, setOpen] = useState(false)
 
   if (user.status === "deactivated") {
-    return null
+    const handleActivate = async () => {
+      setOpen(false)
+      await activate.submit(user._id, user.name ?? user.email)
+    }
+
+    return (
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogTrigger render={<Button variant="outline" size="sm" />}>
+          Activate
+        </AlertDialogTrigger>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <PowerIcon
+                weight="bold"
+                className="text-green-600 dark:text-green-400"
+              />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Activate staff user</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will activate <strong>{user.name ?? user.email}</strong>.
+              They will regain access to the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel autoFocus>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleActivate}>
+              Activate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    )
   }
 
   const handleDeactivate = async () => {
@@ -57,7 +91,7 @@ export default function StaffTableActions({ user }: { user: StaffUser }) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel autoFocus>Cancel</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={handleDeactivate}>
             Deactivate
           </AlertDialogAction>

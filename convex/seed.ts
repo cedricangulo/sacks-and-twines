@@ -1,7 +1,20 @@
 import { v } from "convex/values"
 import type { Doc, Id } from "./_generated/dataModel"
-import { internalMutation } from "./_generated/server"
-import { SACKS_DEFAULT_PACK_SIZE, SUPPLIER_COUNT } from "./lib/constants"
+import {
+  internalMutation,
+  internalQuery,
+  type MutationCtx,
+} from "./_generated/server"
+import {
+  CLEAR_CHUNK_LIMIT,
+  DAILY_DISPATCH_MAX,
+  DAILY_DISPATCH_MIN,
+  DENSE_DAYS,
+  NUM_BASELINE_DISPATCHES,
+  SACKS_DEFAULT_PACK_SIZE,
+  SEED_DATE_END,
+  SEED_DATE_START,
+} from "./lib/constants"
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -31,8 +44,8 @@ function toFloat(n: number, decimals = 2): number {
   return parseFloat(n.toFixed(decimals))
 }
 
-const DATE_BASE = new Date("2025-05-01T00:00:00+08:00")
-const DATE_END = new Date("2026-07-24T00:00:00+08:00")
+const DATE_BASE = new Date(`${SEED_DATE_START}T00:00:00+08:00`)
+const DATE_END = new Date(`${SEED_DATE_END}T00:00:00+08:00`)
 
 let skuCounter = 0
 function nextSkuCode(): string {
@@ -182,113 +195,350 @@ const IMAGE_MAP: Record<string, string> = {
   "Sewing Thread Large": "kg2c7ek52qzpc4k0cmf6s2k4cd8b5c4j",
 }
 
-// ─── Internal Mutation: writeAll ───────────────────────────────────────────
+// ─── Seed plan types & validators ──────────────────────────────────────────
+
+interface SeedProductInfo {
+  id: Id<"products">
+  name: string
+  baseUom: "piece" | "roll" | "meter"
+}
+
+interface SeedBatchInfo {
+  id: Id<"batches">
+  productId: Id<"products">
+  unitCost: number
+  baseUom: string
+  batchCode: string
+  createdDate: number
+  quantityRemaining: number
+}
+
+interface SeedDispatchPlan {
+  products: SeedProductInfo[]
+  batches: SeedBatchInfo[]
+}
+
+interface DispatchSpec {
+  userId: Id<"users">
+  createdDate: number
+  status: "completed" | "voided"
+  customerReference: string | undefined
+  items: Array<{
+    batchId: Id<"batches">
+    productId: Id<"products">
+    dispatchUom: "piece" | "roll" | "meter"
+    dispatchQuantity: number
+    quantityDeducted: number
+    unitCost: number
+  }>
+}
+
+interface SeedDispatchResult {
+  batches: SeedBatchInfo[]
+  dispatchCount: number
+  dispatchItemCount: number
+  auditLogCount: number
+}
+
+const seedProductInfoValidator = v.object({
+  id: v.id("products"),
+  name: v.string(),
+  baseUom: v.union(v.literal("piece"), v.literal("roll"), v.literal("meter")),
+})
+
+const seedBatchInfoValidator = v.object({
+  id: v.id("batches"),
+  productId: v.id("products"),
+  unitCost: v.number(),
+  baseUom: v.string(),
+  batchCode: v.string(),
+  createdDate: v.number(),
+  quantityRemaining: v.number(),
+})
+
+const seedPlanValidator = v.object({
+  products: v.array(seedProductInfoValidator),
+  batches: v.array(seedBatchInfoValidator),
+})
+
+const seedUserIdsValidator = v.array(v.id("users"))
+const seedUserNameMapValidator = v.record(v.id("users"), v.string())
+
+// ─── Dense window helpers ───────────────────────────────────────────────────
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const DENSE_START = new Date(DATE_END.getTime() - (DENSE_DAYS - 1) * DAY_MS)
 
 /**
- * Writes sample suppliers, products, batches, dispatches, stock adjustments,
- * and audit logs with historical `createdAt` timestamps.
- * Clears existing data before seeding.
- * Internal mutation — called by `seedAll` action.
- * @param ownerId - ID of the owner user for seeding audit logs.
- * @param staffId - ID of the staff user for seeding dispatches and adjustments.
+ * Returns a +08:00 timestamp within the given calendar day at a random
+ * business hour. Mirrors `randDate`'s offset math so day bucketing is stable.
  */
-export const writeAll = internalMutation({
+function businessHourTimestamp(dayStartMs: number): number {
+  const offset = 8 * 60 * 60 * 1000
+  const local = new Date(dayStartMs + offset)
+  const year = local.getUTCFullYear()
+  const month = local.getUTCMonth()
+  const day = local.getUTCDate()
+  const hour = rndInt(8, 17)
+  const minute = rndInt(0, 59)
+  const second = rndInt(0, 59)
+  return Date.UTC(year, month, day, hour - 8, minute, second)
+}
+
+function nextCustomerReference(): string | undefined {
+  const refs: Array<string | null> = [
+    null,
+    null,
+    null,
+    `PO-2025-${rndInt(1000, 9999)}`,
+    `SO-${rndInt(100, 999)}`,
+    `DR-${rndInt(1000, 9999)}`,
+  ]
+  return rnd(refs) ?? undefined
+}
+
+/**
+ * Builds one dispatch spec, assigning items round-robin to the oldest
+ * batches that still have stock and predate the dispatch. Mutates `batches`
+ * remaining quantities. Returns null when no items could be placed.
+ */
+function buildDispatchSpec(
+  userIds: Array<Id<"users">>,
+  createdDate: number,
+  plan: SeedDispatchPlan,
+  batches: SeedBatchInfo[]
+): DispatchSpec | null {
+  const userId = rnd(userIds)
+  const isVoided = Math.random() < 0.05
+  const numItems = rndInt(1, 5)
+  const usedProducts = new Set<Id<"products">>()
+  const items: DispatchSpec["items"] = []
+
+  for (let j = 0; j < numItems; j++) {
+    const available = plan.products.filter((p) => !usedProducts.has(p.id))
+    if (available.length === 0) break
+    const product = rnd(available)
+    usedProducts.add(product.id)
+
+    const dispatchQty =
+      product.baseUom === "piece"
+        ? rndInt(5, 50)
+        : product.baseUom === "roll"
+          ? rndInt(1, 10)
+          : toFloat(rndInt(2, 30) + Math.random())
+    const qtyDeducted =
+      product.baseUom === "meter" ? toFloat(dispatchQty) : dispatchQty
+
+    const productBatches = batches.filter(
+      (b) =>
+        b.productId === product.id &&
+        b.createdDate <= createdDate &&
+        b.quantityRemaining > 0
+    )
+    if (productBatches.length === 0) continue
+
+    const candidates = productBatches.filter(
+      (b) => b.quantityRemaining >= qtyDeducted
+    )
+    const pool = candidates.length > 0 ? candidates : productBatches
+    const batch = pool.reduce((a, b) =>
+      a.quantityRemaining > b.quantityRemaining ? a : b
+    )
+
+    items.push({
+      batchId: batch.id,
+      productId: product.id,
+      dispatchUom: product.baseUom,
+      dispatchQuantity: dispatchQty,
+      quantityDeducted: qtyDeducted,
+      unitCost: batch.unitCost,
+    })
+
+    batch.quantityRemaining =
+      product.baseUom === "meter"
+        ? toFloat(batch.quantityRemaining - qtyDeducted)
+        : batch.quantityRemaining - qtyDeducted
+  }
+
+  if (items.length === 0) return null
+  return {
+    userId,
+    createdDate,
+    status: isVoided ? ("voided" as const) : ("completed" as const),
+    customerReference: nextCustomerReference(),
+    items,
+  }
+}
+
+/**
+ * Inserts dispatches, their dispatch items, and stock-out audit logs for a
+ * batch of generated dispatch dates. Each mutation invocation stays well
+ * within Convex's write budget because the action slices the work into
+ * chunks. Returns the (mutated) batch state for the next chunk.
+ */
+async function seedDispatches(
+  ctx: MutationCtx,
+  plan: SeedDispatchPlan,
+  userIds: Array<Id<"users">>,
+  userNameMap: Record<string, string>,
+  createdDates: number[]
+): Promise<SeedDispatchResult> {
+  const batches = plan.batches.map((b) => ({ ...b }))
+  const productNameById: Record<string, string> = {}
+  for (const p of plan.products) productNameById[p.id] = p.name
+
+  const specs: DispatchSpec[] = []
+  for (const createdDate of createdDates) {
+    const spec = buildDispatchSpec(userIds, createdDate, plan, batches)
+    if (spec) specs.push(spec)
+  }
+
+  const dispatchIdBySpec = new Map<number, Id<"dispatches">>()
+  for (const [index, spec] of specs.entries()) {
+    const dispatchId = await ctx.db.insert("dispatches", {
+      userId: spec.userId,
+      customerReference: spec.customerReference,
+      status: spec.status,
+      userName: userNameMap[spec.userId],
+      itemCount: spec.items.length,
+      createdAt: spec.createdDate,
+    })
+    dispatchIdBySpec.set(index, dispatchId)
+  }
+
+  const itemPromises: Array<Promise<unknown>> = []
+  const logPromises: Array<Promise<unknown>> = []
+  for (const [index, spec] of specs.entries()) {
+    const dispatchId = dispatchIdBySpec.get(index)
+    if (!dispatchId) continue
+
+    for (const item of spec.items) {
+      itemPromises.push(
+        ctx.db.insert("dispatchItems", {
+          dispatchId,
+          batchId: item.batchId,
+          productId: item.productId,
+          dispatchUom: item.dispatchUom,
+          dispatchQuantity: item.dispatchQuantity,
+          quantityDeducted: item.quantityDeducted,
+          unitCost: item.unitCost,
+          createdAt: spec.createdDate,
+        })
+      )
+    }
+
+    const products = spec.items
+      .map(
+        (item) =>
+          `${productNameById[item.productId] ?? "Unknown"} x ${item.dispatchQuantity} ${item.dispatchUom}`
+      )
+      .join("; ")
+
+    logPromises.push(
+      ctx.db.insert("auditLogs", {
+        userId: spec.userId,
+        action: "stock_out",
+        description: JSON.stringify({
+          summary: `Dispatched ${spec.items.length} product(s) (${toFloat(spec.items.reduce((sum, item) => sum + item.dispatchQuantity, 0))} units)`,
+          details: {
+            totalItems: spec.items.length,
+            totalQuantity: toFloat(
+              spec.items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
+            ),
+            products,
+          },
+        }),
+        resourceType: "dispatch",
+        resourceId: dispatchId,
+        ipAddress: "127.0.0.1",
+        userAgent: "Convex Seed",
+        createdAt: spec.createdDate,
+      })
+    )
+  }
+
+  await Promise.all([...itemPromises, ...logPromises])
+
+  return {
+    batches,
+    dispatchCount: specs.length,
+    dispatchItemCount: specs.reduce((sum, s) => sum + s.items.length, 0),
+    auditLogCount: specs.length,
+  }
+}
+
+// ─── Internal Mutation: writeBase ──────────────────────────────────────────
+
+/**
+ * Writes suppliers, products, and batches. Batch quantities are sized so the
+ * dense dispatch window (≥20 dispatches/day) never exhausts stock, and batch
+ * dates are spread across the range so late dispatches always have stock.
+ * Inserts the batch stock-in audit logs. Internal — called by `seedAll`.
+ */
+export const writeBase = internalMutation({
   args: {
     ownerId: v.id("users"),
     staffId: v.id("users"),
   },
   handler: async (ctx, { ownerId, staffId }) => {
-    // ═══════════════════════════════════════════════════════════════════════
-    // 0. Clear existing seed data (children → parents order)
-    // ═══════════════════════════════════════════════════════════════════════
-    const [
-      oldDispatchItems,
-      oldLogs,
-      oldAdjustments,
-      oldDispatches,
-      oldBatches,
-      oldProducts,
-      oldSuppliers,
-    ] = await Promise.all([
-      ctx.db.query("dispatchItems").collect(),
-      ctx.db.query("auditLogs").collect(),
-      ctx.db.query("stockAdjustments").collect(),
-      ctx.db.query("dispatches").collect(),
-      ctx.db.query("batches").collect(),
-      ctx.db.query("products").collect(),
-      ctx.db.query("suppliers").collect(),
-    ])
-    await Promise.all([
-      ...oldDispatchItems.map((d) => ctx.db.delete(d._id)),
-      ...oldLogs.map((l) => ctx.db.delete(l._id)),
-      ...oldAdjustments.map((a) => ctx.db.delete(a._id)),
-      ...oldDispatches.map((d) => ctx.db.delete(d._id)),
-      ...oldBatches.map((b) => ctx.db.delete(b._id)),
-      ...oldProducts.map((p) => ctx.db.delete(p._id)),
-      ...oldSuppliers.map((s) => ctx.db.delete(s._id)),
-    ])
+    const supplierIds = await Promise.all(
+      SUPPLIER_DEFS.map((def) => ctx.db.insert("suppliers", def))
+    )
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // 1. Insert suppliers
-    // ═══════════════════════════════════════════════════════════════════════
-    // ═══════════════════════════════════════════════════════════════════════
-    // 2. Insert products
-    // ═══════════════════════════════════════════════════════════════════════
-    const [supplierIds, productResults] = await Promise.all([
-      Promise.all(SUPPLIER_DEFS.map((def) => ctx.db.insert("suppliers", def))),
-      Promise.all(
-        PRODUCT_DEFS.map(async (def) => {
-          const productCreatedAt = randDate(DATE_BASE, DATE_END)
-          const id = await ctx.db.insert("products", {
-            skuCode: nextSkuCode(),
-            name: def.name,
-            category: def.category,
-            baseUom: def.baseUom,
-            conversionFactor: def.conversionFactor,
-            currentQuantity: 0,
-            totalAssetValue: 0,
-            lowStockThreshold: def.lowStockThreshold,
-            status: "active",
-            imagePath: IMAGE_MAP[def.name],
-            createdAt: productCreatedAt.getTime(),
-          })
-          return { id, def }
+    const productResults = await Promise.all(
+      PRODUCT_DEFS.map(async (def) => {
+        const productCreatedAt = randDate(DATE_BASE, DATE_END)
+        const id = await ctx.db.insert("products", {
+          skuCode: nextSkuCode(),
+          name: def.name,
+          category: def.category,
+          baseUom: def.baseUom,
+          conversionFactor: def.conversionFactor,
+          currentQuantity: 0,
+          totalAssetValue: 0,
+          lowStockThreshold: def.lowStockThreshold,
+          status: "active",
+          imagePath: IMAGE_MAP[def.name],
+          createdAt: productCreatedAt.getTime(),
         })
-      ),
-    ])
+        return { id, def }
+      })
+    )
+
     const productMap: Record<string, { id: Id<"products">; def: ProductDef }> =
       {}
     for (const { id, def } of productResults) {
       productMap[def.name] = { id, def }
     }
-
     const productList = Object.values(productMap)
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // 4. Insert batches (1-5 per product)
-    // ═══════════════════════════════════════════════════════════════════════
     const userIds = [ownerId, staffId]
-    const batchRecords: Array<{
-      id: Id<"batches">
-      productId: Id<"products">
-      unitCost: number
-      quantityRemaining: number
-      baseUom: string
-      batchCode: string
-      createdDate: Date
-      status: "active" | "depleted"
+    const batches: SeedBatchInfo[] = []
+    const totalSpan = DATE_END.getTime() - DATE_BASE.getTime()
+    const stockInLogs: Array<{
+      userId: Id<"users">
+      description: string
+      resourceId: Id<"batches">
+      createdAt: number
     }> = []
 
     for (const { id: pId, def } of productList) {
-      const numBatches = rndInt(2, 4)
-      let lastDate = DATE_BASE
-
+      const numBatches = rndInt(6, 8)
       for (let i = 0; i < numBatches; i++) {
-        const span = DATE_END.getTime() - lastDate.getTime()
-        const batchDate = new Date(
-          lastDate.getTime() + Math.random() * span * 0.7
-        )
-        if (batchDate > DATE_END) continue
+        // Every product gets one batch before the dense window so it always
+        // has eligible stock from the very first dense day onward.
+        const batchDate =
+          i === 0
+            ? randDate(DATE_BASE, DENSE_START)
+            : new Date(
+                DATE_BASE.getTime() +
+                  Math.min(
+                    totalSpan,
+                    totalSpan *
+                      ((i + 1) / numBatches) *
+                      (0.75 + Math.random() * 0.5)
+                  )
+              )
 
         const supplierId = rnd(supplierIds)
         const userId = rnd(userIds)
@@ -301,10 +551,10 @@ export const writeAll = internalMutation({
 
         const qty =
           def.baseUom === "piece"
-            ? rndInt(200, 800)
+            ? rndInt(1500, 4500)
             : def.baseUom === "roll"
-              ? rndInt(30, 100)
-              : toFloat(rndInt(100, 400) + Math.random())
+              ? rndInt(300, 700)
+              : toFloat(rndInt(800, 2000) + Math.random())
 
         const batchCode = nextBatchCode()
         const batchId = await ctx.db.insert("batches", {
@@ -320,325 +570,279 @@ export const writeAll = internalMutation({
           createdAt: batchDate.getTime(),
         })
 
-        batchRecords.push({
+        batches.push({
           id: batchId,
           productId: pId,
           unitCost,
-          quantityRemaining: qty,
           baseUom: def.baseUom,
           batchCode,
-          createdDate: batchDate,
-          status: "active",
+          createdDate: batchDate.getTime(),
+          quantityRemaining: qty,
         })
 
-        lastDate = batchDate
+        stockInLogs.push({
+          userId: ownerId,
+          description: JSON.stringify({
+            summary: `Stocked in ${toFloat(qty)} units of ${def.name} (${batchCode})`,
+            details: {
+              product: def.name,
+              batchCode,
+              quantity: toFloat(qty),
+              uom: def.baseUom,
+            },
+          }),
+          resourceId: batchId,
+          createdAt: batchDate.getTime(),
+        })
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // 5. Insert dispatches + items (~150 dispatches, peak-weighted)
-    // ═══════════════════════════════════════════════════════════════════════
-    const NUM_DISPATCHES = 150
-    const dispatchRecords: Array<{
-      id: Id<"dispatches">
-      userId: Id<"users">
-      createdDate: Date
-    }> = []
-    const dispatchItemsToInsert: Array<{
-      dispatchId: Id<"dispatches">
+    await Promise.all(
+      stockInLogs.map((log) =>
+        ctx.db.insert("auditLogs", {
+          userId: log.userId,
+          action: "stock_in",
+          description: log.description,
+          resourceType: "batch",
+          resourceId: log.resourceId,
+          ipAddress: "127.0.0.1",
+          userAgent: "Convex Seed",
+          createdAt: log.createdAt,
+        })
+      )
+    )
+
+    return {
+      products: productList.map(({ id, def }) => ({
+        id,
+        name: def.name,
+        baseUom: def.baseUom,
+      })),
+      batches,
+      supplierCount: supplierIds.length,
+      auditLogCount: stockInLogs.length,
+    }
+  },
+})
+
+// ─── Internal Mutation: writeBaselineDispatches ────────────────────────────
+
+/**
+ * Writes the historical (pre-dense-window) dispatches — the same sparse
+ * peak-weighted spread as the original seed, restricted to dates before
+ * `DENSE_START`. Internal — called by `seedAll`.
+ */
+export const writeBaselineDispatches = internalMutation({
+  args: {
+    plan: seedPlanValidator,
+    userIds: seedUserIdsValidator,
+    userNameMap: seedUserNameMapValidator,
+  },
+  handler: async (ctx, { plan, userIds, userNameMap }) => {
+    const baselinePeakStart = new Date("2025-09-01T00:00:00+08:00")
+    const dates: number[] = []
+    for (let i = 0; i < NUM_BASELINE_DISPATCHES; i++) {
+      const isPeak = Math.random() < 0.85
+      const dBase = isPeak
+        ? randDate(baselinePeakStart, DENSE_START)
+        : randDate(DATE_BASE, baselinePeakStart)
+      dates.push(dBase.getTime())
+    }
+    return seedDispatches(ctx, plan, userIds, userNameMap, dates)
+  },
+})
+
+// ─── Internal Mutation: writeDispatchChunk ─────────────────────────────────
+
+/**
+ * Writes one slice of the dense window: every calendar day in the slice gets
+ * `DAILY_DISPATCH_MIN..MAX` dispatches at business hours. Internal — called
+ * by `seedAll` in a loop so each call stays within transaction limits.
+ */
+export const writeDispatchChunk = internalMutation({
+  args: {
+    plan: seedPlanValidator,
+    userIds: seedUserIdsValidator,
+    userNameMap: seedUserNameMapValidator,
+    startDayIndex: v.number(),
+    dayCount: v.number(),
+  },
+  handler: async (
+    ctx,
+    { plan, userIds, userNameMap, startDayIndex, dayCount }
+  ) => {
+    const dates: number[] = []
+    for (let i = 0; i < dayCount; i++) {
+      const dayMs = DENSE_START.getTime() + (startDayIndex + i) * DAY_MS
+      const numDispatches = rndInt(DAILY_DISPATCH_MIN, DAILY_DISPATCH_MAX)
+      for (let d = 0; d < numDispatches; d++) {
+        dates.push(businessHourTimestamp(dayMs))
+      }
+    }
+    return seedDispatches(ctx, plan, userIds, userNameMap, dates)
+  },
+})
+
+// ─── Internal Mutation: writeAdjustments ───────────────────────────────────
+
+/**
+ * Writes stock adjustments (3-5 per product, ~10% voided) and their audit
+ * logs, applying non-voided quantities to the threaded batch state.
+ * Internal — called by `seedAll`.
+ */
+export const writeAdjustments = internalMutation({
+  args: {
+    plan: seedPlanValidator,
+    userIds: seedUserIdsValidator,
+    ownerId: v.id("users"),
+  },
+  handler: async (ctx, { plan, userIds, ownerId }) => {
+    const batches = plan.batches.map((b) => ({ ...b }))
+    const productNameById: Record<string, string> = {}
+    for (const p of plan.products) productNameById[p.id] = p.name
+    const reasons: Array<"damaged" | "lost" | "recount" | "system_reversal"> = [
+      "recount",
+      "damaged",
+      "lost",
+      "system_reversal",
+    ]
+
+    const adjRows: Array<{
       batchId: Id<"batches">
       productId: Id<"products">
-      dispatchUom: "piece" | "roll" | "meter"
-      dispatchQuantity: number
-      quantityDeducted: number
-      unitCost: number
+      userId: Id<"users">
+      quantityAdjusted: number
+      reason: "damaged" | "lost" | "recount" | "system_reversal"
+      status: "applied" | "voided"
+      createdAt: number
+    }> = []
+    const logRows: Array<{
+      userId: Id<"users">
+      description: string
+      resourceId: Id<"batches">
       createdAt: number
     }> = []
 
-    const peakStart = new Date("2025-09-01T00:00:00+08:00")
-    const peakEnd = DATE_END
-
-    // Build product → active batches index for O(1) lookups
-    const activeBatchesByProduct = new Map<
-      Id<"products">,
-      typeof batchRecords
-    >()
-    const depletedBatchIds = new Set<Id<"batches">>()
-    for (const batch of batchRecords) {
-      let list = activeBatchesByProduct.get(batch.productId)
-      if (!list) {
-        list = []
-        activeBatchesByProduct.set(batch.productId, list)
-      }
-      list.push(batch)
-    }
-
-    for (let i = 0; i < NUM_DISPATCHES; i++) {
-      const isPeak = Math.random() < 0.85
-      const dBase = isPeak
-        ? randDate(peakStart, peakEnd)
-        : randDate(DATE_BASE, peakStart)
-
-      const userId = rnd(userIds)
-      const refs: Array<string | null> = [
-        null,
-        null,
-        null,
-        `PO-2025-${rndInt(1000, 9999)}`,
-        `SO-${rndInt(100, 999)}`,
-        `DR-${rndInt(1000, 9999)}`,
-      ]
-      const customerReference = rnd(refs)
-
-      const isVoided = Math.random() < 0.05
-      const dispatchId = await ctx.db.insert("dispatches", {
-        userId,
-        customerReference: customerReference ?? undefined,
-        status: isVoided ? "voided" : "completed",
-        createdAt: dBase.getTime(),
-      })
-
-      dispatchRecords.push({ id: dispatchId, userId, createdDate: dBase })
-
-      const productBatches = activeBatchesByProduct
-
-      // 1-5 items per dispatch
-      const numItems = rndInt(1, 5)
-      const usedProducts = new Set<Id<"products">>()
-
-      for (let j = 0; j < numItems; j++) {
-        const available = productList.filter((p) => !usedProducts.has(p.id))
-        if (available.length === 0) break
-
-        const product = rnd(available)
-        usedProducts.add(product.id)
-
-        const dispatchQty =
-          product.def.baseUom === "piece"
-            ? rndInt(5, 50)
-            : product.def.baseUom === "roll"
-              ? rndInt(1, 10)
-              : toFloat(rndInt(2, 30) + Math.random())
-
-        const qtyDeducted =
-          product.def.baseUom === "meter" ? toFloat(dispatchQty) : dispatchQty
-
-        // Find an active batch with enough remaining
-        const productBatchesList = (
-          productBatches.get(product.id) ?? []
-        ).filter((b) => !depletedBatchIds.has(b.id))
-        const candidateBatches = productBatchesList.filter(
-          (b) => b.quantityRemaining >= qtyDeducted
-        )
-
-        if (candidateBatches.length === 0) {
-          let anyBatch: (typeof productBatchesList)[number] | undefined
-          for (const batch of productBatchesList) {
-            if (batch.quantityRemaining > 0) {
-              anyBatch = batch
-              break
-            }
-          }
-          if (!anyBatch || anyBatch.quantityRemaining < qtyDeducted) continue
-          candidateBatches.push(anyBatch)
-        }
-
-        const batch = candidateBatches.reduce((a, b) =>
-          a.quantityRemaining > b.quantityRemaining ? a : b
-        )
-
-        const dispatchUom =
-          product.def.baseUom === "piece"
-            ? ("piece" as const)
-            : product.def.baseUom === "roll"
-              ? ("roll" as const)
-              : ("meter" as const)
-
-        dispatchItemsToInsert.push({
-          dispatchId,
-          batchId: batch.id,
-          productId: product.id,
-          dispatchUom,
-          dispatchQuantity: dispatchQty,
-          quantityDeducted: qtyDeducted,
-          unitCost: batch.unitCost,
-          createdAt: dBase.getTime(),
-        })
-
-        // Deduct from batch
-        batch.quantityRemaining =
-          product.def.baseUom === "meter"
-            ? toFloat(batch.quantityRemaining - qtyDeducted)
-            : batch.quantityRemaining - qtyDeducted
-
-        // Track depleted batches for O(1) exclusion
-        if (batch.quantityRemaining <= 0) {
-          depletedBatchIds.add(batch.id)
-        }
-      }
-    }
-
-    // ── Post-process dispatches ──
-    const itemCountMap = new Map<string, number>()
-    for (const item of dispatchItemsToInsert) {
-      itemCountMap.set(
-        item.dispatchId,
-        (itemCountMap.get(item.dispatchId) ?? 0) + 1
-      )
-    }
-
-    const nonEmptyDispatches: typeof dispatchRecords = []
-    const emptyDispatchIds: Array<Id<"dispatches">> = []
-    for (const d of dispatchRecords) {
-      const count = itemCountMap.get(d.id) ?? 0
-      if (count === 0) {
-        emptyDispatchIds.push(d.id)
-      } else {
-        nonEmptyDispatches.push(d)
-      }
-    }
-
-    dispatchRecords.length = 0
-    dispatchRecords.push(...nonEmptyDispatches)
-
-    const [ownerUser, staffUser] = await Promise.all([
-      ctx.db.get(ownerId),
-      ctx.db.get(staffId),
-    ])
-    const userNameMap: Record<string, string> = {
-      [ownerId]: ownerUser?.name ?? "Owner",
-      [staffId]: staffUser?.name ?? "Staff",
-    }
-
-    await Promise.all([
-      ...emptyDispatchIds.map((id) => ctx.db.delete(id)),
-      ...nonEmptyDispatches.map((d) =>
-        ctx.db.patch(d.id, {
-          itemCount: itemCountMap.get(d.id),
-          userName: userNameMap[d.userId],
-        })
-      ),
-    ])
-
-    // Insert dispatch items
-    await Promise.all(
-      dispatchItemsToInsert.map((item) => ctx.db.insert("dispatchItems", item))
-    )
-
-    // ── Update batch quantities after dispatches ──
-    for (const batch of batchRecords) {
-      const remaining = Math.max(0, batch.quantityRemaining)
-      if (remaining <= 0) {
-        batch.status = "depleted"
-      }
-      batch.quantityRemaining = remaining
-    }
-    await Promise.all(
-      batchRecords.map((batch) => {
-        const patch: Record<string, unknown> = {
-          quantityRemaining: batch.quantityRemaining,
-        }
-        if (batch.status === "depleted") {
-          patch.status = "depleted"
-        }
-        return ctx.db.patch(batch.id, patch)
-      })
-    )
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // 6. Insert stock adjustments (1-2 per product)
-    // ═══════════════════════════════════════════════════════════════════════
-    const adjustmentRecords: Array<{
-      id: Id<"stockAdjustments">
-      batchId: Id<"batches">
-      productId: Id<"products">
-      quantity: number
-      reason: "damaged" | "lost" | "recount" | "system_reversal"
-    }> = []
-
-    for (const { id: pId, def } of productList) {
+    for (const product of plan.products) {
       const numAdjustments = rndInt(3, 5)
-      const reasons: Array<"damaged" | "lost" | "recount" | "system_reversal"> =
-        ["recount", "damaged", "lost", "system_reversal"]
-
       for (let i = 0; i < numAdjustments; i++) {
-        const activeBatches = batchRecords.filter(
-          (b) => b.productId === pId && b.quantityRemaining > 0
+        const activeBatches = batches.filter(
+          (b) => b.productId === product.id && b.quantityRemaining > 0
         )
         if (activeBatches.length === 0) continue
 
         const batch = rnd(activeBatches)
         const qty =
-          def.baseUom === "meter"
+          product.baseUom === "meter"
             ? toFloat(rndInt(1, 20) + Math.random())
             : rndInt(1, 20)
-
         const reason = rnd(reasons)
         const userId = rnd(userIds)
         const isVoided = Math.random() < 0.1
-
         const adjDate = randDate(DATE_BASE, DATE_END)
-        const adjId = await ctx.db.insert("stockAdjustments", {
+        const beforeRemaining = batch.quantityRemaining
+
+        adjRows.push({
           batchId: batch.id,
-          productId: pId,
+          productId: product.id,
           userId,
           quantityAdjusted: qty,
           reason,
-          status: isVoided ? "voided" : "applied",
+          status: isVoided ? ("voided" as const) : ("applied" as const),
           createdAt: adjDate.getTime(),
         })
 
-        adjustmentRecords.push({
-          id: adjId,
-          batchId: batch.id,
-          productId: pId,
-          quantity: qty,
-          reason,
+        logRows.push({
+          userId: ownerId,
+          description: JSON.stringify({
+            summary: `Adjusted stock for ${productNameById[product.id]} (${reason === "damaged" || reason === "lost" ? "deduct" : "add"}, ${reason})`,
+            details: {
+              productName: productNameById[product.id],
+              quantityAdjusted: qty,
+              reason,
+              direction:
+                reason === "damaged" || reason === "lost" ? "deduct" : "add",
+              batchCode: batch.batchCode,
+            },
+            changes: {
+              quantity_remaining: {
+                old: beforeRemaining,
+                new: Math.max(0, beforeRemaining - qty),
+              },
+            },
+          }),
+          resourceId: batch.id,
+          createdAt: adjDate.getTime(),
         })
 
-        // Apply to batch if not voided
         if (!isVoided) {
-          const newRemaining =
-            def.baseUom === "meter"
-              ? toFloat(batch.quantityRemaining - qty)
-              : batch.quantityRemaining - qty
-          batch.quantityRemaining = Math.max(0, newRemaining)
+          batch.quantityRemaining =
+            product.baseUom === "meter"
+              ? Math.max(0, toFloat(batch.quantityRemaining - qty))
+              : Math.max(0, batch.quantityRemaining - qty)
         }
       }
     }
 
-    // ── Update batch quantities after adjustments ──
-    for (const batch of batchRecords) {
-      if (batch.quantityRemaining <= 0 && batch.status !== "depleted") {
-        batch.status = "depleted"
-      }
-    }
     await Promise.all(
-      batchRecords.map((batch) =>
-        ctx.db.patch(batch.id, {
-          quantityRemaining: batch.quantityRemaining,
-          ...(batch.status === "depleted"
-            ? { status: "depleted" as const }
-            : {}),
+      adjRows.map((row) => ctx.db.insert("stockAdjustments", row))
+    )
+    await Promise.all(
+      logRows.map((log) =>
+        ctx.db.insert("auditLogs", {
+          userId: log.userId,
+          action: "stock_adjustment",
+          description: log.description,
+          resourceType: "batch",
+          resourceId: log.resourceId,
+          ipAddress: "127.0.0.1",
+          userAgent: "Convex Seed",
+          createdAt: log.createdAt,
         })
       )
     )
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // 7. Update product quantities from active batches
-    // ═══════════════════════════════════════════════════════════════════════
-    await Promise.all(
-      productList.map(async ({ id: pId, def }) => {
-        const activeBatches = batchRecords.filter(
-          (b) => b.productId === pId && b.quantityRemaining > 0
-        )
+    return {
+      batches,
+      adjustmentCount: adjRows.length,
+      auditLogCount: logRows.length,
+    }
+  },
+})
 
+// ─── Internal Mutation: finalizeQuantities ─────────────────────────────────
+
+/**
+ * Persists the threaded batch remaining quantities (marking depleted batches)
+ * and recomputes each product's current quantity and asset value from its
+ * active batches. Internal — called by `seedAll`.
+ */
+export const finalizeQuantities = internalMutation({
+  args: {
+    plan: seedPlanValidator,
+  },
+  handler: async (ctx, { plan }) => {
+    await Promise.all(
+      plan.batches.map((b) => {
+        const remaining = Math.max(0, b.quantityRemaining)
+        return ctx.db.patch(b.id, {
+          quantityRemaining: remaining,
+          status: remaining <= 0 ? ("depleted" as const) : ("active" as const),
+        })
+      })
+    )
+
+    await Promise.all(
+      plan.products.map(async (p) => {
+        const activeBatches = plan.batches.filter(
+          (b) => b.productId === p.id && b.quantityRemaining > 0
+        )
         const totalQty = activeBatches.reduce(
           (sum, b) => sum + b.quantityRemaining,
           0
         )
         const currentQuantity =
-          def.baseUom === "meter" ? toFloat(totalQty) : Math.round(totalQty)
+          p.baseUom === "meter" ? toFloat(totalQty) : Math.round(totalQty)
 
         let totalAssetValue = 0
         if (activeBatches.length > 0) {
@@ -648,146 +852,27 @@ export const writeAll = internalMutation({
           totalAssetValue = toFloat(currentQuantity * latest.unitCost)
         }
 
-        await ctx.db.patch(pId, { currentQuantity, totalAssetValue })
+        await ctx.db.patch(p.id, { currentQuantity, totalAssetValue })
       })
     )
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // 8. Insert audit logs
-    // ═══════════════════════════════════════════════════════════════════════
-    const productByName: Record<string, ProductDef> = {}
-    for (const def of PRODUCT_DEFS) {
-      productByName[def.name] = def
-    }
+    return {}
+  },
+})
 
-    const productNameById: Record<string, string> = {}
-    for (const { id, def } of productList) {
-      productNameById[id] = def.name
-    }
+// ─── Internal Mutation: writeAuthLogs ──────────────────────────────────────
 
-    // Batch stock-in logs
-    await Promise.all(
-      batchRecords.map(async (batch) => {
-        const productName = productNameById[batch.productId] ?? "Unknown"
-        const pDef = productByName[productName]
+/**
+ * Writes the auth sign-in / failed-sign-in audit logs. Internal — called by
+ * `seedAll` at the end of the pipeline.
+ */
+type AuthLogAction = "auth_sign_in" | "auth_sign_in_failed"
 
-        const totalReceived =
-          batch.quantityRemaining +
-          dispatchItemsToInsert
-            .filter((d) => d.batchId === batch.id)
-            .reduce((s, d) => s + d.quantityDeducted, 0)
-
-        return ctx.db.insert("auditLogs", {
-          userId: ownerId,
-          action: "stock_in",
-          description: JSON.stringify({
-            summary: `Stocked in ${toFloat(totalReceived)} units of ${productName} (${batch.batchCode})`,
-            details: {
-              product: productName,
-              batchCode: batch.batchCode,
-              quantity: toFloat(totalReceived),
-              uom: pDef?.baseUom ?? "piece",
-            },
-          }),
-          resourceType: "batch",
-          resourceId: batch.id,
-          ipAddress: "127.0.0.1",
-          userAgent: "Convex Seed",
-          createdAt: batch.createdDate.getTime(),
-        })
-      })
-    )
-
-    // Dispatch stock-out logs
-    const dispatchItemGroups: Record<string, typeof dispatchItemsToInsert> = {}
-    for (const item of dispatchItemsToInsert) {
-      const key = item.dispatchId
-      if (!dispatchItemGroups[key]) dispatchItemGroups[key] = []
-      dispatchItemGroups[key].push(item)
-    }
-
-    const dispatchLogPromises: Array<Promise<unknown>> = []
-    for (const dispatch of dispatchRecords) {
-      const items = dispatchItemGroups[dispatch.id]
-      if (!items || items.length === 0) continue
-
-      const products = items
-        .map(
-          (item) =>
-            `${productNameById[item.productId] ?? "Unknown"} x ${item.dispatchQuantity} ${item.dispatchUom}`
-        )
-        .join("; ")
-
-      dispatchLogPromises.push(
-        ctx.db.insert("auditLogs", {
-          userId: dispatch.userId,
-          action: "stock_out",
-          description: JSON.stringify({
-            summary: `Dispatched ${items.length} product(s) (${toFloat(items.reduce((sum, item) => sum + item.dispatchQuantity, 0))} units)`,
-            details: {
-              totalItems: items.length,
-              totalQuantity: toFloat(
-                items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
-              ),
-              products,
-            },
-          }),
-          resourceType: "dispatch",
-          resourceId: dispatch.id,
-          ipAddress: "127.0.0.1",
-          userAgent: "Convex Seed",
-          createdAt: dispatch.createdDate.getTime(),
-        })
-      )
-    }
-    await Promise.all(dispatchLogPromises)
-
-    // Adjustment audit logs
-    const batchById = new Map<Id<"batches">, (typeof batchRecords)[0]>()
-    for (const b of batchRecords) {
-      batchById.set(b.id, b)
-    }
-
-    await Promise.all(
-      adjustmentRecords.map(async (adj) => {
-        const productName = productNameById[adj.productId] ?? "Unknown"
-        const batch = batchById.get(adj.batchId)
-        const batchCode = batch?.batchCode ?? "Unknown"
-        const beforeRemaining = batch?.quantityRemaining ?? 0
-
-        const logDate = randDate(DATE_BASE, DATE_END)
-        return ctx.db.insert("auditLogs", {
-          userId: ownerId,
-          action: "stock_adjustment",
-          description: JSON.stringify({
-            summary: `Adjusted stock for ${productName} (${adj.reason === "damaged" || adj.reason === "lost" ? "deduct" : "add"}, ${adj.reason})`,
-            details: {
-              productName,
-              quantityAdjusted: adj.quantity,
-              reason: adj.reason,
-              direction:
-                adj.reason === "damaged" || adj.reason === "lost"
-                  ? "deduct"
-                  : "add",
-              batchCode,
-            },
-            changes: {
-              quantity_remaining: {
-                old: beforeRemaining,
-                new: Math.max(0, beforeRemaining - adj.quantity),
-              },
-            },
-          }),
-          resourceType: "batch",
-          resourceId: adj.batchId,
-          ipAddress: "127.0.0.1",
-          userAgent: "Convex Seed",
-          createdAt: logDate.getTime(),
-        })
-      })
-    )
-
-    // Auth event audit logs
+export const writeAuthLogs = internalMutation({
+  args: {
+    ownerId: v.id("users"),
+  },
+  handler: async (ctx, { ownerId }) => {
     const authEvents: Array<Record<string, unknown>> = [
       {
         action: "auth_sign_in",
@@ -824,7 +909,7 @@ export const writeAll = internalMutation({
         const logDate = randDate(DATE_BASE, DATE_END)
         return ctx.db.insert("auditLogs", {
           userId: ownerId,
-          action: event.action as string,
+          action: event.action as AuthLogAction,
           description: JSON.stringify(event),
           resourceType: "user",
           resourceId: ownerId,
@@ -835,68 +920,7 @@ export const writeAll = internalMutation({
       })
     )
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // Return summary
-    // ═══════════════════════════════════════════════════════════════════════
-    return {
-      supplierCount: supplierIds.length,
-      productCount: productList.length,
-      batchCount: batchRecords.length,
-      dispatchCount: dispatchRecords.length,
-      dispatchItemCount: dispatchItemsToInsert.length,
-      adjustmentCount: adjustmentRecords.length,
-      auditLogCount: (await ctx.db.query("auditLogs").collect()).length,
-    }
-  },
-})
-
-// ─── Internal Mutation: writeClean ─────────────────────────────────────────
-
-/**
- * Clears all domain data, leaving only user accounts.
- * Owner account is preserved (hidden in UI — users table appears empty).
- * Internal mutation — called by `seedClean` action.
- */
-export const writeClean = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    // Clear all domain tables (children → parents)
-    const [
-      dispatchItems,
-      logs,
-      adjustments,
-      dispatches,
-      batches,
-      products,
-      suppliers,
-    ] = await Promise.all([
-      ctx.db.query("dispatchItems").collect(),
-      ctx.db.query("auditLogs").collect(),
-      ctx.db.query("stockAdjustments").collect(),
-      ctx.db.query("dispatches").collect(),
-      ctx.db.query("batches").collect(),
-      ctx.db.query("products").collect(),
-      ctx.db.query("suppliers").collect(),
-    ])
-    await Promise.all([
-      ...dispatchItems.map((d) => ctx.db.delete(d._id)),
-      ...logs.map((l) => ctx.db.delete(l._id)),
-      ...adjustments.map((a) => ctx.db.delete(a._id)),
-      ...dispatches.map((d) => ctx.db.delete(d._id)),
-      ...batches.map((b) => ctx.db.delete(b._id)),
-      ...products.map((p) => ctx.db.delete(p._id)),
-      ...suppliers.map((s) => ctx.db.delete(s._id)),
-    ])
-
-    return {
-      supplierCount: 0,
-      productCount: 0,
-      batchCount: 0,
-      dispatchCount: 0,
-      dispatchItemCount: 0,
-      adjustmentCount: 0,
-      auditLogCount: 0,
-    }
+    return { auditLogCount: authEvents.length }
   },
 })
 
@@ -915,34 +939,6 @@ export const writeTest = internalMutation({
     deactivatedStaffId: v.id("users"),
   },
   handler: async (ctx, { ownerId, staffId, deactivatedStaffId }) => {
-    // ── Clear existing data ──────────────────────────────────────────
-    const [
-      oldDispatchItems,
-      oldLogs,
-      oldAdjustments,
-      oldDispatches,
-      oldBatches,
-      oldProducts,
-      oldSuppliers,
-    ] = await Promise.all([
-      ctx.db.query("dispatchItems").collect(),
-      ctx.db.query("auditLogs").collect(),
-      ctx.db.query("stockAdjustments").collect(),
-      ctx.db.query("dispatches").collect(),
-      ctx.db.query("batches").collect(),
-      ctx.db.query("products").collect(),
-      ctx.db.query("suppliers").collect(),
-    ])
-    await Promise.all([
-      ...oldDispatchItems.map((d) => ctx.db.delete(d._id)),
-      ...oldLogs.map((l) => ctx.db.delete(l._id)),
-      ...oldAdjustments.map((a) => ctx.db.delete(a._id)),
-      ...oldDispatches.map((d) => ctx.db.delete(d._id)),
-      ...oldBatches.map((b) => ctx.db.delete(b._id)),
-      ...oldProducts.map((p) => ctx.db.delete(p._id)),
-      ...oldSuppliers.map((s) => ctx.db.delete(s._id)),
-    ])
-
     // ── 1. Insert suppliers (same 8 as seedAll) ─────────────────────
     const supplierIds = await Promise.all(
       SUPPLIER_DEFS.map((def) => ctx.db.insert("suppliers", def))
@@ -1630,53 +1626,70 @@ export const writeTest = internalMutation({
   },
 })
 
-// ─── Clear mutations (each runs in its own 4096-read budget) ─────────────
+// ─── Clear & status (chunked — each call stays within limit budgets) ─────
+
+const CLEARABLE_TABLES = [
+  "auditLogs",
+  "batches",
+  "dispatchItems",
+  "dispatches",
+  "products",
+  "stockAdjustments",
+  "suppliers",
+] as const
 
 /**
- * Clears the largest table (dispatchItems) in its own execution budget.
- * Dispatch items are children of dispatches — deleted first.
+ * Deletes up to `limit` rows from a table in one execution budget. The seed
+ * actions loop this until a call returns fewer rows than the limit, so clear
+ * and re-seed runs never blow Convex's read/write limits — even on a flooded
+ * database. Returns the number of rows deleted.
  */
-export const clearDispatchItems = internalMutation({
-  handler: async (ctx) => {
-    const docs = await ctx.db.query("dispatchItems").collect()
+export const clearTableChunk = internalMutation({
+  args: {
+    table: v.union(
+      v.literal("auditLogs"),
+      v.literal("batches"),
+      v.literal("dispatchItems"),
+      v.literal("dispatches"),
+      v.literal("products"),
+      v.literal("stockAdjustments"),
+      v.literal("suppliers")
+    ),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { table, limit }) => {
+    const take = limit ?? CLEAR_CHUNK_LIMIT
+    const docs = await ctx.db.query(table).take(take)
     await Promise.all(docs.map((d) => ctx.db.delete(d._id)))
+    return { deleted: docs.length }
   },
 })
 
 /**
- * Clears audit logs, stock adjustments, and dispatches.
- * These are mid-tier tables referenced by items but parents to nothing.
+ * Reports how many rows remain per table so the seed actions know when the
+ * chunked clear has finished. Reads a single page per table.
  */
-export const clearDispatchesAndRelated = internalMutation({
+export const seedStatus = internalQuery({
+  args: {},
   handler: async (ctx) => {
-    const [logs, adjustments, dispatches] = await Promise.all([
-      ctx.db.query("auditLogs").collect(),
-      ctx.db.query("stockAdjustments").collect(),
-      ctx.db.query("dispatches").collect(),
-    ])
-    await Promise.all([
-      ...logs.map((l) => ctx.db.delete(l._id)),
-      ...adjustments.map((a) => ctx.db.delete(a._id)),
-      ...dispatches.map((d) => ctx.db.delete(d._id)),
-    ])
+    const counts: Record<string, number> = {}
+    for (const table of CLEARABLE_TABLES) {
+      counts[table] = (await ctx.db.query(table).take(1)).length
+    }
+    return counts
   },
 })
 
 /**
- * Clears batches, products, and suppliers — the smallest tables and
- * the last to delete (parent tables).
+ * Maps every user id to its display name, used to denormalize `userName` on
+ * seeded dispatches. The users table is tiny, so a full collect is safe here.
  */
-export const clearBatchesAndRest = internalMutation({
+export const getUserNames = internalQuery({
+  args: {},
   handler: async (ctx) => {
-    const [batches, products, suppliers] = await Promise.all([
-      ctx.db.query("batches").collect(),
-      ctx.db.query("products").collect(),
-      ctx.db.query("suppliers").collect(),
-    ])
-    await Promise.all([
-      ...batches.map((b) => ctx.db.delete(b._id)),
-      ...products.map((p) => ctx.db.delete(p._id)),
-      ...suppliers.map((s) => ctx.db.delete(s._id)),
-    ])
+    const users = await ctx.db.query("users").collect()
+    const names: Record<string, string> = {}
+    for (const user of users) names[user._id] = user.name ?? ""
+    return names
   },
 })

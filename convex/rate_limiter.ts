@@ -33,6 +33,13 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
     rate: 20,
     capacity: 40,
   },
+  // Staff activation per user
+  activateUser: {
+    kind: "token bucket",
+    period: MINUTE,
+    rate: 20,
+    capacity: 40,
+  },
 
   // ── Suppliers ───────────────────────────────────────────────
   // Supplier creation per user

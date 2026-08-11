@@ -55,7 +55,8 @@ export const summaryStats = query({
 
 /**
  * Daily dispatch volume for the current month area chart.
- * Returns the total quantity deducted per calendar day within the range.
+ * Returns the total quantity deducted per calendar day within the range,
+ * along with how many completed dispatches contributed to that day.
  *
  * Access: Owner only.
  */
@@ -75,7 +76,7 @@ export const dailyDispatchVolume = query({
 
     const dispatches = await fetchDispatches(ctx, startMs, endMs, "completed")
 
-    const dayMap = new Map<number, number>()
+    const dayMap = new Map<number, { units: number; dispatchCount: number }>()
 
     await Promise.all(
       dispatches.map(async (d) => {
@@ -93,13 +94,20 @@ export const dailyDispatchVolume = query({
         )
 
         if (totalQty > 0) {
-          dayMap.set(day, (dayMap.get(day) ?? 0) + totalQty)
+          const entry = dayMap.get(day) ?? { units: 0, dispatchCount: 0 }
+          entry.units += totalQty
+          entry.dispatchCount += 1
+          dayMap.set(day, entry)
         }
       })
     )
 
     return Array.from(dayMap.entries())
-      .map(([day, value]) => ({ day, value: Math.round(value) }))
+      .map(([day, entry]) => ({
+        day,
+        value: Math.round(entry.units),
+        dispatchCount: entry.dispatchCount,
+      }))
       .sort((a, b) => a.day - b.day)
   },
 })

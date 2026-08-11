@@ -19,3 +19,9 @@ export const deactivateUserArgs = {
   userId: zid("users"),
   ...auditMeta,
 }
+
+// Arguments for reactivating a staff user.
+export const activateUserArgs = {
+  userId: zid("users"),
+  ...auditMeta,
+}

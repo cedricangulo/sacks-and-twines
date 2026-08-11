@@ -1,8 +1,14 @@
 import { createAccount } from "@convex-dev/auth/server"
 import { internal } from "./_generated/api"
-import { internalAction } from "./_generated/server"
+import type { Id } from "./_generated/dataModel"
+import { type ActionCtx, internalAction } from "./_generated/server"
+import {
+  CLEAR_CHUNK_LIMIT,
+  DENSE_DAYS,
+  DISPATCH_CHUNK_DAYS,
+} from "./lib/constants"
 
-// ─── Internal Action: seedAll ──────────────────────────────────────────────
+// ─── Seed result shape ─────────────────────────────────────────────────────
 
 interface SeedResult {
   supplierCount: number
@@ -14,10 +20,75 @@ interface SeedResult {
   auditLogCount: number
 }
 
+type SeedPlan = {
+  products: Array<{
+    id: Id<"products">
+    name: string
+    baseUom: "piece" | "roll" | "meter"
+  }>
+  batches: Array<{
+    id: Id<"batches">
+    productId: Id<"products">
+    unitCost: number
+    baseUom: string
+    batchCode: string
+    createdDate: number
+    quantityRemaining: number
+  }>
+}
+
+// ─── Chunked clear helper ──────────────────────────────────────────────────
+
+const CLEAR_TABLES = [
+  "dispatchItems",
+  "stockAdjustments",
+  "auditLogs",
+  "dispatches",
+  "batches",
+  "products",
+  "suppliers",
+] as const
+
+type ClearableTable = (typeof CLEAR_TABLES)[number]
+
+const MAX_CLEAR_ROUNDS = 200
+
 /**
- * Full database seed action. Creates a staff user (if not exists),
- * finds the owner user, then calls `seed.writeAll` to populate all
- * tables with sample data for development/demo.
+ * Deletes every row from each domain table in bounded chunks so each
+ * mutation call stays within Convex's read/write limits — even on a
+ * database flooded by a previous seed run. Returns how many rows were
+ * deleted per table.
+ */
+async function clearAllTables(
+  ctx: ActionCtx
+): Promise<Record<ClearableTable, number>> {
+  const totals = {} as Record<ClearableTable, number>
+  for (const table of CLEAR_TABLES) {
+    let deleted = 0
+    for (let round = 0; round < MAX_CLEAR_ROUNDS; round++) {
+      const { deleted: chunk } = await ctx.runMutation(
+        internal.seed.clearTableChunk,
+        {
+          table,
+          limit: CLEAR_CHUNK_LIMIT,
+        }
+      )
+      deleted += chunk
+      if (chunk < CLEAR_CHUNK_LIMIT) break
+    }
+    totals[table] = deleted
+    console.log(`  • Cleared ${table}: ${deleted} rows`)
+  }
+  return totals
+}
+
+// ─── Internal Action: seedAll ──────────────────────────────────────────────
+
+/**
+ * Full database seed action. Creates a staff user (if not exists), finds the
+ * owner user, clears all domain data in chunks, then runs the bounded seed
+ * pipeline: base records → baseline dispatches → dense dispatch chunks →
+ * adjustments → quantity finalization → auth logs.
  */
 export const seedAll = internalAction({
   args: {},
@@ -81,16 +152,84 @@ export const seedAll = internalAction({
       console.log("  ⚠ OWNER_EMAIL not set — using staff as fallback")
     }
 
-    // ── Clear existing data ──────────────────────────────────────────────
-    await ctx.runMutation(internal.seed.clearDispatchItems, {})
-    await ctx.runMutation(internal.seed.clearDispatchesAndRelated, {})
-    await ctx.runMutation(internal.seed.clearBatchesAndRest, {})
+    // ── Clear existing data (chunked) ────────────────────────────────────
+    console.log("\n  → Clearing existing data...")
+    await clearAllTables(ctx)
+    const statusAfterClear = await ctx.runQuery(internal.seed.seedStatus)
+    console.log("  → Post-clear status:", statusAfterClear)
 
-    // ── Run the write mutation ───────────────────────────────────────────
-    const result = await ctx.runMutation(internal.seed.writeAll, {
+    // ── Build the seeded dispatch plan ───────────────────────────────────
+    const userIds = [ownerId, staffId] as Array<Id<"users">>
+    const userNameMap = await ctx.runQuery(internal.seed.getUserNames)
+
+    // ── Run the bounded seed pipeline ────────────────────────────────────
+    const base = await ctx.runMutation(internal.seed.writeBase, {
       ownerId: ownerId as never,
       staffId: staffId as never,
     })
+    let plan: SeedPlan = { products: base.products, batches: base.batches }
+
+    let dispatchCount = 0
+    let dispatchItemCount = 0
+    let auditLogCount = base.auditLogCount
+
+    const baseline = await ctx.runMutation(
+      internal.seed.writeBaselineDispatches,
+      {
+        plan,
+        userIds,
+        userNameMap,
+      }
+    )
+    plan = { products: plan.products, batches: baseline.batches }
+    dispatchCount += baseline.dispatchCount
+    dispatchItemCount += baseline.dispatchItemCount
+    auditLogCount += baseline.auditLogCount
+
+    const chunkCount = Math.ceil(DENSE_DAYS / DISPATCH_CHUNK_DAYS)
+    for (let c = 0; c < chunkCount; c++) {
+      const startDayIndex = c * DISPATCH_CHUNK_DAYS
+      const dayCount = Math.min(DISPATCH_CHUNK_DAYS, DENSE_DAYS - startDayIndex)
+      const chunk = await ctx.runMutation(internal.seed.writeDispatchChunk, {
+        plan,
+        userIds,
+        userNameMap,
+        startDayIndex,
+        dayCount,
+      })
+      plan = { products: plan.products, batches: chunk.batches }
+      dispatchCount += chunk.dispatchCount
+      dispatchItemCount += chunk.dispatchItemCount
+      auditLogCount += chunk.auditLogCount
+      console.log(
+        `  ✓ Dense chunk ${c + 1}/${chunkCount} (days ${startDayIndex + 1}-${startDayIndex + dayCount}): ${chunk.dispatchCount} dispatches`
+      )
+    }
+
+    const adjustments = await ctx.runMutation(internal.seed.writeAdjustments, {
+      plan,
+      userIds,
+      ownerId: ownerId as never,
+    })
+    plan = { products: plan.products, batches: adjustments.batches }
+    auditLogCount += adjustments.auditLogCount
+
+    await ctx.runMutation(internal.seed.finalizeQuantities, { plan })
+
+    const authLogs = await ctx.runMutation(internal.seed.writeAuthLogs, {
+      ownerId: ownerId as never,
+    })
+    auditLogCount += authLogs.auditLogCount
+
+    const result: SeedResult = {
+      supplierCount: base.supplierCount,
+      productCount: plan.products.length,
+      batchCount: plan.batches.length,
+      dispatchCount,
+      dispatchItemCount,
+      adjustmentCount: adjustments.adjustmentCount,
+      auditLogCount,
+    }
 
     console.log("\n  ✓ Seed complete!")
     console.log(`    • ${result.supplierCount} suppliers`)
@@ -108,8 +247,8 @@ export const seedAll = internalAction({
 // ─── Internal Action: seedClean ────────────────────────────────────────────
 
 /**
- * Clean database seed action. Clears all domain data, leaving only
- * the owner account (hidden in UI — users table appears empty).
+ * Clean database seed action. Clears all domain data in bounded chunks,
+ * leaving only the owner account (hidden in UI — users table appears empty).
  * For dev use only — testers should use seedTest.
  */
 export const seedClean = internalAction({
@@ -117,13 +256,23 @@ export const seedClean = internalAction({
   handler: async (ctx): Promise<SeedResult> => {
     console.log("\n  → Running seedClean...")
 
-    const result = await ctx.runMutation(internal.seed.writeClean, {})
+    const totals = await clearAllTables(ctx)
+    const statusAfterClear = await ctx.runQuery(internal.seed.seedStatus)
+    console.log("  → Post-clear status:", statusAfterClear)
 
     console.log("\n  ✓ Seed clean complete!")
     console.log("    • Owner account preserved (hidden in UI)")
     console.log("    • All domain tables empty")
 
-    return result
+    return {
+      supplierCount: totals.suppliers,
+      productCount: totals.products,
+      batchCount: totals.batches,
+      dispatchCount: totals.dispatches,
+      dispatchItemCount: totals.dispatchItems,
+      adjustmentCount: totals.stockAdjustments,
+      auditLogCount: totals.auditLogs,
+    }
   },
 })
 
@@ -237,6 +386,10 @@ export const seedTest = internalAction({
         `  ✓ Created deactivated staff: ${deactivatedEmail} (${deactivatedStaffId})`
       )
     }
+
+    // ── Clear existing data (chunked) ────────────────────────────────────
+    console.log("\n  → Clearing existing data...")
+    await clearAllTables(ctx)
 
     // ── Run the write mutation ───────────────────────────────────────────
     const result = await ctx.runMutation(internal.seed.writeTest, {

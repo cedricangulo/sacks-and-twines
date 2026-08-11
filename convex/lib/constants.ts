@@ -32,4 +32,12 @@ export const DEFAULT_CONVERSION_FACTOR = {
 // ─── Seed Config ────────────────────────────────────────────────────────────
 export const SUPPLIER_COUNT = 3
 export const SEED_DATE_START = "2025-05-01"
-export const SEED_DATE_END = "2026-05-10"
+export const SEED_DATE_END = "2026-08-11"
+
+// ─── Dense dispatch seed (every calendar day ≥ 20 dispatches) ──────────────
+export const DENSE_DAYS = 90
+export const DAILY_DISPATCH_MIN = 20
+export const DAILY_DISPATCH_MAX = 25
+export const DISPATCH_CHUNK_DAYS = 10
+export const NUM_BASELINE_DISPATCHES = 150
+export const CLEAR_CHUNK_LIMIT = 2000

@@ -433,8 +433,52 @@ describe("dailyDispatchVolume", () => {
     })
 
     expect(result).toHaveLength(2)
-    expect(result).toContainEqual({ day: 10, value: 15 })
-    expect(result).toContainEqual({ day: 15, value: 20 })
+    expect(result).toContainEqual({ day: 10, value: 15, dispatchCount: 1 })
+    expect(result).toContainEqual({ day: 15, value: 20, dispatchCount: 1 })
+  })
+
+  it("counts dispatches per day alongside unit volume", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, { name: "Dispatcher" })
+    const productId = await createProduct(t)
+    const supplierId = await createSupplier(t)
+    const batchId = await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+    })
+
+    const day = Date.UTC(2026, 6, 12, 9, 0, 0) // July 12, 9 AM UTC
+
+    const d1 = await createDispatch(t, { userId: ownerId, createdAt: day })
+    const d2 = await createDispatch(t, {
+      userId: ownerId,
+      createdAt: day + 3600_000, // 1 hour later, same day
+    })
+
+    await createDispatchItem(t, {
+      dispatchId: d1,
+      batchId,
+      productId,
+      quantityDeducted: 10,
+    })
+    await createDispatchItem(t, {
+      dispatchId: d2,
+      batchId,
+      productId,
+      quantityDeducted: 25,
+    })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const result = await t.query(api.dashboard.queries.dailyDispatchVolume, {
+      startMs: Date.UTC(2026, 6, 1),
+      endMs: Date.UTC(2026, 6, 31, 23, 59, 59, 999),
+      timezoneOffsetMs: 0,
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({ day: 12, value: 35, dispatchCount: 2 })
   })
 
   it("excludes dispatches outside range", async () => {

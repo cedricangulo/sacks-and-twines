@@ -18,6 +18,14 @@ import { MONTH_NAMES } from "@/features/reports/constants"
 
 type DateRangePreset = "7d" | "30d" | "90d" | "6m" | "all"
 
+const DATE_RANGE_LABELS: Record<DateRangePreset, string> = {
+  "7d": "Last 7 Days",
+  "30d": "Last 30 Days",
+  "90d": "Last 90 Days",
+  "6m": "Last 6 Months",
+  all: "All Time",
+}
+
 export default function Dashboard() {
   const now = useMemo(() => new Date(), [])
   const [rangePreset, setRangePreset] = useState<DateRangePreset>("6m")
@@ -122,14 +130,20 @@ export default function Dashboard() {
                   onValueChange={(v) => setRangePreset(v as DateRangePreset)}
                 >
                   <SelectTrigger size="sm">
-                    <SelectValue className="capitalize" />
+                    <SelectValue>
+                      {(value) =>
+                        DATE_RANGE_LABELS[value as DateRangePreset] ?? value
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="7d">Last 7 days</SelectItem>
-                    <SelectItem value="30d">Last 30 days</SelectItem>
-                    <SelectItem value="90d">Last 90 days</SelectItem>
-                    <SelectItem value="6m">Last 6 months</SelectItem>
-                    <SelectItem value="all">All time</SelectItem>
+                    {(Object.keys(DATE_RANGE_LABELS) as DateRangePreset[]).map(
+                      (preset) => (
+                        <SelectItem key={preset} value={preset}>
+                          {DATE_RANGE_LABELS[preset]}
+                        </SelectItem>
+                      )
+                    )}
                   </SelectContent>
                 </Select>
               }

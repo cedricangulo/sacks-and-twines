@@ -9,7 +9,7 @@ import { XAxis } from "@/components/charts/x-axis"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface MonthlyDispatchChartProps {
-  data: Array<{ day: number; value: number }>
+  data: Array<{ day: number; value: number; dispatchCount: number }>
   monthLabel: string
   isLoading: boolean
 }
@@ -25,6 +25,7 @@ export default function MonthlyDispatchChart({
       data.map((d) => ({
         date: new Date(now.getFullYear(), now.getMonth(), d.day),
         value: d.value,
+        dispatchCount: d.dispatchCount,
       })),
     [data, now]
   )
@@ -56,19 +57,33 @@ export default function MonthlyDispatchChart({
             numTicksRows={5}
           />
           <Line
+            dataKey="dispatchCount"
+            yAxisId="right"
+            stroke="var(--chart-line-secondary)"
+            strokeWidth={2.5}
+          />
+          <Line
             dataKey="value"
             stroke="var(--chart-line-primary)"
             strokeWidth={2.5}
           />
           <XAxis numTicks={7} tickMode="domain" />
           <ChartTooltip
-            rows={(point) => [
-              {
-                color: "var(--chart-line-primary)",
-                label: "Units",
-                value: String((point as Record<string, unknown>).value ?? ""),
-              },
-            ]}
+            rows={(point) => {
+              const p = point as Record<string, unknown>
+              return [
+                {
+                  color: "var(--chart-line-secondary)",
+                  label: "Dispatches",
+                  value: String(p.dispatchCount ?? ""),
+                },
+                {
+                  color: "var(--chart-line-primary)",
+                  label: "Units",
+                  value: String(p.value ?? ""),
+                },
+              ]
+            }}
           />
         </LineChart>
       ) : (

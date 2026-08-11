@@ -474,4 +474,182 @@ describe("user mutations", () => {
       })
     ).rejects.toThrowError("Only owners can perform this action")
   })
+
+  // ── Activate ────────────────────────────────────────────────
+
+  it("activates deactivated staff users and writes an audit log", async () => {
+    const t = makeTest()
+    const [ownerId, staffId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      createUser(t, {
+        email: "staff@test.com",
+        name: "Staff User",
+        role: "staff",
+        status: "deactivated",
+      }),
+    ])
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const result = await t.mutation(api.users.mutations.activate, {
+      userId: staffId,
+    })
+    expect(result).toBe(true)
+
+    const staffUser = await t.query(async (ctx) => {
+      return await ctx.db.get(staffId)
+    })
+
+    expect(staffUser).toMatchObject({
+      email: "staff@test.com",
+      role: "staff",
+      status: "active",
+    })
+
+    const auditLog = await t.query(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "user_activate"))
+        .first()
+    })
+
+    expect(auditLog).toMatchObject({
+      userId: ownerId,
+      action: "user_activate",
+      description: "Activated user staff@test.com",
+    })
+  })
+
+  it("rejects activating a non-existent user", async () => {
+    const t = makeTest()
+    const [ownerId, phantomId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      t.run(async (ctx) => {
+        const id = await ctx.db.insert("users", {
+          email: "phantom@test.com",
+          role: "staff",
+          status: "deactivated",
+        })
+        await ctx.db.delete(id)
+        return id
+      }),
+    ])
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.activate, {
+        userId: phantomId,
+      })
+    ).rejects.toThrowError("User not found")
+  })
+
+  it("rejects activating an owner user", async () => {
+    const t = makeTest()
+    const [ownerId, otherOwnerId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      createUser(t, {
+        email: "owner2@test.com",
+        name: "Other Owner",
+        role: "owner",
+        status: "deactivated",
+      }),
+    ])
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.activate, {
+        userId: otherOwnerId,
+      })
+    ).rejects.toThrowError("Can only activate staff users")
+  })
+
+  it("rejects activating an already active user", async () => {
+    const t = makeTest()
+    const [ownerId, staffId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      }),
+      createUser(t, {
+        email: "staff@test.com",
+        name: "Staff User",
+        role: "staff",
+        status: "active",
+      }),
+    ])
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.activate, {
+        userId: staffId,
+      })
+    ).rejects.toThrowError("User is already active")
+  })
+
+  it("rejects activation for deactivated owner", async () => {
+    const t = makeTest()
+    const [ownerId, staffId] = await Promise.all([
+      createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "deactivated",
+      }),
+      createUser(t, {
+        email: "staff@test.com",
+        name: "Staff",
+        role: "staff",
+        status: "deactivated",
+      }),
+    ])
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.mutation(api.users.mutations.activate, {
+        userId: staffId,
+      })
+    ).rejects.toThrowError("Only owners can perform this action")
+  })
+
+  it("rejects activation for non-owner staff caller", async () => {
+    const t = makeTest()
+    const [staffCallerId, staffTargetId] = await Promise.all([
+      createUser(t, {
+        email: "staff@test.com",
+        name: "Staff Caller",
+        role: "staff",
+        status: "active",
+      }),
+      createUser(t, {
+        email: "other@test.com",
+        name: "Other Staff",
+        role: "staff",
+        status: "deactivated",
+      }),
+    ])
+    authMocks.getAuthUserId.mockResolvedValueOnce(staffCallerId)
+
+    await expect(
+      t.mutation(api.users.mutations.activate, {
+        userId: staffTargetId,
+      })
+    ).rejects.toThrowError("Only owners can perform this action")
+  })
 })

@@ -3,7 +3,11 @@ import { internal } from "../_generated/api"
 import { requireOwner } from "../auth/guards"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
-import { createUserArgs, deactivateUserArgs } from "./validators"
+import {
+  activateUserArgs,
+  createUserArgs,
+  deactivateUserArgs,
+} from "./validators"
 
 /**
  * Creates a new staff user account. Enforces unique email.
@@ -103,6 +107,52 @@ export const deactivate = zMutation({
       userId: callerId,
       action: "user_deactivate",
       description: `Deactivated user ${target.email ?? String(userId)}`,
+      resourceType: "user",
+      resourceId: userId,
+      userAgent,
+    })
+
+    return true
+  },
+})
+
+/**
+ * Reactivates a deactivated staff user, restoring system access.
+ * Only active owners may activate users.
+ *
+ * @param userId - ID of the staff user to activate.
+ * @param userAgent - Browser user agent for audit logging.
+ * @returns `true` on success.
+ */
+export const activate = zMutation({
+  args: activateUserArgs,
+  handler: async (ctx, { userId, userAgent }) => {
+    const callerId = await requireOwner(ctx)
+
+    await Promise.all([
+      perUserLimit(ctx, "activateUser", callerId),
+      globalLimit(ctx, "globalMutations"),
+    ])
+
+    const target = await ctx.db.get(userId)
+    if (!target) {
+      throw new Error("User not found")
+    }
+
+    if (target.role !== "staff") {
+      throw new Error("Can only activate staff users")
+    }
+
+    if (target.status === "active") {
+      throw new Error("User is already active")
+    }
+
+    await ctx.db.patch(userId, { status: "active" })
+
+    await ctx.runMutation(internal.auditLogs.mutations.log, {
+      userId: callerId,
+      action: "user_activate",
+      description: `Activated user ${target.email ?? String(userId)}`,
       resourceType: "user",
       resourceId: userId,
       userAgent,
