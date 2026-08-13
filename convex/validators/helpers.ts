@@ -1,6 +1,26 @@
 import { z } from "zod"
 
 /**
+ * Normalizes product keywords: trims, lowercases, collapses whitespace,
+ * drops empties, and dedupes. Returns `undefined` when nothing remains so
+ * the optional schema field stays absent.
+ */
+export function normalizeKeywords(
+  keywords: string[] | undefined | null
+): string[] | undefined {
+  if (!keywords) return undefined
+  const seen = new Set<string>()
+  for (const raw of keywords) {
+    const clean = String(raw ?? "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase()
+    if (clean.length > 0 && !seen.has(clean)) seen.add(clean)
+  }
+  return seen.size > 0 ? [...seen] : undefined
+}
+
+/**
  * Strips control characters, HTML tags, and collapses whitespace.
  */
 const normalizeText = (value: unknown) => {

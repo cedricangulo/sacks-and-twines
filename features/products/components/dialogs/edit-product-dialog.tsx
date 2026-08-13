@@ -1,7 +1,8 @@
 "use client"
 
 import { LockIcon, PencilIcon, SpinnerGapIcon } from "@phosphor-icons/react"
-import type { ReactElement, ReactNode } from "react"
+import { Tag, TagInput } from "emblor"
+import { type ReactElement, type ReactNode, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -59,6 +60,20 @@ export default function EditProductDialog({
     handleSubmit,
     handleImageSelect,
   } = useEditProductForm({ productId, open, onOpenChange })
+
+  const [keywordTags, setKeywordTags] = useState<Tag[]>([])
+  const [activeTagIndex, setActiveTagIndex] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!dirty) {
+      setKeywordTags(
+        (formValues?.keywords ?? []).map((text, index) => ({
+          id: String(index),
+          text,
+        }))
+      )
+    }
+  }, [formValues, dirty])
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setOpen}>
@@ -282,6 +297,41 @@ export default function EditProductDialog({
                 ) : null}
               </Field>
             </FieldGroup>
+
+            <Field>
+              <FieldLabel htmlFor="edit-keywords">Search Keywords</FieldLabel>
+              <FieldContent>
+                <TagInput
+                  id="edit-keywords"
+                  activeTagIndex={activeTagIndex}
+                  setActiveTagIndex={setActiveTagIndex}
+                  tags={keywordTags}
+                  setTags={(newTags) => {
+                    const tags = Array.isArray(newTags) ? newTags : keywordTags
+                    setKeywordTags(tags)
+                    handleChange(
+                      "keywords",
+                      tags.map((tag) => tag.text)
+                    )
+                  }}
+                  placeholder="Add a search keyword"
+                  styleClasses={{
+                    inlineTagsContainer:
+                      "rounded-3xl bg-input/50 transition-[color,box-shadow] focus-within:border-ring outline-none focus-within:ring-[3px] focus-within:ring-ring/50 p-1 gap-1",
+                    input:
+                      "w-full min-w-[80px] rounded-xl shadow-none px-2 h-7",
+                    tag: {
+                      body: "h-7 relative bg-background/50 hover:bg-background rounded-xl font-medium type-body-small ps-2 pe-7",
+                      closeButton:
+                        "absolute -inset-y-px -end-px p-0 rounded-e-md flex size-7 transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-muted-foreground/80 hover:text-foreground",
+                    },
+                  }}
+                />
+              </FieldContent>
+              <p className="type-body-small text-muted-foreground">
+                Optional aliases used to find this item in product search.
+              </p>
+            </Field>
 
             <div className="flex justify-end gap-2">
               <Button

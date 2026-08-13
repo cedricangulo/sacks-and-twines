@@ -34,11 +34,14 @@ export default function ProductCombobox({
 
   const filtered = useMemo(
     () =>
-      products.filter(
-        (p) =>
-          p.name.toLowerCase().includes(query.toLowerCase()) ||
-          p.skuCode.toLowerCase().includes(query.toLowerCase())
-      ),
+      products.filter((p) => {
+        const q = query.toLowerCase()
+        return (
+          p.name.toLowerCase().includes(q) ||
+          p.skuCode.toLowerCase().includes(q) ||
+          p.keywords?.some((k) => k.toLowerCase().includes(q)) === true
+        )
+      }),
     [products, query]
   )
 

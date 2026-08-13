@@ -40,7 +40,7 @@ export default function ProductFilterBar({
   onClear,
 }: Props) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 sticky top-0 bg-background z-30 pb-2">
       <div className="relative max-w-xs grow">
         <MagnifyingGlassIcon
           weight="bold"

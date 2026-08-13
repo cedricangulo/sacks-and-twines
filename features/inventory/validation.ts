@@ -19,6 +19,7 @@ export interface Product {
   imagePath?: string
   imageUrl?: string
   lastSupplierId?: Id<"suppliers">
+  keywords?: string[]
 }
 
 // A batch record as displayed in the batch sub-table.
@@ -70,6 +71,7 @@ const StockInSchema = z.object({
   totalProcurementCost: positiveNumber,
   lowStockThreshold: z.optional(z.number().min(0)),
   imageStorageId: z.optional(z.string()),
+  keywords: z.optional(z.array(z.string())),
 })
 
 export type StockInFormData = z.infer<typeof StockInSchema>

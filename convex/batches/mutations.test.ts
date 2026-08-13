@@ -348,6 +348,75 @@ describe("batch mutations", () => {
     })
   })
 
+  it("stockIn new mode records keywords in the audit log", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const supplierId = await createSupplier(t, "Keyword Supplier")
+
+    await t.mutation(api.batches.mutations.stockIn, {
+      mode: "new",
+      name: "Keyword Product",
+      category: "sacks",
+      baseUom: "piece",
+      supplierId,
+      quantityReceived: 10,
+      totalProcurementCost: 1000,
+      keywords: ["PP", "polypropylene", "PP"],
+    })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "stock_in"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    const description = JSON.parse(logs[0].description)
+    expect(description.details.keywords).toEqual(["pp", "polypropylene"])
+  })
+
+  it("stockIn new mode records empty keywords in the audit log", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const supplierId = await createSupplier(t, "Keywordless Supplier")
+
+    await t.mutation(api.batches.mutations.stockIn, {
+      mode: "new",
+      name: "Keywordless Product",
+      category: "sacks",
+      baseUom: "piece",
+      supplierId,
+      quantityReceived: 10,
+      totalProcurementCost: 1000,
+    })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "stock_in"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    const description = JSON.parse(logs[0].description)
+    expect(description.details.keywords).toEqual([])
+  })
+
   it("rejects stockIn new mode with duplicate name", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
@@ -372,6 +441,63 @@ describe("batch mutations", () => {
         totalProcurementCost: 25000,
       })
     ).rejects.toThrowError("A product with this name already exists")
+  })
+
+  it("stockIn new mode stores normalized keywords on the new product", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const supplierId = await createSupplier(t, "Supplier")
+
+    const result = await t.mutation(api.batches.mutations.stockIn, {
+      mode: "new",
+      name: "Twist Twine",
+      category: "twines",
+      baseUom: "meter",
+      supplierId,
+      quantityReceived: 100,
+      totalProcurementCost: 5000,
+      keywords: ["Straw", "straw", "  Hay ", "  ", "TIE"],
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(result.productId)
+    })
+    expect(product?.keywords).toEqual(["straw", "hay", "tie"])
+  })
+
+  it("stockIn new mode omits keywords when none are provided", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const supplierId = await createSupplier(t, "Supplier")
+
+    const result = await t.mutation(api.batches.mutations.stockIn, {
+      mode: "new",
+      name: "Plain Product",
+      category: "sacks",
+      baseUom: "piece",
+      supplierId,
+      quantityReceived: 50,
+      totalProcurementCost: 25000,
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(result.productId)
+    })
+    expect((product as Record<string, unknown>).keywords).toBeUndefined()
   })
 
   // ── Update Batch ─────────────────────────────────────────

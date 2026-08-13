@@ -62,7 +62,8 @@ export function useProductFilters(
       result = result.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.skuCode.toLowerCase().includes(q)
+          p.skuCode.toLowerCase().includes(q) ||
+          p.keywords?.some((k) => k.toLowerCase().includes(q)) === true
       )
     }
 

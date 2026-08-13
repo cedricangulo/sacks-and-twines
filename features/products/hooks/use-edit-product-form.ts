@@ -40,7 +40,7 @@ type DialogAction =
   | {
       type: "changeField"
       field: keyof ProductUpdateFormData
-      value: string | number | undefined
+      value: string | number | string[] | undefined
     }
   | { type: "selectImage"; file: File | null }
   | { type: "setImageError"; imageError: string | null }
@@ -172,6 +172,7 @@ export function useEditProductForm({
             DEFAULT_CONVERSION_FACTOR[detail.category] ??
             0,
           lowStockThreshold: detail.lowStockThreshold ?? 0,
+          keywords: detail.keywords ?? [],
         },
         imagePreview: detail.imageUrl ?? null,
         hasBatches,
@@ -203,7 +204,7 @@ export function useEditProductForm({
 
   const handleChange = (
     field: keyof ProductUpdateFormData,
-    value: string | number | undefined
+    value: string | number | string[] | undefined
   ) => {
     dispatch({ type: "changeField", field, value })
   }

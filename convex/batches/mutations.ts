@@ -4,6 +4,7 @@ import { requireOwner } from "../auth/guards"
 import { DEFAULT_CONVERSION_FACTOR } from "../lib/constants"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
+import { normalizeKeywords } from "../validators/helpers"
 import { stockInArgs, updateBatchArgs, voidBatchArgs } from "./validators"
 
 /**
@@ -60,6 +61,7 @@ export const stockIn = zMutation({
       totalProcurementCost,
       lowStockThreshold,
       imageStorageId,
+      keywords,
       userAgent,
     }
   ) => {
@@ -69,6 +71,8 @@ export const stockIn = zMutation({
       perUserLimit(ctx, "createBatch", callerId),
       globalLimit(ctx, "globalCreateSupplier"),
     ])
+
+    const normalizedKeywords = normalizeKeywords(keywords)
 
     let resolvedProductId = productId
 
@@ -121,6 +125,7 @@ export const stockIn = zMutation({
         lowStockThreshold: lowStockThreshold ?? 0,
         status: "active",
         imagePath: imageStorageId,
+        ...(normalizedKeywords ? { keywords: normalizedKeywords } : {}),
       })
     }
 
@@ -189,6 +194,7 @@ export const stockIn = zMutation({
           supplier: supplierDoc?.companyName ?? "—",
           totalCost: totalProcurementCost,
           unitCost,
+          ...(mode === "new" ? { keywords: normalizedKeywords ?? [] } : {}),
         },
       }),
       resourceType: "batch",

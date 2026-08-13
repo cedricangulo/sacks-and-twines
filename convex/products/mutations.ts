@@ -4,6 +4,7 @@ import { requireOwner } from "../auth/guards"
 import { DEFAULT_CONVERSION_FACTOR } from "../lib/constants"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
+import { normalizeKeywords } from "../validators/helpers"
 import {
   archiveProductArgs,
   createProductArgs,
@@ -27,7 +28,15 @@ export const create = zMutation({
   args: createProductArgs,
   handler: async (
     ctx,
-    { name, category, baseUom, conversionFactor, lowStockThreshold, userAgent }
+    {
+      name,
+      category,
+      baseUom,
+      conversionFactor,
+      lowStockThreshold,
+      keywords,
+      userAgent,
+    }
   ) => {
     const callerId = await requireOwner(ctx)
 
@@ -54,6 +63,8 @@ export const create = zMutation({
         throw new Error("Failed to generate unique SKU code after 20 attempts")
     }
 
+    const normalizedKeywords = normalizeKeywords(keywords)
+
     const productId = await ctx.db.insert("products", {
       skuCode,
       name,
@@ -64,6 +75,7 @@ export const create = zMutation({
       totalAssetValue: 0,
       lowStockThreshold: lowStockThreshold ?? 0,
       status: "active",
+      ...(normalizedKeywords ? { keywords: normalizedKeywords } : {}),
     })
 
     await ctx.runMutation(internal.auditLogs.mutations.log, {
@@ -105,6 +117,7 @@ export const update = zMutation({
       baseUom,
       conversionFactor,
       lowStockThreshold,
+      keywords,
       imageStorageId,
       userAgent,
     }
@@ -142,12 +155,18 @@ export const update = zMutation({
         )
     }
 
+    const normalizedKeywords = normalizeKeywords(keywords)
+
     const patch: Partial<Doc<"products">> = {
       name,
       category,
       baseUom,
       conversionFactor: conversionFactor ?? DEFAULT_CONVERSION_FACTOR[category],
       lowStockThreshold: lowStockThreshold ?? 0,
+    }
+
+    if (keywords !== undefined) {
+      patch.keywords = normalizedKeywords
     }
 
     if (imageStorageId != null) {
@@ -182,12 +201,37 @@ export const update = zMutation({
         new: imageStorageId,
       }
     }
+    if (keywords !== undefined) {
+      const oldKeywords =
+        normalizeKeywords(existing.keywords as string[] | undefined) ?? []
+      const newKeywords = normalizedKeywords ?? []
+      const unchanged =
+        oldKeywords.length === newKeywords.length &&
+        oldKeywords.every((keyword, i) => keyword === newKeywords[i])
+      if (!unchanged) {
+        changes.keywords = { old: oldKeywords, new: newKeywords }
+      }
+    }
+
+    const changeLabels: Record<string, string> = {
+      name: "name",
+      conversion_factor: "conversion factor",
+      low_stock_threshold: "low stock threshold",
+      image: "image",
+      keywords: "keywords",
+    }
+    const changedFields = Object.keys(changes).map(
+      (key) => changeLabels[key] ?? key
+    )
 
     await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "product_update",
       description: JSON.stringify({
-        summary: `Updated product ${existing.name} → ${name}`,
+        summary:
+          changedFields.length > 0
+            ? `Updated ${existing.name} — ${changedFields.join(", ")}`
+            : `Updated ${existing.name}`,
         changes: Object.keys(changes).length > 0 ? changes : undefined,
       }),
       resourceType: "product",

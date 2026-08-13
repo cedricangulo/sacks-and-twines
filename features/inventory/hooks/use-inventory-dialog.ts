@@ -215,7 +215,7 @@ export function useInventoryDialog() {
   }, [])
 
   const handleSubmit = useCallback(
-    async (event: SubmitEvent<HTMLFormElement>) => {
+    async (event: SubmitEvent<HTMLFormElement>, rawKeywords: string[]) => {
       event.preventDefault()
       setErrors({})
 
@@ -229,6 +229,11 @@ export function useInventoryDialog() {
       const formData = new FormData(form)
 
       const formName = String(formData.get("name") ?? "")
+
+      const keywords =
+        mode === "new"
+          ? rawKeywords.map((k) => k.trim()).filter(Boolean)
+          : undefined
 
       const payload = {
         mode,
@@ -261,6 +266,7 @@ export function useInventoryDialog() {
               : undefined
             : undefined,
         imageStorageId: imageStorageId ?? undefined,
+        keywords,
       }
 
       const result = validateStockIn(payload)

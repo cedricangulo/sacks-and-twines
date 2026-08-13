@@ -7,6 +7,9 @@ const auditMeta = {
 
 const positiveNumber = z.number().min(0.01, "Must be greater than zero")
 
+// Normalizes and validates a list of search keyword/alias strings for a product.
+const keywordsSchema = z.optional(z.array(z.string().min(1).max(20)))
+
 // Arguments for stocking inventory in (either into an existing product or a new one).
 export const stockInArgs = {
   mode: z.union([z.literal("existing"), z.literal("new")]),
@@ -24,6 +27,7 @@ export const stockInArgs = {
   totalProcurementCost: positiveNumber,
   lowStockThreshold: z.optional(z.number().min(0)),
   imageStorageId: z.optional(z.string()),
+  keywords: keywordsSchema,
   ...auditMeta,
 }
 

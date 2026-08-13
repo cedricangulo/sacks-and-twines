@@ -1,8 +1,9 @@
 "use client"
 
 import { InfoIcon } from "@phosphor-icons/react"
+import { Tag, TagInput } from "emblor"
 import dynamic from "next/dynamic"
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -59,6 +60,19 @@ export default function AddInventoryDialog() {
     handleSubmit,
   } = useInventoryDialog()
 
+  const [keywordTags, setKeywordTags] = useState<Tag[]>([])
+  const [activeTagIndex, setActiveTagIndex] = useState<number | null>(null)
+
+  // Keyword tags are dialog-local state, so the hook's open reset never clears
+  // them. Reset on every open so stale tags from a previous session aren't
+  // submitted with a new product.
+  useEffect(() => {
+    if (open) {
+      setKeywordTags([])
+      setActiveTagIndex(null)
+    }
+  }, [open])
+
   const formState = useMemo(
     () => ({ fields, locked, errors, supplierOptions }),
     [fields, locked, errors, supplierOptions]
@@ -91,7 +105,12 @@ export default function AddInventoryDialog() {
 
         <form
           id="inventory-form"
-          onSubmit={handleSubmit}
+          onSubmit={(event) =>
+            handleSubmit(
+              event,
+              keywordTags.map((tag) => tag.text)
+            )
+          }
           noValidate
           className="flex flex-col gap-6"
         >
@@ -142,6 +161,33 @@ export default function AddInventoryDialog() {
                         onInput={() => clearFieldError("name")}
                       />
                     </FieldContent>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel htmlFor="keywords">Search Keywords</FieldLabel>
+                    <FieldContent>
+                      <TagInput
+                        id="keywords"
+                        activeTagIndex={activeTagIndex}
+                        setActiveTagIndex={setActiveTagIndex}
+                        tags={keywordTags}
+                        setTags={setKeywordTags}
+                        placeholder="Add a search keyword"
+                        styleClasses={{
+                          inlineTagsContainer:
+                            "border-input rounded-3xl bg-background transition-[color,box-shadow] focus-within:border-ring outline-none focus-within:ring-[3px] focus-within:ring-ring/50 p-1 gap-1",
+                          input: "w-full min-w-[80px] shadow-none px-2 h-7",
+                          tag: {
+                            body: "h-7 relative bg-background border border-input hover:bg-background rounded-md font-medium text-xs ps-2 pe-7",
+                            closeButton:
+                              "absolute -inset-y-px -end-px p-0 rounded-e-md flex size-7 transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] text-muted-foreground/80 hover:text-foreground",
+                          },
+                        }}
+                      />
+                    </FieldContent>
+                    <p className="type-body-small text-muted-foreground">
+                      Optional aliases used to find this item in product search.
+                    </p>
                   </Field>
                 </div>
               )}

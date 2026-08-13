@@ -59,6 +59,7 @@ export function useInventoryFilters(products: Product[] | undefined) {
         (p) =>
           p.name.toLowerCase().includes(q) ||
           p.skuCode.toLowerCase().includes(q) ||
+          p.keywords?.some((k) => k.toLowerCase().includes(q)) === true ||
           p.category.toLowerCase().includes(q) ||
           p.baseUom.toLowerCase().includes(q) ||
           p.currentQuantity.toString().toLowerCase().includes(q) ||

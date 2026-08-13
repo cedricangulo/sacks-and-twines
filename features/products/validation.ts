@@ -27,6 +27,7 @@ export interface DispatchReadyProduct {
   imagePath?: string
   lastSupplierId?: Id<"suppliers">
   imageUrl?: string
+  keywords?: string[]
   availableBatches: DispatchBatch[]
 }
 
@@ -41,6 +42,7 @@ const ProductUpdateSchema = z.object({
   baseUom: z.union([z.literal("piece"), z.literal("roll"), z.literal("meter")]),
   conversionFactor: z.optional(z.number().min(0)),
   lowStockThreshold: z.optional(z.number().min(0)),
+  keywords: z.optional(z.array(z.string())),
 })
 
 export type ProductUpdateFormData = z.infer<typeof ProductUpdateSchema>

@@ -6,6 +6,9 @@ const auditMeta = {
   userAgent: z.optional(z.string()),
 }
 
+// Normalizes and validates a list of search keyword/alias strings for a product.
+const keywordsSchema = z.optional(z.array(z.string().min(1).max(20)))
+
 // Arguments for creating a product.
 export const createProductArgs = {
   name: normalizedString(1, 255),
@@ -17,6 +20,7 @@ export const createProductArgs = {
   baseUom: z.union([z.literal("piece"), z.literal("roll"), z.literal("meter")]),
   conversionFactor: z.optional(z.number().min(0)),
   lowStockThreshold: z.optional(z.number().min(0)),
+  keywords: keywordsSchema,
   ...auditMeta,
 }
 

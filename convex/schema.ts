@@ -42,6 +42,7 @@ export default defineSchema({
     totalAssetValue: v.number(),
     lowStockThreshold: v.number(),
     status: v.union(v.literal("active"), v.literal("archived")),
+    keywords: v.optional(v.array(v.string())),
     imagePath: v.optional(v.string()),
     createdAt: v.optional(v.number()),
   })

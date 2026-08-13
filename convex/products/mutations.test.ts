@@ -520,6 +520,137 @@ describe("product mutations", () => {
     expect(product?.conversionFactor).toBeUndefined()
   })
 
+  it("create stores normalized keywords", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.mutation(api.products.mutations.create, {
+      name: "Twist Twine",
+      category: "twines",
+      baseUom: "meter",
+      keywords: ["Straw", "straw", "  Hay ", "  ", "TIE"],
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+    expect(product?.keywords).toEqual(["straw", "hay", "tie"])
+  })
+
+  it("update replaces product keywords", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.mutation(api.products.mutations.create, {
+      name: "Keyword Product",
+      category: "sacks",
+      baseUom: "piece",
+      keywords: ["old"],
+    })
+
+    await t.mutation(api.products.mutations.update, {
+      productId,
+      name: "Keyword Product",
+      category: "sacks",
+      baseUom: "piece",
+      keywords: ["straw", "hay"],
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+    expect(product?.keywords).toEqual(["straw", "hay"])
+  })
+
+  it("update clears keywords when an empty list is passed", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-KW",
+        name: "Keyword Product",
+        category: "sacks",
+        baseUom: "piece",
+        conversionFactor: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+        keywords: ["straw"],
+      })
+    })
+
+    await t.mutation(api.products.mutations.update, {
+      productId,
+      name: "Keyword Product",
+      category: "sacks",
+      baseUom: "piece",
+      keywords: [],
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+    expect((product as Record<string, unknown>).keywords).toBeUndefined()
+  })
+
+  it("update leaves keywords untouched when not provided", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-KW2",
+        name: "Keyword Product 2",
+        category: "sacks",
+        baseUom: "piece",
+        conversionFactor: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+        keywords: ["straw"],
+      })
+    })
+
+    await t.mutation(api.products.mutations.update, {
+      productId,
+      name: "Keyword Product 2",
+      category: "sacks",
+      baseUom: "piece",
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+    expect(product?.keywords).toEqual(["straw"])
+  })
+
   it("create sets default lowStockThreshold = 0", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
@@ -1045,7 +1176,103 @@ describe("product mutations", () => {
 
     expect(logs).toHaveLength(1)
     expect(logs[0].action).toBe("product_update")
-    expect(logs[0].description).toContain("After Update")
+    expect(logs[0].description).toContain("Updated Before Update — name")
+  })
+
+  it("update audits keyword changes", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-KW1",
+        name: "Keyword Product",
+        category: "sacks",
+        baseUom: "piece",
+        conversionFactor: 0,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+        keywords: ["old", "PP"],
+      })
+    })
+
+    await t.mutation(api.products.mutations.update, {
+      productId,
+      name: "Keyword Product",
+      category: "sacks",
+      baseUom: "piece",
+      keywords: ["new", "PP"],
+    })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "product_update"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    const description = JSON.parse(logs[0].description)
+    expect(description.summary).toBe("Updated Keyword Product — keywords")
+    expect(description.changes.keywords).toEqual({
+      old: ["old", "pp"],
+      new: ["new", "pp"],
+    })
+  })
+
+  it("update does not audit unchanged keywords", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const productId = await t.run(async (ctx) => {
+      return await ctx.db.insert("products", {
+        skuCode: "SKU-KW2",
+        name: "Stable Product",
+        category: "sacks",
+        baseUom: "piece",
+        conversionFactor: 5,
+        currentQuantity: 0,
+        totalAssetValue: 0,
+        lowStockThreshold: 0,
+        status: "active",
+        keywords: ["pp", "polypropylene"],
+      })
+    })
+
+    await t.mutation(api.products.mutations.update, {
+      productId,
+      name: "Stable Product",
+      category: "sacks",
+      baseUom: "piece",
+      conversionFactor: 5,
+      keywords: ["PP", "polypropylene"],
+    })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "product_update"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    const description = JSON.parse(logs[0].description)
+    expect(description.summary).toBe("Updated Stable Product")
+    expect(description.changes?.keywords).toBeUndefined()
   })
 
   it("rejects product creation for deactivated owner", async () => {
