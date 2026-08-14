@@ -1,12 +1,9 @@
 import { createAccount } from "@convex-dev/auth/server"
 import { internal } from "./_generated/api"
 import type { Id } from "./_generated/dataModel"
-import { type ActionCtx, internalAction } from "./_generated/server"
-import {
-  CLEAR_CHUNK_LIMIT,
-  DENSE_DAYS,
-  DISPATCH_CHUNK_DAYS,
-} from "./lib/constants"
+import { internalAction } from "./_generated/server"
+import { DENSE_DAYS, DISPATCH_CHUNK_DAYS } from "./lib/constants"
+import { clearAllDomainTables } from "./seed/clear"
 
 // ─── Seed result shape ─────────────────────────────────────────────────────
 
@@ -35,51 +32,6 @@ type SeedPlan = {
     createdDate: number
     quantityRemaining: number
   }>
-}
-
-// ─── Chunked clear helper ──────────────────────────────────────────────────
-
-const CLEAR_TABLES = [
-  "dispatchItems",
-  "stockAdjustments",
-  "auditLogs",
-  "dispatches",
-  "batches",
-  "products",
-  "suppliers",
-] as const
-
-type ClearableTable = (typeof CLEAR_TABLES)[number]
-
-const MAX_CLEAR_ROUNDS = 200
-
-/**
- * Deletes every row from each domain table in bounded chunks so each
- * mutation call stays within Convex's read/write limits — even on a
- * database flooded by a previous seed run. Returns how many rows were
- * deleted per table.
- */
-async function clearAllTables(
-  ctx: ActionCtx
-): Promise<Record<ClearableTable, number>> {
-  const totals = {} as Record<ClearableTable, number>
-  for (const table of CLEAR_TABLES) {
-    let deleted = 0
-    for (let round = 0; round < MAX_CLEAR_ROUNDS; round++) {
-      const { deleted: chunk } = await ctx.runMutation(
-        internal.seed.clearTableChunk,
-        {
-          table,
-          limit: CLEAR_CHUNK_LIMIT,
-        }
-      )
-      deleted += chunk
-      if (chunk < CLEAR_CHUNK_LIMIT) break
-    }
-    totals[table] = deleted
-    console.log(`  • Cleared ${table}: ${deleted} rows`)
-  }
-  return totals
 }
 
 // ─── Internal Action: seedAll ──────────────────────────────────────────────
@@ -116,7 +68,7 @@ export const seedAll = internalAction({
         },
         profile: {
           email: staffEmail,
-          name: "Juan dela Cruz",
+          name: process.env.STAFF_NAME || "Staff",
           role: "staff",
           status: "active",
         },
@@ -154,7 +106,7 @@ export const seedAll = internalAction({
 
     // ── Clear existing data (chunked) ────────────────────────────────────
     console.log("\n  → Clearing existing data...")
-    await clearAllTables(ctx)
+    await clearAllDomainTables(ctx)
     const statusAfterClear = await ctx.runQuery(internal.seed.seedStatus)
     console.log("  → Post-clear status:", statusAfterClear)
 
@@ -256,7 +208,7 @@ export const seedClean = internalAction({
   handler: async (ctx): Promise<SeedResult> => {
     console.log("\n  → Running seedClean...")
 
-    const totals = await clearAllTables(ctx)
+    const totals = await clearAllDomainTables(ctx)
     const statusAfterClear = await ctx.runQuery(internal.seed.seedStatus)
     console.log("  → Post-clear status:", statusAfterClear)
 
@@ -312,7 +264,7 @@ export const seedTest = internalAction({
         },
         profile: {
           email: staffEmail,
-          name: "Juan dela Cruz",
+          name: process.env.STAFF_NAME || "Staff",
           role: "staff",
           status: "active",
         },
@@ -389,7 +341,7 @@ export const seedTest = internalAction({
 
     // ── Clear existing data (chunked) ────────────────────────────────────
     console.log("\n  → Clearing existing data...")
-    await clearAllTables(ctx)
+    await clearAllDomainTables(ctx)
 
     // ── Run the write mutation ───────────────────────────────────────────
     const result = await ctx.runMutation(internal.seed.writeTest, {

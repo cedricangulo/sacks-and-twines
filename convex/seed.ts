@@ -15,6 +15,7 @@ import {
   SEED_DATE_END,
   SEED_DATE_START,
 } from "./lib/constants"
+import { nextOrNumber } from "./lib/orNumber"
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -94,6 +95,7 @@ interface ProductDef {
   baseUom: "piece" | "roll" | "meter"
   conversionFactor: number | undefined
   lowStockThreshold: number
+  keywords?: string[]
 }
 
 const PRODUCT_DEFS: ProductDef[] = [
@@ -104,6 +106,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     baseUom: "piece",
     conversionFactor: SACKS_DEFAULT_PACK_SIZE,
     lowStockThreshold: 100,
+    keywords: ["sack", "laminated", "multi-wall"],
   },
   {
     name: "Assorted Sack",
@@ -111,6 +114,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     baseUom: "piece",
     conversionFactor: SACKS_DEFAULT_PACK_SIZE,
     lowStockThreshold: 100,
+    keywords: ["sack", "assorted"],
   },
   {
     name: "Woven Polypropylene Sack",
@@ -118,6 +122,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     baseUom: "piece",
     conversionFactor: SACKS_DEFAULT_PACK_SIZE,
     lowStockThreshold: 100,
+    keywords: ["sack", "pp", "polypropylene", "woven"],
   },
   {
     name: "Sand bag",
@@ -125,6 +130,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     baseUom: "piece",
     conversionFactor: SACKS_DEFAULT_PACK_SIZE,
     lowStockThreshold: 100,
+    keywords: ["sand", "bag", "construction"],
   },
   {
     name: "Red bag",
@@ -132,6 +138,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     baseUom: "piece",
     conversionFactor: SACKS_DEFAULT_PACK_SIZE,
     lowStockThreshold: 100,
+    keywords: ["red", "bag"],
   },
   // ── Twines (3 products) ──
   {
@@ -140,6 +147,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     baseUom: "meter",
     conversionFactor: undefined,
     lowStockThreshold: 50,
+    keywords: ["twine", "sewing", "string"],
   },
   {
     name: "Banana Twine",
@@ -147,6 +155,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     baseUom: "meter",
     conversionFactor: undefined,
     lowStockThreshold: 50,
+    keywords: ["twine", "banana", "baling"],
   },
   {
     name: "Twist Twine",
@@ -154,6 +163,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     baseUom: "meter",
     conversionFactor: undefined,
     lowStockThreshold: 50,
+    keywords: ["twine", "twist", "straw", "hay", "tie"],
   },
   // ── Thread (3 products) ──
   {
@@ -162,6 +172,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     baseUom: "roll",
     conversionFactor: undefined,
     lowStockThreshold: 20,
+    keywords: ["thread", "sewing", "small"],
   },
   {
     name: "Sewing Thread Medium",
@@ -169,6 +180,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     baseUom: "roll",
     conversionFactor: undefined,
     lowStockThreshold: 20,
+    keywords: ["thread", "sewing", "medium"],
   },
   {
     name: "Sewing Thread Large",
@@ -176,23 +188,24 @@ const PRODUCT_DEFS: ProductDef[] = [
     baseUom: "roll",
     conversionFactor: undefined,
     lowStockThreshold: 20,
+    keywords: ["thread", "sewing", "large"],
   },
 ]
 
 // ─── Product image mapping ──────────────────────────────────────────────────
 
 const IMAGE_MAP: Record<string, string> = {
-  "Laminated Sack": "kg2c6ffb9tqyme8qp4znbktm998b4xq4",
-  "Assorted Sack": "kg2fjqx0rrxbdmnsg1peqyppf58b5yyq",
-  "Woven Polypropylene Sack": "kg2fvfybfxk4t6zkhp6cvnpkb98b4mjy",
-  "Sand bag": "kg21k13z862tsgg9s0y5nf695x8b43fv",
-  "Red bag": "kg2bfh4tmqd114vcqr76qv7xws8b4jyf",
-  "Sewing Twine": "kg2dx1xev3ck3phrncjc3ps80s8b4gk9",
-  "Banana Twine": "kg2d46czs8p3kfs8c7b6b13x118b5stt",
-  "Twist Twine": "kg2ecynsrgnfsveqe0cw0vkt798b5n1e",
-  "Sewing Thread Small": "kg2deeyss2z9cqvk0g9zktpnhh8b5nms",
-  "Sewing Thread Medium": "kg294k1ymwbgza5haqhpyh841x8b5rwg",
-  "Sewing Thread Large": "kg2c7ek52qzpc4k0cmf6s2k4cd8b5c4j",
+  "Laminated Sack": "kg2a8e4cnw51ej7exzg56v84yd8cfazd",
+  "Assorted Sack": "kg21zqzp7q86xqf5sdhd61tg0n8ceh64",
+  "Woven Polypropylene Sack": "kg21hew7qkknbqp4qzw874dvxh8ce7b8",
+  "Sand bag": "kg28vzkddd5a3193gmj798xm418cege5",
+  "Red bag": "kg2edpxzkvzkywkn1dngnm14c98cfm6h",
+  "Sewing Twine": "kg2fxt8tx2v9e8kezc726jcpf58ce0eh",
+  "Banana Twine": "kg22wkkhq95d09sgyhxjda5nns8cevtt",
+  "Twist Twine": "kg234cp0dx6fdbgh3y72hz38kn8ce8c8",
+  "Sewing Thread Small": "kg223dbvr4a3s5612997tr79ph8cek26",
+  "Sewing Thread Medium": "kg2bay252262jhq59a922t9akh8cehaa",
+  "Sewing Thread Large": "kg2cjh5shac7n98gzxgamh7zf98cf501",
 }
 
 // ─── Seed plan types & validators ──────────────────────────────────────────
@@ -223,6 +236,7 @@ interface DispatchSpec {
   createdDate: number
   status: "completed" | "voided"
   customerReference: string | undefined
+  orNumber?: string
   items: Array<{
     batchId: Id<"batches">
     productId: Id<"products">
@@ -395,12 +409,17 @@ async function seedDispatches(
 
   const dispatchIdBySpec = new Map<number, Id<"dispatches">>()
   for (const [index, spec] of specs.entries()) {
+    const orNumber = await nextOrNumber(ctx, spec.createdDate)
     const dispatchId = await ctx.db.insert("dispatches", {
       userId: spec.userId,
       customerReference: spec.customerReference,
+      orNumber,
       status: spec.status,
       userName: userNameMap[spec.userId],
       itemCount: spec.items.length,
+      totalQuantity: toFloat(
+        spec.items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
+      ),
       createdAt: spec.createdDate,
     })
     dispatchIdBySpec.set(index, dispatchId)
@@ -500,6 +519,7 @@ export const writeBase = internalMutation({
           status: "active",
           imagePath: IMAGE_MAP[def.name],
           createdAt: productCreatedAt.getTime(),
+          ...(def.keywords ? { keywords: def.keywords } : {}),
         })
         return { id, def }
       })
@@ -876,13 +896,13 @@ export const writeAuthLogs = internalMutation({
     const authEvents: Array<Record<string, unknown>> = [
       {
         action: "auth_sign_in",
-        email: process.env.STAFF_EMAIL ?? "juandelacruz@gmail.com",
-        name: "Juan dela Cruz",
+        email: process.env.STAFF_EMAIL,
+        name: process.env.STAFF_NAME || "Staff",
         role: "staff",
       },
       {
         action: "auth_sign_in_failed",
-        email: process.env.STAFF_EMAIL ?? "juandelacruz@gmail.com",
+        email: process.env.STAFF_EMAIL,
         reason: "invalid_credentials",
       },
     ]
@@ -893,7 +913,7 @@ export const writeAuthLogs = internalMutation({
         {
           action: "auth_sign_in",
           email: ownerEmail,
-          name: "Owner",
+          name: process.env.OWNER_NAME || "Owner",
           role: "owner",
         },
         {
@@ -970,6 +990,7 @@ export const writeTest = internalMutation({
           status: isArchived ? "archived" : "active",
           imagePath: IMAGE_MAP[def.name],
           createdAt: productCreatedAt.getTime(),
+          ...(def.keywords ? { keywords: def.keywords } : {}),
         })
         return { id, def }
       })
@@ -1167,6 +1188,7 @@ export const writeTest = internalMutation({
       const dispatchId = await ctx.db.insert("dispatches", {
         userId,
         customerReference: customerReference ?? undefined,
+        orNumber: await nextOrNumber(ctx, dBase.getTime()),
         status: isVoided ? "voided" : "completed",
         createdAt: dBase.getTime(),
       })
@@ -1244,12 +1266,17 @@ export const writeTest = internalMutation({
       }
     }
 
-    // Post-process dispatches: remove empty ones, set itemCount and userName
+    // Post-process dispatches: remove empty ones, set itemCount, totalQuantity and userName
     const itemCountMap = new Map<string, number>()
+    const totalQuantityMap = new Map<string, number>()
     for (const item of dispatchItemsToInsert) {
       itemCountMap.set(
         item.dispatchId,
         (itemCountMap.get(item.dispatchId) ?? 0) + 1
+      )
+      totalQuantityMap.set(
+        item.dispatchId,
+        (totalQuantityMap.get(item.dispatchId) ?? 0) + item.dispatchQuantity
       )
     }
 
@@ -1278,6 +1305,7 @@ export const writeTest = internalMutation({
       ...nonEmptyDispatches.map((d) =>
         ctx.db.patch(d.id, {
           itemCount: itemCountMap.get(d.id),
+          totalQuantity: toFloat(totalQuantityMap.get(d.id) ?? 0),
           userName: userNameMap[d.userId],
         })
       ),
@@ -1569,13 +1597,13 @@ export const writeTest = internalMutation({
     const authEvents = [
       {
         action: "auth_sign_in",
-        email: process.env.STAFF_EMAIL ?? "juandelacruz@gmail.com",
-        name: "Juan dela Cruz",
+        email: process.env.STAFF_EMAIL,
+        name: process.env.STAFF_NAME || "Staff",
         role: "staff",
       },
       {
         action: "auth_sign_in_failed",
-        email: process.env.STAFF_EMAIL ?? "juandelacruz@gmail.com",
+        email: process.env.STAFF_EMAIL,
         reason: "invalid_credentials",
       },
     ]
@@ -1586,7 +1614,7 @@ export const writeTest = internalMutation({
         {
           action: "auth_sign_in",
           email: ownerEmail,
-          name: "Owner",
+          name: process.env.OWNER_NAME || "Owner",
           role: "owner",
         },
         {
