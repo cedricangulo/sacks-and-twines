@@ -42,12 +42,14 @@ export const list = query({
       dispatches.map(async (dispatch) => {
         if (
           dispatch.userName !== undefined &&
-          dispatch.itemCount !== undefined
+          dispatch.itemCount !== undefined &&
+          dispatch.totalQuantity !== undefined
         ) {
           return {
             ...dispatch,
             userName: dispatch.userName,
             itemCount: dispatch.itemCount,
+            totalQuantity: dispatch.totalQuantity,
           }
         }
         const [user, items] = await Promise.all([
@@ -61,6 +63,10 @@ export const list = query({
           ...dispatch,
           userName: user?.name ?? "Unknown",
           itemCount: items.length,
+          totalQuantity: items.reduce(
+            (sum, item) => sum + item.dispatchQuantity,
+            0
+          ),
         }
       })
     )
@@ -165,6 +171,8 @@ export const getItemsByDispatch = query({
           productName: product?.name ?? "Unknown",
           productSku: product?.skuCode ?? "",
           batchCode: batch?.batchCode ?? "",
+          baseUom: product?.baseUom ?? "",
+          conversionFactor: product?.conversionFactor ?? 0,
           lineTotal: item.quantityDeducted * item.unitCost,
         }
       })

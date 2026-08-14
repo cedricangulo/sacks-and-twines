@@ -296,6 +296,7 @@ export const exportDispatches = query({
           _id: d._id,
           date: d.createdAt ?? d._creationTime,
           status: d.status,
+          orNumber: d.orNumber ?? "",
           customerRef: d.customerReference ?? "",
           dispatchedBy: userName,
           itemCount,
@@ -324,6 +325,7 @@ export const exportDispatchItems = query({
     const rows: Array<{
       date: number
       status: string
+      orNumber: string
       customerRef: string
       dispatchedBy: string
       product: string
@@ -356,6 +358,7 @@ export const exportDispatchItems = query({
         rows.push({
           date: d.createdAt ?? d._creationTime,
           status: d.status,
+          orNumber: d.orNumber ?? "",
           customerRef: d.customerReference ?? "",
           dispatchedBy: userName,
           product: product?.name ?? "",

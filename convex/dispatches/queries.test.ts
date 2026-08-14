@@ -141,6 +141,9 @@ describe("dispatch queries", () => {
     })
 
     expect(result[0].userName).toBe("Alice")
+
+    // Fallback path computes totalQuantity from dispatch items (none seeded)
+    expect(result[0].totalQuantity).toBe(0)
   })
 
   it("filters by createdByUserId", async () => {
@@ -257,6 +260,8 @@ describe("dispatch queries", () => {
     expect(items[0].productName).toBe("Test Product")
     expect(items[0].productSku).toBe("SKU-TEST-001")
     expect(items[0].batchCode).toBe("BATCH-001")
+    expect(items[0].baseUom).toBe("piece")
+    expect(items[0].conversionFactor).toBe(0)
     expect(items[0].lineTotal).toBe(2500)
   })
 })

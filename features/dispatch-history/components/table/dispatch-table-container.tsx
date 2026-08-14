@@ -50,6 +50,16 @@ export default function DispatchTableContainer({
         enableHiding: false,
         enableGlobalFilter: false,
       }),
+      columnHelper.accessor("orNumber", {
+        header: "OR Number",
+        cell: (info) => (
+          <span className="font-mono tabular-nums">
+            {info.getValue() ?? "-"}
+          </span>
+        ),
+        sortingFn: "alphanumeric",
+        enableHiding: false,
+      }),
       columnHelper.accessor("customerReference", {
         header: "Customer Ref",
         cell: (info) => (
@@ -77,6 +87,15 @@ export default function DispatchTableContainer({
       columnHelper.accessor((row) => row.itemCount, {
         id: "itemCount",
         header: "Total Items",
+        cell: (info) => (
+          <span className="font-mono tabular-nums">{info.getValue()}</span>
+        ),
+        sortingFn: "basic",
+        enableSorting: false,
+      }),
+      columnHelper.accessor((row) => row.totalQuantity ?? 0, {
+        id: "totalQuantity",
+        header: "Total Qty",
         cell: (info) => (
           <span className="font-mono tabular-nums">{info.getValue()}</span>
         ),

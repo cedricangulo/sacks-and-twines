@@ -68,10 +68,12 @@ export default function DispatchHistoryPage() {
         <SkeletonTable
           columns={[
             { label: "", type: "expand" },
+            { label: "OR Number", type: "mono" },
             { label: "Customer Ref", type: "text" },
             { label: "Dispatched By", type: "text" },
             { label: "Status", type: "badge" },
             { label: "Total Items", type: "mono" },
+            { label: "Total Qty", type: "mono" },
             { label: "Dispatched At", type: "date" },
           ]}
           actions="none"

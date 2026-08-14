@@ -1,6 +1,7 @@
 import { internal } from "../_generated/api"
 import { requireActive } from "../auth/guards"
 import { DISPATCH_UOM_BY_CATEGORY, INTEGER_UOMS } from "../lib/constants"
+import { nextOrNumber } from "../lib/orNumber"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { submitDispatchArgs } from "./validators"
@@ -13,7 +14,7 @@ import { submitDispatchArgs } from "./validators"
  * @param customerReference - Optional customer PO/SO reference.
  * @param items - Array of dispatch line items (product, quantity, UOM).
  * @param userAgent - Browser user agent for audit logging.
- * @returns Object containing `dispatchId` and `itemCount`.
+ * @returns Object containing `dispatchId`, `itemCount`, `totalQuantity`, and `orNumber`.
  */
 export const submit = zMutation({
   args: submitDispatchArgs,
@@ -26,14 +27,19 @@ export const submit = zMutation({
       globalLimit(ctx, "globalMutations"),
     ])
 
+    const timestampMs = Date.now()
+    const orNumber = await nextOrNumber(ctx, timestampMs)
+
     const dispatchId = await ctx.db.insert("dispatches", {
       userId: callerId,
       customerReference: customerReference ?? undefined,
+      orNumber,
       status: "completed",
       userName: caller?.name ?? "Unknown",
     })
 
     let totalDispatchItems = 0
+    let totalQuantity = 0
     let totalCostDeducted = 0
     const batchChanges: Record<string, { old: number; new: number }> = {}
     const itemSummaries: string[] = []
@@ -126,6 +132,7 @@ export const submit = zMutation({
         totalCostDeducted += deducted * batch.unitCost
         itemCost += deducted * batch.unitCost
         totalDispatchItems++
+        totalQuantity += dispatchQty
       }
 
       itemSummaries.push(
@@ -152,6 +159,7 @@ export const submit = zMutation({
       description: JSON.stringify({
         summary: `Dispatched ${items.length} product(s) across ${totalDispatchItems} batch(es)${customerReference ? ` to ${customerReference}` : ""}`,
         details: {
+          orNumber,
           customerReference: customerReference ?? "—",
           totalItems: items.length,
           totalBatches: totalDispatchItems,
@@ -165,8 +173,16 @@ export const submit = zMutation({
       userAgent,
     })
 
-    await ctx.db.patch(dispatchId, { itemCount: totalDispatchItems })
+    await ctx.db.patch(dispatchId, {
+      itemCount: totalDispatchItems,
+      totalQuantity,
+    })
 
-    return { dispatchId, itemCount: totalDispatchItems }
+    return {
+      dispatchId,
+      itemCount: totalDispatchItems,
+      totalQuantity,
+      orNumber,
+    }
   },
 })

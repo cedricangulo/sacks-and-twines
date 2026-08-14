@@ -35,6 +35,15 @@ export default function ReportDispatchTableContainer({
         ),
         sortingFn: "alphanumeric",
       }),
+      columnHelper.accessor("orNumber", {
+        header: "OR Number",
+        cell: (info) => (
+          <span className="font-mono tabular-nums">
+            {info.getValue() ?? "-"}
+          </span>
+        ),
+        sortingFn: "alphanumeric",
+      }),
       columnHelper.accessor("itemCount", {
         header: "Items",
         cell: (info) => (

@@ -13,6 +13,7 @@ export interface ReportDispatch {
   createdAt?: number
   userId: Id<"users">
   customerReference?: string
+  orNumber?: string
   status: "completed" | "voided"
   userName?: string
   itemCount?: number

@@ -202,6 +202,12 @@ export const EXPORT_DISPATCH_COLUMNS: ExportColumn[] = [
     required: false,
   },
   {
+    id: "orNumber",
+    label: "OR Number",
+    section: "Details",
+    required: false,
+  },
+  {
     id: "itemCount",
     label: "Items Count",
     section: "Details",
@@ -227,6 +233,12 @@ export const EXPORT_DISPATCH_ITEM_COLUMNS: ExportColumn[] = [
   {
     id: "dispatchedBy",
     label: "Dispatched By",
+    section: "Details",
+    required: false,
+  },
+  {
+    id: "orNumber",
+    label: "OR Number",
     section: "Details",
     required: false,
   },

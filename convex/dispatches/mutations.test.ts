@@ -236,6 +236,7 @@ describe("dispatch mutations", () => {
       expect(dispatch).not.toBeNull()
       expect(dispatch!.customerReference).toBe("Walk-in Customer")
       expect(dispatch!.status).toBe("completed")
+      expect(dispatch!.totalQuantity).toBe(10)
     })
 
     // Verify dispatch item
@@ -314,6 +315,82 @@ describe("dispatch mutations", () => {
     })
   })
 
+  it("submits a dispatch with an auto-generated OR tracking number", async () => {
+    const t = makeTest()
+    const userId = await createUser(t)
+    authMocks.getAuthUserId.mockImplementation(async () => userId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        currentQuantity: 100,
+        totalAssetValue: 50000,
+      }),
+      createSupplier(t),
+    ])
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId,
+      quantityReceived: 100,
+      quantityRemaining: 100,
+      unitCost: 500,
+    })
+
+    const result = await t.mutation(api.dispatches.mutations.submit, {
+      customerReference: "Suki Customer",
+      items: [{ productId, quantity: 10, dispatchUom: "piece" }],
+    })
+
+    expect(result.orNumber).toBeDefined()
+    expect(result.orNumber).toMatch(/^OR-\d{8}-\d{4}$/)
+
+    await t.run(async (ctx) => {
+      const dispatch = await ctx.db.get(result.dispatchId)
+      expect(dispatch!.orNumber).toBe(result.orNumber)
+      expect(dispatch!.customerReference).toBe("Suki Customer")
+    })
+
+    // Audit log includes the OR number for traceability.
+    await t.run(async (ctx) => {
+      const logs = await ctx.db.query("auditLogs").collect()
+      const description = JSON.parse(logs[0].description)
+      expect(description.details.orNumber).toBe(result.orNumber)
+    })
+  })
+
+  it("generates a unique OR number per dispatch", async () => {
+    const t = makeTest()
+    const userId = await createUser(t)
+    authMocks.getAuthUserId.mockImplementation(async () => userId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        currentQuantity: 200,
+        totalAssetValue: 100000,
+      }),
+      createSupplier(t),
+    ])
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId,
+      quantityReceived: 200,
+      quantityRemaining: 200,
+      unitCost: 500,
+    })
+
+    const first = await t.mutation(api.dispatches.mutations.submit, {
+      items: [{ productId, quantity: 10, dispatchUom: "piece" }],
+    })
+    const second = await t.mutation(api.dispatches.mutations.submit, {
+      items: [{ productId, quantity: 10, dispatchUom: "piece" }],
+    })
+
+    expect(first.orNumber).toMatch(/^OR-\d{8}-\d{4}$/)
+    expect(second.orNumber).toMatch(/^OR-\d{8}-\d{4}$/)
+    expect(first.orNumber).not.toBe(second.orNumber)
+  })
+
   it("submits multi-item dispatch", async () => {
     const t = makeTest()
     const userId = await createUser(t)
@@ -358,6 +435,7 @@ describe("dispatch mutations", () => {
     })
 
     expect(result.itemCount).toBe(2)
+    expect(result.totalQuantity).toBe(30)
 
     await t.run(async (ctx) => {
       const items = await ctx.db
@@ -412,6 +490,11 @@ describe("dispatch mutations", () => {
     // Dispatch 25 units — should take all 10 from batch1, then 15 from batch2
     const result = await t.mutation(api.dispatches.mutations.submit, {
       items: [{ productId, quantity: 25, dispatchUom: "piece" }],
+    })
+
+    await t.run(async (ctx) => {
+      const dispatch = await ctx.db.get(result.dispatchId)
+      expect(dispatch!.totalQuantity).toBe(25)
     })
 
     await t.run(async (ctx) => {
@@ -660,6 +743,11 @@ describe("dispatch mutations", () => {
     // Dispatch 3 rolls = 150 meters
     const result = await t.mutation(api.dispatches.mutations.submit, {
       items: [{ productId, quantity: 3, dispatchUom: "roll" }],
+    })
+
+    await t.run(async (ctx) => {
+      const dispatch = await ctx.db.get(result.dispatchId)
+      expect(dispatch!.totalQuantity).toBe(3)
     })
 
     await t.run(async (ctx) => {

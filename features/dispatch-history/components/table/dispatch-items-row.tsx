@@ -37,7 +37,6 @@ const SKELETON_BY_COLUMN_ID: Record<string, SkeletonCellType> = {
   productSku: "mono",
   batchCode: "mono",
   dispatchQuantity: "mono",
-  quantityDeducted: "mono",
   unitCost: "mono",
   lineTotal: "mono",
 }
@@ -80,31 +79,48 @@ export default function DispatchItemsRow({
       columnHelper.accessor("dispatchQuantity", {
         header: "Qty",
         cell: (info) => {
-          const row = info.row.original
+          const {
+            dispatchQuantity,
+            dispatchUom,
+            baseUom,
+            quantityDeducted,
+            conversionFactor,
+          } = info.row.original
+
+          const fmt = (n: number) =>
+            formatNumber(n, {
+              locale: "en-PH",
+              maximumFractionDigits: 4,
+            })
+
+          const quantityLabel = `${fmt(dispatchQuantity)} ${dispatchUom}`
+          let detail: string | null = null
+          if (dispatchUom !== baseUom && baseUom) {
+            detail = `${fmt(quantityDeducted)} ${baseUom}`
+          } else if (
+            dispatchUom === "piece" &&
+            conversionFactor &&
+            conversionFactor > 0 &&
+            dispatchQuantity % conversionFactor === 0
+          ) {
+            const packs = dispatchQuantity / conversionFactor
+            detail = `${fmt(packs)} ${packs === 1 ? "pack" : "packs"}`
+          }
+
           return (
             <span className="font-mono tabular-nums">
-              {formatNumber(row.dispatchQuantity, {
-                locale: "en-PH",
-                maximumFractionDigits: 4,
-              })}{" "}
-              {row.dispatchUom}
+              {quantityLabel}
+              {detail ? (
+                <>
+                  {" "}
+                  <span className="text-muted-foreground">({detail})</span>
+                </>
+              ) : null}
             </span>
           )
         },
         sortingFn: "basic",
         id: "dispatchQuantity",
-      }),
-      columnHelper.accessor("quantityDeducted", {
-        header: "Qty Deducted",
-        cell: (info) => (
-          <span className="font-mono tabular-nums">
-            {formatNumber(info.getValue(), {
-              locale: "en-PH",
-              maximumFractionDigits: 4,
-            })}
-          </span>
-        ),
-        sortingFn: "basic",
       }),
       columnHelper.accessor("unitCost", {
         header: "Unit Cost",

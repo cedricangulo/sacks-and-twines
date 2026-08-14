@@ -1,6 +1,7 @@
 import { Migrations } from "@convex-dev/migrations"
 import { components } from "./_generated/api"
 import { DataModel } from "./_generated/dataModel"
+import { orDatePart } from "./lib/orNumber"
 
 export const migrations = new Migrations<DataModel>(components.migrations)
 
@@ -59,6 +60,26 @@ export const backfillDispatches = migrations.define({
       userName: user?.name ?? "Unknown",
       itemCount: items.length,
     })
+  },
+})
+
+/**
+ * Backfills `totalQuantity` on dispatch records that predate the field by
+ * summing their dispatch items' dispatch quantities.
+ */
+export const backfillDispatchTotalQuantities = migrations.define({
+  table: "dispatches",
+  migrateOne: async (ctx, dispatch) => {
+    if (dispatch.totalQuantity !== undefined) return
+    const items = await ctx.db
+      .query("dispatchItems")
+      .withIndex("by_dispatch", (q) => q.eq("dispatchId", dispatch._id))
+      .collect()
+    const totalQuantity = items.reduce(
+      (sum, item) => sum + item.dispatchQuantity,
+      0
+    )
+    await ctx.db.patch(dispatch._id, { totalQuantity })
   },
 })
 
@@ -141,5 +162,65 @@ export const renameWeightPerUnit = migrations.define({
       conversionFactor:
         (product as Record<string, unknown>).conversionFactor ?? wpu,
     } as never)
+  },
+})
+
+// Seed products → default search keyword aliases so synonym searches (e.g.
+// "straw" → Twist Twine) work for pre-existing seeded data.
+const PRODUCT_KEYWORDS: Record<string, string[]> = {
+  "Laminated Sack": ["sack", "laminated", "multi-wall"],
+  "Assorted Sack": ["sack", "assorted"],
+  "Woven Polypropylene Sack": ["sack", "pp", "polypropylene", "woven"],
+  "Sand bag": ["sand", "bag", "construction"],
+  "Red bag": ["red", "bag"],
+  "Sewing Twine": ["twine", "sewing", "string"],
+  "Banana Twine": ["twine", "banana", "baling"],
+  "Twist Twine": ["twine", "twist", "straw", "hay", "tie"],
+  "Sewing Thread Small": ["thread", "sewing", "small"],
+  "Sewing Thread Medium": ["thread", "sewing", "medium"],
+  "Sewing Thread Large": ["thread", "sewing", "large"],
+}
+
+/**
+ * Backfills `keywords` (search aliases) on products that already have a
+ * keyword definition but no stored `keywords` field.
+ */
+export const backfillProductKeywords = migrations.define({
+  table: "products",
+  migrateOne: async (ctx, product) => {
+    if (product.keywords !== undefined) return
+    const keywords = PRODUCT_KEYWORDS[product.name]
+    if (!keywords) return
+    await ctx.db.patch(product._id, { keywords })
+  },
+})
+
+/**
+ * Backfills an auto-generated official receipt (OR) tracking number on
+ * dispatches that lack one. Uses `createdAt ?? _creationTime` for the date
+ * portion of `OR-YYYYMMDD-####` (in Philippine time).
+ */
+export const backfillDispatchOrNumbers = migrations.define({
+  table: "dispatches",
+  migrateOne: async (ctx, dispatch) => {
+    if (dispatch.orNumber !== undefined) return
+    const timestampMs = dispatch.createdAt ?? dispatch._creationTime
+    const datePart = orDatePart(timestampMs)
+
+    for (let i = 0; i < 20; i++) {
+      const random = Math.floor(Math.random() * 9000 + 1000).toString()
+      const orNumber = `OR-${datePart}-${random}`
+      const existing = await ctx.db
+        .query("dispatches")
+        .withIndex("by_orNumber", (q) => q.eq("orNumber", orNumber))
+        .first()
+      if (existing === null) {
+        await ctx.db.patch(dispatch._id, { orNumber })
+        return
+      }
+    }
+    throw new Error(
+      `Failed to generate a unique OR number for dispatch ${dispatch._id}`
+    )
   },
 })

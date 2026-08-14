@@ -108,8 +108,11 @@ export default function DispatchTable({
                 />
                 {expandedDispatchId === row.original._id ? (
                   <TableRow key={`${row.id}-items`}>
-                    <TableCell colSpan={totalColumns} className="p-4">
-                      <div className="overflow-hidden transition-all">
+                    <TableCell
+                      colSpan={totalColumns}
+                      className="px-12 bg-muted/50"
+                    >
+                      <div className="overflow-hidden overflow-y-auto transition-all max-h-70">
                         <DispatchItemsRow
                           dispatchId={row.original._id}
                           columnVisibility={itemsColumnVisibility}
