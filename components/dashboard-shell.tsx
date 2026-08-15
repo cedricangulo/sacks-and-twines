@@ -106,7 +106,7 @@ export function DashboardShell({ children, initialRole }: Props) {
           <AppSidebar />
           <SidebarInset>
             <header
-              className="flex h-16 shrink-0 items-center gap-2 overflow-hidden transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
+              className="flex h-16 shrink-0 items-center gap-2 overflow-hidden transition-[width,height] ease-linear"
               style={{ viewTransitionName: "site-header" }}
             >
               <div className="flex items-center flex-1 min-w-0 gap-4 px-4">

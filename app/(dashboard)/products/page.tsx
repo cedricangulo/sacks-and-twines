@@ -64,7 +64,7 @@ export default function ProductsPage() {
       ) : (
         <>
           {filtered.length > 0 ? (
-            <div className="animate-fade-in grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div className="animate-fade-in grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 pb-6 px-1">
               {filtered.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}

@@ -105,7 +105,10 @@ export default function InventoryTable({
                   className="border-border/50 animate-fade-in"
                   key={`${row.id}-batches`}
                 >
-                  <TableCell colSpan={totalColumns} className="p-4">
+                  <TableCell
+                    colSpan={totalColumns}
+                    className="px-12 bg-muted/50"
+                  >
                     <div className="overflow-hidden overflow-y-auto transition-all max-h-70">
                       <BatchDetailsRow
                         productId={row.original._id}

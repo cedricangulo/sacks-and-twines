@@ -38,7 +38,7 @@ export default function ReportsLayout({ children }: Props) {
           </ReportFiltersProvider>
         }
       />
-      <div className="px-6 space-y-6">{children}</div>
+      <div className="px-6 pb-6 space-y-6">{children}</div>
     </ReportFiltersProvider>
   )
 }

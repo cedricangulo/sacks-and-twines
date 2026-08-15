@@ -30,7 +30,7 @@ export default function ProductsClientLayout({ children }: Props) {
           </>
         }
       />
-      <div className="flex h-[calc(100dvh-4rem)]">
+      <div className="flex h-[calc(100dvh-5rem)]">
         <div className="flex-1 px-6 space-y-6 overflow-y-auto">{children}</div>
         <div className="hidden xl:flex pb-2 pr-2">
           <DispatchQueueSidebar />

@@ -29,7 +29,7 @@ export default function DispatchHistoryLayout({ children }: Props) {
   return (
     <>
       <PageHeaderSetter title="Dispatch History" />
-      <div className="px-6 space-y-6">{children}</div>
+      <div className="px-6 pb-6 space-y-6">{children}</div>
     </>
   )
 }

@@ -105,7 +105,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
       {...props}
-      variant="floating"
+      variant="inset"
       collapsible="icon"
       style={{ viewTransitionName: "app-sidebar" }}
     >

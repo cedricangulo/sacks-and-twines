@@ -12,7 +12,6 @@ import {
 import Image from "next/image"
 import type { Dispatch, SetStateAction } from "react"
 import { useMemo, useState } from "react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/formatters"
 import { cn, getInitials } from "@/lib/utils"
@@ -53,7 +52,7 @@ export default function InventoryTableContainer({
         size: 250,
         minSize: 150,
         cell: (info) => (
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center min-w-0 gap-2">
             <CaretDownIcon
               weight="fill"
               size={16}
@@ -69,17 +68,19 @@ export default function InventoryTableContainer({
             {info.row.original.imageUrl ? (
               <Image
                 alt={info.row.original.name}
-                className="rounded-sm border object-cover"
+                className="object-cover border rounded-sm"
                 src={info.row.original.imageUrl}
                 width={40}
                 height={40}
               />
             ) : (
-              <Avatar className="rounded-sm border">
-                <AvatarFallback>{getInitials(info.getValue())}</AvatarFallback>
-              </Avatar>
+              <div className="flex items-center justify-center overflow-hidden border rounded-sm size-10">
+                <span className="truncate type-body-default text-muted-foreground">
+                  {getInitials(info.getValue())}
+                </span>
+              </div>
             )}
-            <span className="font-medium type-body-small line-clamp-2 min-w-0">
+            <span className="min-w-0 font-medium type-body-small line-clamp-2">
               {info.getValue()}
             </span>
           </div>
@@ -109,7 +110,7 @@ export default function InventoryTableContainer({
       columnHelper.accessor("currentQuantity", {
         header: "Stock",
         cell: (info) => (
-          <span className="block w-full text-right font-mono tabular-nums">
+          <span className="block w-full font-mono text-right tabular-nums">
             {formatNumber(info.getValue())}
           </span>
         ),
@@ -118,7 +119,7 @@ export default function InventoryTableContainer({
       columnHelper.accessor("totalAssetValue", {
         header: "Asset Value",
         cell: (info) => (
-          <span className="block w-full text-right font-mono tabular-nums">
+          <span className="block w-full font-mono text-right tabular-nums">
             {formatCurrency(info.getValue())}
           </span>
         ),

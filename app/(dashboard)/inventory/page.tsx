@@ -44,7 +44,7 @@ export default function InventoryPage() {
   >({})
 
   return (
-    <div className="flex-1 space-y-4">
+    <div className="flex-1 space-y-4 pb-6">
       <InventoryFilterBar
         search={search}
         onSearchChange={setSearch}
@@ -74,6 +74,7 @@ export default function InventoryPage() {
             ...INVENTORY_TABLE_COLUMNS,
           ]}
           actions="ellipsis"
+          rowCount={11}
         />
       ) : user?.role !== "owner" ? (
         <p className="type-body-small text-muted-foreground">
