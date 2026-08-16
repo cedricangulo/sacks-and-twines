@@ -60,6 +60,7 @@ export const create = zMutation({
       quantityAdjusted,
       reason,
       status: "applied",
+      createdAt: Date.now(),
     })
 
     const newRemaining = Math.max(0, batch.quantityRemaining + quantityAdjusted)

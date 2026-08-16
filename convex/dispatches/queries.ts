@@ -1,11 +1,12 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { query } from "../_generated/server"
+import { fetchDispatches, fetchDispatchesOrdered } from "../lib/fetch_entities"
 
 /**
  * Lists dispatches within a date range, optionally filtered by creator.
  * Enriches each dispatch with the user's display name and item count.
- * Uses `by_userId` index when filtering by user; default ordering otherwise.
+ * Uses `by_userId_createdAt` index when filtering by user; default ordering otherwise.
  * @param startMs - Start of the date range in milliseconds.
  * @param endMs - End of the date range in milliseconds.
  * @param createdByUserId - Optional user ID to filter by creator.
@@ -20,19 +21,18 @@ export const list = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const q = createdByUserId
-      ? ctx.db
+    const allDispatches = createdByUserId
+      ? await ctx.db
           .query("dispatches")
-          .withIndex("by_userId", (q) =>
+          .withIndex("by_userId_createdAt", (q) =>
             q
               .eq("userId", createdByUserId)
-              .gte("_creationTime", startMs)
-              .lte("_creationTime", endMs)
+              .gte("createdAt", startMs)
+              .lte("createdAt", endMs)
           )
           .order("desc")
-      : ctx.db.query("dispatches").order("desc")
-
-    const allDispatches = await q.take(500)
+          .take(500)
+      : await fetchDispatchesOrdered(ctx, startMs, endMs, 500)
     const dispatches = allDispatches.filter((d) => {
       const date = d.createdAt ?? d._creationTime
       return date >= startMs && date <= endMs
@@ -88,38 +88,22 @@ export const listByDateRange = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const [byCreationTime, byCreatedAt] = await Promise.all([
-      ctx.db
-        .query("dispatches")
-        .withIndex("by_creation_time", (q) =>
-          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-        )
-        .order("desc")
-        .collect(),
-      ctx.db
-        .query("dispatches")
-        .withIndex("by_createdAt", (q) =>
-          q.gte("createdAt", startMs).lte("createdAt", endMs)
-        )
-        .order("desc")
-        .collect(),
-    ])
-
-    // Production records from by_creation_time, seed records from by_createdAt
-    const productionRecords = byCreationTime.filter(
-      (d) => d.createdAt === undefined
-    )
-
-    // Merge and dedup by _id — production first preserves time order
-    const seen = new Set<string>()
-    const dispatches = [...productionRecords, ...byCreatedAt].filter((d) => {
-      if (seen.has(d._id)) return false
-      seen.add(d._id)
-      return true
-    })
+    const dispatches = await fetchDispatches(ctx, startMs, endMs)
 
     return await Promise.all(
       dispatches.map(async (dispatch) => {
+        if (
+          dispatch.userName !== undefined &&
+          dispatch.itemCount !== undefined &&
+          dispatch.totalValue !== undefined
+        ) {
+          return {
+            ...dispatch,
+            userName: dispatch.userName,
+            itemCount: dispatch.itemCount,
+            totalValue: dispatch.totalValue,
+          }
+        }
         const [user, items] = await Promise.all([
           ctx.db.get(dispatch.userId),
           ctx.db

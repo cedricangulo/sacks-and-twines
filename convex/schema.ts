@@ -44,6 +44,7 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("archived")),
     keywords: v.optional(v.array(v.string())),
     imagePath: v.optional(v.string()),
+    batchCount: v.optional(v.number()),
     createdAt: v.optional(v.number()),
   })
     .index("by_sku", ["skuCode"])
@@ -88,10 +89,13 @@ export default defineSchema({
     userName: v.optional(v.string()),
     itemCount: v.optional(v.number()),
     totalQuantity: v.optional(v.number()),
+    totalValue: v.optional(v.number()),
     createdAt: v.optional(v.number()),
   })
     .index("by_userId", ["userId"])
+    .index("by_userId_createdAt", ["userId", "createdAt"])
     .index("by_createdAt", ["createdAt"])
+    .index("by_status_createdAt", ["status", "createdAt"])
     .index("by_orNumber", ["orNumber"]),
 
   dispatchItems: defineTable({

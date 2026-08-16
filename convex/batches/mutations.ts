@@ -172,6 +172,7 @@ export const stockIn = zMutation({
       const patch: Partial<Doc<"products">> = {
         currentQuantity: product.currentQuantity + quantityReceived,
         totalAssetValue: product.totalAssetValue + totalProcurementCost,
+        batchCount: (product.batchCount ?? 0) + 1,
       }
       if (imageStorageId) {
         patch.imagePath = imageStorageId

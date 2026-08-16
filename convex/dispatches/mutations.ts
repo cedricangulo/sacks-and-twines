@@ -36,6 +36,7 @@ export const submit = zMutation({
       orNumber,
       status: "completed",
       userName: caller?.name ?? "Unknown",
+      createdAt: timestampMs,
     })
 
     let totalDispatchItems = 0
@@ -176,6 +177,7 @@ export const submit = zMutation({
     await ctx.db.patch(dispatchId, {
       itemCount: totalDispatchItems,
       totalQuantity,
+      totalValue: totalCostDeducted,
     })
 
     return {

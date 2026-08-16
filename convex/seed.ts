@@ -420,6 +420,12 @@ async function seedDispatches(
       totalQuantity: toFloat(
         spec.items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
       ),
+      totalValue: toFloat(
+        spec.items.reduce(
+          (sum, item) => sum + item.quantityDeducted * item.unitCost,
+          0
+        )
+      ),
       createdAt: spec.createdDate,
     })
     dispatchIdBySpec.set(index, dispatchId)
@@ -534,6 +540,7 @@ export const writeBase = internalMutation({
 
     const userIds = [ownerId, staffId]
     const batches: SeedBatchInfo[] = []
+    const productBatchCounts: Array<{ id: Id<"products">; count: number }> = []
     const totalSpan = DATE_END.getTime() - DATE_BASE.getTime()
     const stockInLogs: Array<{
       userId: Id<"users">
@@ -615,7 +622,14 @@ export const writeBase = internalMutation({
           createdAt: batchDate.getTime(),
         })
       }
+      productBatchCounts.push({ id: pId, count: numBatches })
     }
+
+    await Promise.all(
+      productBatchCounts.map(({ id, count }) =>
+        ctx.db.patch(id, { batchCount: count })
+      )
+    )
 
     await Promise.all(
       stockInLogs.map((log) =>
@@ -1136,6 +1150,20 @@ export const writeTest = internalMutation({
       })
     }
 
+    // Denormalize per-product batch counts onto products
+    const batchCountByProduct = new Map<Id<"products">, number>()
+    for (const batch of batchRecords) {
+      batchCountByProduct.set(
+        batch.productId,
+        (batchCountByProduct.get(batch.productId) ?? 0) + 1
+      )
+    }
+    await Promise.all(
+      [...batchCountByProduct.entries()].map(([pId, count]) =>
+        ctx.db.patch(pId, { batchCount: count })
+      )
+    )
+
     // ── 4. Insert dispatches (~15, mix of completed and voided) ──────
     const NUM_TEST_DISPATCHES = 15
     const dispatchRecords: Array<{
@@ -1266,9 +1294,10 @@ export const writeTest = internalMutation({
       }
     }
 
-    // Post-process dispatches: remove empty ones, set itemCount, totalQuantity and userName
+    // Post-process dispatches: remove empty ones, set itemCount, totalQuantity, totalValue and userName
     const itemCountMap = new Map<string, number>()
     const totalQuantityMap = new Map<string, number>()
+    const totalValueMap = new Map<string, number>()
     for (const item of dispatchItemsToInsert) {
       itemCountMap.set(
         item.dispatchId,
@@ -1277,6 +1306,11 @@ export const writeTest = internalMutation({
       totalQuantityMap.set(
         item.dispatchId,
         (totalQuantityMap.get(item.dispatchId) ?? 0) + item.dispatchQuantity
+      )
+      totalValueMap.set(
+        item.dispatchId,
+        (totalValueMap.get(item.dispatchId) ?? 0) +
+          item.quantityDeducted * item.unitCost
       )
     }
 
@@ -1306,6 +1340,7 @@ export const writeTest = internalMutation({
         ctx.db.patch(d.id, {
           itemCount: itemCountMap.get(d.id),
           totalQuantity: toFloat(totalQuantityMap.get(d.id) ?? 0),
+          totalValue: toFloat(totalValueMap.get(d.id) ?? 0),
           userName: userNameMap[d.userId],
         })
       ),

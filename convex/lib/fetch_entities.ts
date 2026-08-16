@@ -2,12 +2,12 @@ import type { Doc } from "../_generated/dataModel"
 import type { QueryCtx } from "../_generated/server"
 
 /**
- * Fetch dispatches within a date range, deduplicating across both indexes.
+ * Fetch dispatches within a date range.
  *
- * Convex's internal `_creationTime` (used by production records) and the
- * custom `createdAt` field (used by seed/manual records with specific dates)
- * are queried separately and merged. In production `createdAt` will be
- * removed, and all records will use `_creationTime` exclusively.
+ * Reads a single `by_createdAt` index range. `createdAt` is written by the
+ * production `submit` mutation, by the seed data, and is backfilled by
+ * `backfillDispatchCreatedAt` for any older records, so every dispatch is
+ * addressable through this index.
  */
 export async function fetchDispatches(
   ctx: QueryCtx,
@@ -15,65 +15,53 @@ export async function fetchDispatches(
   endMs: number,
   status?: "completed" | "voided"
 ): Promise<Doc<"dispatches">[]> {
-  const [byCreationTime, byCreatedAt] = await Promise.all([
-    ctx.db
+  if (status) {
+    return ctx.db
       .query("dispatches")
-      .withIndex("by_creation_time", (q) =>
-        q.gte("_creationTime", startMs).lte("_creationTime", endMs)
+      .withIndex("by_status_createdAt", (q) =>
+        q.eq("status", status).gte("createdAt", startMs).lte("createdAt", endMs)
       )
       .collect()
-      .then((rows) => rows.filter((d) => d.createdAt === undefined)),
-    ctx.db
-      .query("dispatches")
-      .withIndex("by_createdAt", (q) =>
-        q.gte("createdAt", startMs).lte("createdAt", endMs)
-      )
-      .collect(),
-  ])
-
-  const seen = new Set<string>()
-  let result = [...byCreationTime, ...byCreatedAt].filter((d) => {
-    if (seen.has(d._id)) return false
-    seen.add(d._id)
-    return true
-  })
-
-  if (status) {
-    result = result.filter((d) => d.status === status)
   }
-
-  return result
+  return ctx.db
+    .query("dispatches")
+    .withIndex("by_createdAt", (q) =>
+      q.gte("createdAt", startMs).lte("createdAt", endMs)
+    )
+    .collect()
 }
 
 /**
- * Fetch stock adjustments within a date range, deduplicating across both
- * indexes. Same dual-index rationale as `fetchDispatches`.
+ * Fetch dispatches within a date range, newest first, optionally capped.
+ * Used by list views that want the most recent N dispatches in a range.
+ */
+export async function fetchDispatchesOrdered(
+  ctx: QueryCtx,
+  startMs: number,
+  endMs: number,
+  limit?: number
+): Promise<Doc<"dispatches">[]> {
+  const q = ctx.db
+    .query("dispatches")
+    .withIndex("by_createdAt", (q) =>
+      q.gte("createdAt", startMs).lte("createdAt", endMs)
+    )
+    .order("desc")
+  return limit !== undefined ? q.take(limit) : q.collect()
+}
+
+/**
+ * Fetch stock adjustments within a date range via the `by_createdAt` index.
  */
 export async function fetchAdjustments(
   ctx: QueryCtx,
   startMs: number,
   endMs: number
 ): Promise<Doc<"stockAdjustments">[]> {
-  const [byCreationTime, byCreatedAt] = await Promise.all([
-    ctx.db
-      .query("stockAdjustments")
-      .withIndex("by_creation_time", (q) =>
-        q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-      )
-      .collect()
-      .then((rows) => rows.filter((a) => a.createdAt === undefined)),
-    ctx.db
-      .query("stockAdjustments")
-      .withIndex("by_createdAt", (q) =>
-        q.gte("createdAt", startMs).lte("createdAt", endMs)
-      )
-      .collect(),
-  ])
-
-  const seen = new Set<string>()
-  return [...byCreationTime, ...byCreatedAt].filter((a) => {
-    if (seen.has(a._id)) return false
-    seen.add(a._id)
-    return true
-  })
+  return ctx.db
+    .query("stockAdjustments")
+    .withIndex("by_createdAt", (q) =>
+      q.gte("createdAt", startMs).lte("createdAt", endMs)
+    )
+    .collect()
 }

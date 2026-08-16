@@ -84,6 +84,26 @@ export const backfillDispatchTotalQuantities = migrations.define({
 })
 
 /**
+ * Backfills `totalValue` on dispatch records that predate the field by
+ * summing their dispatch items' `quantityDeducted * unitCost`.
+ */
+export const backfillDispatchTotalValues = migrations.define({
+  table: "dispatches",
+  migrateOne: async (ctx, dispatch) => {
+    if (dispatch.totalValue !== undefined) return
+    const items = await ctx.db
+      .query("dispatchItems")
+      .withIndex("by_dispatch", (q) => q.eq("dispatchId", dispatch._id))
+      .collect()
+    const totalValue = items.reduce(
+      (sum, item) => sum + item.quantityDeducted * item.unitCost,
+      0
+    )
+    await ctx.db.patch(dispatch._id, { totalValue })
+  },
+})
+
+/**
  * Backfills `batchCount` on supplier records for denormalized display.
  */
 export const backfillSuppliers = migrations.define({
@@ -95,6 +115,21 @@ export const backfillSuppliers = migrations.define({
       .withIndex("by_supplier", (q) => q.eq("supplierId", supplier._id))
       .collect()
     await ctx.db.patch(supplier._id, { batchCount: batches.length })
+  },
+})
+
+/**
+ * Backfills `batchCount` on product records for denormalized display.
+ */
+export const backfillProductBatchCounts = migrations.define({
+  table: "products",
+  migrateOne: async (ctx, product) => {
+    if (product.batchCount !== undefined) return
+    const batches = await ctx.db
+      .query("batches")
+      .withIndex("by_product", (q) => q.eq("productId", product._id))
+      .collect()
+    await ctx.db.patch(product._id, { batchCount: batches.length })
   },
 })
 
@@ -142,8 +177,31 @@ export const backfillAuditLogCreatedAt = migrations.define({
   table: "auditLogs",
   migrateOne: async (ctx, log) => {
     if (log.createdAt !== undefined) return
-    if (log._creationTime === undefined) return
     await ctx.db.patch(log._id, { createdAt: log._creationTime })
+  },
+})
+
+/**
+ * Backfills `createdAt` on dispatches using Convex's `_creationTime`.
+ * Required before range reads rely solely on the `by_createdAt` index.
+ */
+export const backfillDispatchCreatedAt = migrations.define({
+  table: "dispatches",
+  migrateOne: async (ctx, dispatch) => {
+    if (dispatch.createdAt !== undefined) return
+    await ctx.db.patch(dispatch._id, { createdAt: dispatch._creationTime })
+  },
+})
+
+/**
+ * Backfills `createdAt` on stock adjustments using Convex's `_creationTime`.
+ * Required before range reads rely solely on the `by_createdAt` index.
+ */
+export const backfillStockAdjustmentCreatedAt = migrations.define({
+  table: "stockAdjustments",
+  migrateOne: async (ctx, adjustment) => {
+    if (adjustment.createdAt !== undefined) return
+    await ctx.db.patch(adjustment._id, { createdAt: adjustment._creationTime })
   },
 })
 

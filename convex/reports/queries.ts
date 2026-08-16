@@ -20,55 +20,17 @@ export const calendarSummary = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const [byCreationTime, byCreatedAt] = await Promise.all([
-      Promise.all([
-        ctx.db
-          .query("dispatches")
-          .withIndex("by_creation_time", (q) =>
-            q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-          )
-          .collect()
-          .then((rows) =>
-            rows
-              .filter((d) => d.createdAt === undefined)
-              .map((d) => d._creationTime)
-          ),
-        ctx.db
-          .query("stockAdjustments")
-          .withIndex("by_creation_time", (q) =>
-            q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-          )
-          .collect()
-          .then((rows) =>
-            rows
-              .filter((a) => a.createdAt === undefined)
-              .map((a) => a._creationTime)
-          ),
-      ]),
-      Promise.all([
-        ctx.db
-          .query("dispatches")
-          .withIndex("by_createdAt", (q) =>
-            q.gte("createdAt", startMs).lte("createdAt", endMs)
-          )
-          .collect()
-          .then((rows) => rows.map((d) => d.createdAt ?? d._creationTime)),
-        ctx.db
-          .query("stockAdjustments")
-          .withIndex("by_createdAt", (q) =>
-            q.gte("createdAt", startMs).lte("createdAt", endMs)
-          )
-          .collect()
-          .then((rows) => rows.map((a) => a.createdAt ?? a._creationTime)),
-      ]),
+    const [dispatches, adjustments] = await Promise.all([
+      fetchDispatches(ctx, startMs, endMs),
+      fetchAdjustments(ctx, startMs, endMs),
     ])
 
     return {
       dispatchTimestamps: [
-        ...new Set([...byCreationTime[0], ...byCreatedAt[0]]),
+        ...new Set(dispatches.map((d) => d.createdAt ?? d._creationTime)),
       ],
       adjustmentTimestamps: [
-        ...new Set([...byCreationTime[1], ...byCreatedAt[1]]),
+        ...new Set(adjustments.map((a) => a.createdAt ?? a._creationTime)),
       ],
     }
   },
@@ -96,6 +58,14 @@ export const monthlyAggregates = query({
 
     await Promise.all(
       merged.map(async (dispatch) => {
+        if (
+          dispatch.itemCount !== undefined &&
+          dispatch.totalValue !== undefined
+        ) {
+          totalItems += dispatch.itemCount
+          totalValue += dispatch.totalValue
+          return
+        }
         const items = await ctx.db
           .query("dispatchItems")
           .withIndex("by_dispatch", (q) => q.eq("dispatchId", dispatch._id))
@@ -279,17 +249,19 @@ export const exportDispatches = query({
         }
 
         let itemCount = d.itemCount ?? 0
-        let totalValue = 0
-        const items = await ctx.db
-          .query("dispatchItems")
-          .withIndex("by_dispatch", (q) => q.eq("dispatchId", d._id))
-          .collect()
-        if (items.length > 0) {
-          if (itemCount === 0) itemCount = items.length
-          totalValue = items.reduce(
-            (sum, i) => sum + i.quantityDeducted * i.unitCost,
-            0
-          )
+        let totalValue = d.totalValue ?? 0
+        if (d.totalValue === undefined || itemCount === 0) {
+          const items = await ctx.db
+            .query("dispatchItems")
+            .withIndex("by_dispatch", (q) => q.eq("dispatchId", d._id))
+            .collect()
+          if (items.length > 0) {
+            if (itemCount === 0) itemCount = items.length
+            totalValue = items.reduce(
+              (sum, i) => sum + i.quantityDeducted * i.unitCost,
+              0
+            )
+          }
         }
 
         return {

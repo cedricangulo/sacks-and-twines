@@ -1,13 +1,13 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { query } from "../_generated/server"
+import { fetchAdjustments } from "../lib/fetch_entities"
 
 /**
  * Lists stock adjustments within a date range, optionally filtered by creator.
  * Enriches each adjustment with product name, batch code, and user name.
- * Queries both `by_creation_time` (production records) and `by_createdAt`
- * (seed records), merges, and deduplicates. When createdByUserId is provided,
- * filters in memory after the merge — no compound index exists yet.
+ * When createdByUserId is provided, filters in memory after the range read —
+ * no compound index exists yet.
  * @param startMs - Start of the date range in milliseconds.
  * @param endMs - End of the date range in milliseconds.
  * @param createdByUserId - Optional user ID to filter by creator.
@@ -22,35 +22,7 @@ export const listByDateRange = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const [byCreationTime, byCreatedAt] = await Promise.all([
-      ctx.db
-        .query("stockAdjustments")
-        .withIndex("by_creation_time", (q) =>
-          q.gte("_creationTime", startMs).lte("_creationTime", endMs)
-        )
-        .order("desc")
-        .collect(),
-      ctx.db
-        .query("stockAdjustments")
-        .withIndex("by_createdAt", (q) =>
-          q.gte("createdAt", startMs).lte("createdAt", endMs)
-        )
-        .order("desc")
-        .collect(),
-    ])
-
-    // Production records from by_creation_time, seed records from by_createdAt
-    const productionRecords = byCreationTime.filter(
-      (a) => a.createdAt === undefined
-    )
-
-    // Merge and dedup by _id
-    const seen = new Set<string>()
-    const merged = [...productionRecords, ...byCreatedAt].filter((a) => {
-      if (seen.has(a._id)) return false
-      seen.add(a._id)
-      return true
-    })
+    const merged = await fetchAdjustments(ctx, startMs, endMs)
 
     const filtered = createdByUserId
       ? merged.filter((a) => a.userId === createdByUserId)

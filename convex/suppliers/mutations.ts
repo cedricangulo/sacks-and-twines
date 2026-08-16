@@ -46,6 +46,7 @@ export const create = zMutation({
       contactPerson,
       contactNumber,
       address,
+      batchCount: 0,
     })
 
     await ctx.runMutation(internal.auditLogs.mutations.log, {

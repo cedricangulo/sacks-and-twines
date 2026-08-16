@@ -113,6 +113,7 @@ describe("stock adjustment queries", () => {
         quantityAdjusted: 10,
         reason: "recount",
         status: "applied",
+        createdAt: Date.now(),
       })
     })
 
@@ -146,6 +147,7 @@ describe("stock adjustment queries", () => {
         quantityAdjusted: 10,
         reason: "recount",
         status: "applied",
+        createdAt: Date.now(),
       })
     })
 
@@ -186,6 +188,7 @@ describe("stock adjustment queries", () => {
           quantityAdjusted: 10,
           reason: "recount",
           status: "applied",
+          createdAt: Date.now(),
         }),
         ctx.db.insert("stockAdjustments", {
           batchId,
@@ -194,6 +197,7 @@ describe("stock adjustment queries", () => {
           quantityAdjusted: 5,
           reason: "damaged",
           status: "applied",
+          createdAt: Date.now(),
         }),
       ])
     })

@@ -185,10 +185,16 @@ export const getEditDetail = query({
     const product = await ctx.db.get(productId)
     if (!product) return null
 
-    const batches = await ctx.db
-      .query("batches")
-      .withIndex("by_product", (q) => q.eq("productId", productId))
-      .collect()
+    let batchCount = product.batchCount
+    if (batchCount === undefined) {
+      // Legacy fallback for products created before batchCount was
+      // denormalized — the backfill migration sets this going forward.
+      const batches = await ctx.db
+        .query("batches")
+        .withIndex("by_product", (q) => q.eq("productId", productId))
+        .collect()
+      batchCount = batches.length
+    }
 
     let imageUrl: string | undefined
     if (product.imagePath) {
@@ -203,7 +209,7 @@ export const getEditDetail = query({
     return {
       ...product,
       imageUrl,
-      batchCount: batches.length,
+      batchCount,
     }
   },
 })

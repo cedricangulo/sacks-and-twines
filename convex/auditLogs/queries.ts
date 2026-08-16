@@ -55,13 +55,26 @@ export const list = query({
     } else {
       base = ctx.db
         .query("auditLogs")
-        .withIndex("by_createdAt", (q) => q.gte("createdAt", 0))
+        .withIndex("by_createdAt", (q) =>
+          q
+            .gte("createdAt", dateFrom ?? 0)
+            .lte("createdAt", dateTo ?? Number.MAX_SAFE_INTEGER)
+        )
     }
 
-    if (dateFrom !== undefined) {
+    // Date bounds are pushed into the `by_createdAt` index above. The
+    // action/userId branches use their own indexes that lack `createdAt`, so
+    // the range must be filtered here instead.
+    if (
+      dateFrom !== undefined &&
+      (action !== undefined || userId !== undefined)
+    ) {
       base = base.filter((q) => q.gte(q.field("createdAt"), dateFrom))
     }
-    if (dateTo !== undefined) {
+    if (
+      dateTo !== undefined &&
+      (action !== undefined || userId !== undefined)
+    ) {
       base = base.filter((q) => q.lte(q.field("createdAt"), dateTo))
     }
 
