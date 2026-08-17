@@ -37,8 +37,20 @@ Before any Next.js work, find and read the relevant doc in `node_modules/next/di
 | Deploy Convex    | `pnpm convex:deploy`               |
 | Convex dashboard | `pnpm convex:dashboard`            |
 | Seed database    | `pnpm seed`                        |
+| Seed reset       | `pnpm seed:reset` (wipe + rebuild) |
 
 **Both `pnpm dev` and `pnpm convex:dev` must run simultaneously** for full local dev.
+
+`pnpm seed` is **idempotent** — it no-ops (≈0 I/O) when domain data already exists, to
+protect the 1 GB/month database-I/O free-tier budget. Use `pnpm seed:reset` only when a
+clean rebuild is actually needed.
+
+**Deploy checklist (backfills).** Range reads rely on `createdAt` being present and on
+denormalized totals. When deploying new range-read / export code, run the needed
+backfills via the migration runner (`pnpm convex run migrations:run '{"fn":"migrations:<name>"}'`) on
+the target deployment alongside the code deploy: `backfillDispatchCreatedAt`,
+`backfillStockAdjustmentCreatedAt`, `backfillAuditLogCreatedAt`,
+`backfillDispatchTotalQuantities`, `backfillDispatchTotalValues`, `backfillProductBatchCounts`.
 
 # Testing
 

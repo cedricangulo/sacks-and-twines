@@ -20,6 +20,7 @@
     "convex:deploy": "convex deploy",
     "convex:dashboard": "convex dashboard",
     "seed": "convex run seedAction:seedAll",
+    "seed:reset": "convex run seedAction:seedClean && convex run seedAction:seedAll",
     "seed:clean": "convex run seedAction:seedClean",
     "seed:test": "convex run seedAction:seedTest",
     "sync:accounts": "node scripts/sync-accounts.mjs"

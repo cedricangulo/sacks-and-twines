@@ -45,6 +45,27 @@ type SeedPlan = {
 export const seedAll = internalAction({
   args: {},
   handler: async (ctx): Promise<SeedResult> => {
+    // ── Idempotency guard ───────────────────────────────────────────────
+    // If any domain table already has rows, treat this as already seeded and
+    // return early (~0 I/O) instead of clearing + re-inserting ~17k records.
+    // Use `pnpm seed:reset` (seedClean → seedAll) when a clean rebuild is
+    // actually needed.
+    const existing = await ctx.runQuery(internal.seed.seedStatus)
+    const alreadySeeded = Object.values(existing).some((count) => count > 0)
+    if (alreadySeeded) {
+      console.log("\n  → Data already present — skipping seed (no-op).")
+      console.log("    Use `pnpm seed:reset` to wipe and rebuild.")
+      return {
+        supplierCount: existing.suppliers,
+        productCount: existing.products,
+        batchCount: existing.batches,
+        dispatchCount: existing.dispatches,
+        dispatchItemCount: existing.dispatchItems,
+        adjustmentCount: existing.stockAdjustments,
+        auditLogCount: existing.auditLogs,
+      }
+    }
+
     // ── Find or create staff user ────────────────────────────────────────
     const rawStaffEmail = process.env.STAFF_EMAIL ?? "juandelacruz@gmail.com"
     const staffEmail = rawStaffEmail.trim().toLowerCase()
