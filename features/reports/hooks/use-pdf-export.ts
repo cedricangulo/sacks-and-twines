@@ -1,12 +1,13 @@
 "use client"
 
 import type { DocumentProps } from "@react-pdf/renderer"
+import { useConvex } from "convex/react"
 import type { FunctionReturnType } from "convex/server"
-import { useQueries } from "convex-helpers/react/cache"
 import {
   createElement,
   type ReactElement,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react"
@@ -45,22 +46,41 @@ export function usePdfExport() {
     return d.getTime()
   }, [endDate, endTime])
 
-  const result = useQueries(
-    dialogOpen
-      ? {
-          _default: {
-            query: api.reports.queries.exportMonthlyReport,
-            args: { startMs, endMs },
-          },
-        }
-      : {}
-  )._default
+  const convex = useConvex()
+  const [data, setData] = useState<MonthlyReportData | undefined>(undefined)
+  const [queryFailed, setQueryFailed] = useState(false)
+  const [queryError, setQueryError] = useState<string | null>(null)
 
-  const queryFailed = result instanceof Error
-  const data = queryFailed
-    ? undefined
-    : (result as MonthlyReportData | undefined)
-  const queryError = queryFailed ? (result as Error).message : null
+  useEffect(() => {
+    if (!dialogOpen) {
+      setData(undefined)
+      setQueryFailed(false)
+      setQueryError(null)
+      return
+    }
+
+    let cancelled = false
+    setData(undefined)
+    setQueryFailed(false)
+    setQueryError(null)
+
+    convex
+      .query(api.reports.queries.exportMonthlyReport, { startMs, endMs })
+      .then((res) => {
+        if (!cancelled) setData(res as MonthlyReportData)
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setQueryFailed(true)
+          setQueryError(err instanceof Error ? err.message : String(err))
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [convex, dialogOpen, startMs, endMs])
+
   const error = queryError ?? generateError
 
   const initForEntity = useCallback(

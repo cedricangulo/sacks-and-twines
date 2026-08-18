@@ -29,6 +29,7 @@ interface CsvExportDialogProps {
   columns: ColumnSelectionProps
   recordCount: number
   isLoading: boolean
+  error: string | null
   onOpenChange: (open: boolean) => void
   applyQuickRange: (preset: QuickRange) => void
   onDownload: () => void
@@ -61,6 +62,7 @@ export default function CsvExportDialog({
   columns,
   recordCount,
   isLoading,
+  error,
   onOpenChange,
   applyQuickRange,
   onDownload,
@@ -72,15 +74,15 @@ export default function CsvExportDialog({
           <DialogTitle>
             Export {entity ? EXPORT_ENTITY_NAMES[entity] : ""}
           </DialogTitle>
-          <DialogDescription>
-            {isLoading ? (
-              <Skeleton className="w-32 h-4" />
-            ) : recordCount > 0 ? (
-              `${recordCount} record${recordCount === 1 ? "" : "s"} in this range`
-            ) : (
-              "No records found for this range."
-            )}
-          </DialogDescription>
+          {isLoading ? (
+            <Skeleton className="w-32 h-4" />
+          ) : (
+            <DialogDescription>
+              {recordCount > 0
+                ? `${recordCount} record${recordCount === 1 ? "" : "s"} in this range`
+                : "No records found for this range."}
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         <div className="space-y-3">
@@ -124,17 +126,26 @@ export default function CsvExportDialog({
             ))}
           </div>
         ) : entity && !isLoading ? (
-          <div className="py-4 type-body-small text-center text-muted-foreground">
-            No records found for this date range. Try a wider range or use the
-            Quick range buttons above.
-          </div>
+          error ? (
+            <div className="py-4 type-body-small text-center text-destructive">
+              {error}
+            </div>
+          ) : (
+            <div className="py-4 type-body-small text-center text-muted-foreground">
+              No records found for this date range. Try a wider range or use the
+              Quick range buttons above.
+            </div>
+          )
         ) : null}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={onDownload} disabled={recordCount === 0}>
+          <Button
+            onClick={onDownload}
+            disabled={recordCount === 0 || Boolean(error)}
+          >
             Download CSV
           </Button>
         </DialogFooter>

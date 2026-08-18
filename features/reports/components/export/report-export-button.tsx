@@ -41,7 +41,8 @@ export default function ReportExportButton() {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button />}>
+        {/* Export temporarily disabled — quota protection while on free-tier deployment */}
+        <DropdownMenuTrigger render={<Button disabled />}>
           <DownloadIcon weight="fill" />
           Export
         </DropdownMenuTrigger>
@@ -93,6 +94,7 @@ export default function ReportExportButton() {
           }}
           recordCount={csvExport.recordCount}
           isLoading={csvExport.isLoading}
+          error={csvExport.error}
           onDownload={csvExport.download}
         />
       ) : null}

@@ -1,8 +1,8 @@
 "use client"
 
+import { useConvex } from "convex/react"
 import type { FunctionReturnType } from "convex/server"
-import { useQuery } from "convex-helpers/react/cache"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import { downloadCsv, formatCsv } from "@/lib/csv"
@@ -58,60 +58,54 @@ export function useReportExport(entity: ExportEntity | null) {
 
   const shouldFetch = entity !== null && dialogOpen
 
-  const products = useQuery(
-    api.reports.queries.exportProducts,
-    shouldFetch && entity === "products" ? { startMs, endMs } : "skip"
-  ) as
-    | Awaited<FunctionReturnType<typeof api.reports.queries.exportProducts>>
-    | undefined
+  const convex = useConvex()
+  const [data, setData] = useState<Record<string, unknown>[] | undefined>(
+    undefined
+  )
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const batches = useQuery(
-    api.reports.queries.exportBatches,
-    shouldFetch && entity === "batches" ? { startMs, endMs } : "skip"
-  ) as
-    | Awaited<FunctionReturnType<typeof api.reports.queries.exportBatches>>
-    | undefined
+  useEffect(() => {
+    if (!shouldFetch || entity === null) {
+      setData(undefined)
+      setError(null)
+      setIsLoading(false)
+      return
+    }
 
-  const suppliers = useQuery(
-    api.reports.queries.exportSuppliers,
-    shouldFetch && entity === "suppliers" ? { startMs, endMs } : "skip"
-  ) as
-    | Awaited<FunctionReturnType<typeof api.reports.queries.exportSuppliers>>
-    | undefined
+    const fn = {
+      products: api.reports.queries.exportProducts,
+      batches: api.reports.queries.exportBatches,
+      suppliers: api.reports.queries.exportSuppliers,
+      dispatches: api.reports.queries.exportDispatches,
+      dispatchItems: api.reports.queries.exportDispatchItems,
+      adjustments: api.reports.queries.exportAdjustments,
+    }[entity]
 
-  const dispatches = useQuery(
-    api.reports.queries.exportDispatches,
-    shouldFetch && entity === "dispatches" ? { startMs, endMs } : "skip"
-  ) as
-    | Awaited<FunctionReturnType<typeof api.reports.queries.exportDispatches>>
-    | undefined
+    let cancelled = false
+    setData(undefined)
+    setError(null)
+    setIsLoading(true)
 
-  const dispatchItems = useQuery(
-    api.reports.queries.exportDispatchItems,
-    shouldFetch && entity === "dispatchItems" ? { startMs, endMs } : "skip"
-  ) as
-    | Awaited<
-        FunctionReturnType<typeof api.reports.queries.exportDispatchItems>
-      >
-    | undefined
+    convex
+      .query(fn, { startMs, endMs })
+      .then((res) => {
+        if (!cancelled) setData(res as Record<string, unknown>[])
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : String(err))
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
 
-  const adjustments = useQuery(
-    api.reports.queries.exportAdjustments,
-    shouldFetch && entity === "adjustments" ? { startMs, endMs } : "skip"
-  ) as
-    | Awaited<FunctionReturnType<typeof api.reports.queries.exportAdjustments>>
-    | undefined
+    return () => {
+      cancelled = true
+    }
+  }, [convex, shouldFetch, entity, startMs, endMs])
 
-  const data = ((entity === "products" ? products : null) ??
-    (entity === "batches" ? batches : null) ??
-    (entity === "suppliers" ? suppliers : null) ??
-    (entity === "dispatches" ? dispatches : null) ??
-    (entity === "dispatchItems" ? dispatchItems : null) ??
-    (entity === "adjustments" ? adjustments : null)) as
-    | Record<string, unknown>[]
-    | undefined
-
-  const isLoading = dialogOpen && entity !== null && data === undefined
   const recordCount = data?.length ?? 0
 
   const toggleColumn = useCallback((columnId: string) => {
@@ -227,6 +221,7 @@ export function useReportExport(entity: ExportEntity | null) {
     dialogOpen,
     setDialogOpen,
     isLoading,
+    error,
     selectedColumns,
     toggleColumn,
     toggleAll,
