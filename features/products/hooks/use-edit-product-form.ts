@@ -133,15 +133,15 @@ export function useEditProductForm({
   onOpenChange?: (open: boolean) => void
 }) {
   const { isAuthenticated } = useCurrentUser()
-  const detail = useQuery(
-    api.products.queries.getEditDetail,
-    isAuthenticated ? { productId } : "skip"
-  )
-  const update = useUpdateProduct()
-  const generateUploadUrl = useMutation(api.batches.mutations.generateUploadUrl)
   const [internalOpen, setInternalOpen] = useState(false)
   const open = openProp ?? internalOpen
   const setOpen = onOpenChange ?? setInternalOpen
+  const detail = useQuery(
+    api.products.queries.getEditDetail,
+    isAuthenticated && open ? { productId } : "skip"
+  )
+  const update = useUpdateProduct()
+  const generateUploadUrl = useMutation(api.batches.mutations.generateUploadUrl)
   const [dialogState, dispatch] = useReducer(
     dialogReducer,
     INITIAL_DIALOG_STATE
