@@ -1,6 +1,5 @@
 "use client"
 
-import { useMemo, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Select,
@@ -13,72 +12,25 @@ import DemandComparisonChart from "@/features/dashboard/components/demand-compar
 import MonthlyDispatchChart from "@/features/dashboard/components/monthly-dispatch-chart"
 import StatCards from "@/features/dashboard/components/stat-cards"
 import WeeklyVelocityHeatmap from "@/features/dashboard/components/weekly-velocity-heatmap"
+import {
+  DATE_RANGE_LABELS,
+  type DateRangePreset,
+} from "@/features/dashboard/constants"
 import { useDashboardData } from "@/features/dashboard/hooks/use-dashboard-data"
-import { MONTH_NAMES } from "@/features/reports/constants"
-
-type DateRangePreset = "7d" | "30d" | "90d" | "6m" | "all"
-
-const DATE_RANGE_LABELS: Record<DateRangePreset, string> = {
-  "7d": "Last 7 Days",
-  "30d": "Last 30 Days",
-  "90d": "Last 90 Days",
-  "6m": "Last 6 Months",
-  all: "All Time",
-}
+import { useDashboardDateRanges } from "@/features/dashboard/hooks/use-dashboard-date-ranges"
 
 export default function Dashboard() {
-  const now = useMemo(() => new Date(), [])
-  const [rangePreset, setRangePreset] = useState<DateRangePreset>("6m")
-  const startMs = useMemo(
-    () => new Date(now.getFullYear(), now.getMonth(), 1).getTime(),
-    [now]
-  )
-  const endMs = useMemo(
-    () =>
-      new Date(
-        now.getFullYear(),
-        now.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-        999
-      ).getTime(),
-    [now]
-  )
-  const nowTs = now.getTime()
-  const velocityStartMs = useMemo(() => {
-    switch (rangePreset) {
-      case "7d":
-        return nowTs - 7 * 24 * 60 * 60 * 1000
-      case "30d":
-        return nowTs - 30 * 24 * 60 * 60 * 1000
-      case "90d":
-        return nowTs - 90 * 24 * 60 * 60 * 1000
-      case "6m": {
-        const d = new Date(nowTs)
-        d.setMonth(d.getMonth() - 6)
-        return d.getTime()
-      }
-      case "all":
-        return 0
-    }
-  }, [nowTs, rangePreset])
-  const velocityEndMs = nowTs
-
-  const monthLabel = `${MONTH_NAMES[now.getMonth()]} · Outgoing stock volume`
-  const tzOffsetMs = useMemo(
-    () => new Date().getTimezoneOffset() * -60 * 1000,
-    []
-  )
-  const velocityDateRange = useMemo(() => {
-    if (rangePreset === "all") return "All dispatches"
-    const fmt = (ms: number) => {
-      const d = new Date(ms)
-      return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-    }
-    return `${fmt(velocityStartMs)} – ${fmt(velocityEndMs)}, ${new Date(velocityEndMs).getFullYear()}`
-  }, [velocityStartMs, velocityEndMs, rangePreset])
+  const {
+    rangePreset,
+    setRangePreset,
+    startMs,
+    endMs,
+    velocityStartMs,
+    velocityEndMs,
+    tzOffsetMs,
+    monthLabel,
+    velocityDateRange,
+  } = useDashboardDateRanges()
 
   const {
     stats,
@@ -150,13 +102,24 @@ export default function Dashboard() {
             />
           </CardContent>
         </Card>
-      </div>
 
-      <Card size="sm">
-        <CardContent>
-          <DemandComparisonChart data={forecast} isLoading={forecastLoading} />
-        </CardContent>
-      </Card>
+        <Card size="sm">
+          <CardContent>
+            <h3 className="font-heading text-base font-medium">
+              🚧 Product Movement 🚧
+            </h3>
+          </CardContent>
+        </Card>
+
+        <Card size="sm">
+          <CardContent>
+            <DemandComparisonChart
+              data={forecast}
+              isLoading={forecastLoading}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

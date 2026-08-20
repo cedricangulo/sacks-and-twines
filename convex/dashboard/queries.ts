@@ -80,18 +80,17 @@ export const dailyDispatchVolume = query({
 
     await Promise.all(
       dispatches.map(async (d) => {
-        const items = await ctx.db
-          .query("dispatchItems")
-          .withIndex("by_dispatch", (q) => q.eq("dispatchId", d._id))
-          .collect()
+        let totalQty = d.totalQuantity
+        if (totalQty === undefined) {
+          const items = await ctx.db
+            .query("dispatchItems")
+            .withIndex("by_dispatch", (q) => q.eq("dispatchId", d._id))
+            .collect()
+          totalQty = items.reduce((sum, item) => sum + item.quantityDeducted, 0)
+        }
 
         const ts = d.createdAt ?? d._creationTime
         const day = new Date(ts + tzOffset).getUTCDate()
-
-        const totalQty = items.reduce(
-          (sum, item) => sum + item.quantityDeducted,
-          0
-        )
 
         if (totalQty > 0) {
           const entry = dayMap.get(day) ?? { units: 0, dispatchCount: 0 }
@@ -136,7 +135,12 @@ export const weeklyVelocity = query({
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const dispatches = await fetchDispatches(ctx, startMs, endMs)
+    // Bound the heatmap scan to the longest selectable preset (90 days) so a
+    // stray unbounded startMs can never rescan the whole dispatch table.
+    const VELOCITY_WINDOW_MS = 13 * 7 * 24 * 60 * 60 * 1000
+    const effectiveStartMs = Math.max(startMs, Date.now() - VELOCITY_WINDOW_MS)
+
+    const dispatches = await fetchDispatches(ctx, effectiveStartMs, endMs)
 
     const cellMap = new Map<string, number>()
 
@@ -201,10 +205,14 @@ export const weeklyDemand = query({
 
     await Promise.all(
       dispatches.map(async (d) => {
-        const items = await ctx.db
-          .query("dispatchItems")
-          .withIndex("by_dispatch", (q) => q.eq("dispatchId", d._id))
-          .collect()
+        let totalQty = d.totalQuantity
+        if (totalQty === undefined) {
+          const items = await ctx.db
+            .query("dispatchItems")
+            .withIndex("by_dispatch", (q) => q.eq("dispatchId", d._id))
+            .collect()
+          totalQty = items.reduce((sum, item) => sum + item.quantityDeducted, 0)
+        }
 
         const ts = d.createdAt ?? d._creationTime
         const shifted = new Date(ts + tzOffset)
@@ -212,11 +220,6 @@ export const weeklyDemand = query({
         const month = String(shifted.getUTCMonth() + 1).padStart(2, "0")
         const day = String(shifted.getUTCDate()).padStart(2, "0")
         const isoDate = `${year}-${month}-${day}`
-
-        const totalQty = items.reduce(
-          (sum, item) => sum + item.quantityDeducted,
-          0
-        )
 
         if (totalQty > 0) {
           dayMap.set(isoDate, (dayMap.get(isoDate) ?? 0) + totalQty)

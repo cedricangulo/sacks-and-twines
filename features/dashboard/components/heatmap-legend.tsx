@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils"
-
-const INTENSITIES = [1, 2, 3, 4, 5] as const
+import { HEATMAP_INTENSITY_CLASSES, INTENSITIES } from "../constants"
 
 export default function HeatmapLegend() {
   return (
@@ -10,12 +9,8 @@ export default function HeatmapLegend() {
         <div
           key={level}
           className={cn(
-            "size-2 rounded-full",
-            level === 1 && "bg-amber-100 dark:bg-amber-950/60",
-            level === 2 && "bg-amber-200 dark:bg-amber-900/60",
-            level === 3 && "bg-amber-300 dark:bg-amber-800/60",
-            level === 4 && "bg-amber-400 dark:bg-amber-700/60",
-            level === 5 && "bg-amber-500 dark:bg-amber-600/60"
+            "h-3 w-12 rounded-md",
+            HEATMAP_INTENSITY_CLASSES[level]
           )}
         />
       ))}

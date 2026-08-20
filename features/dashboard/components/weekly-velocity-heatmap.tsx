@@ -2,13 +2,13 @@
 
 import { useMemo } from "react"
 import { cn } from "@/lib/utils"
+import {
+  DAYS,
+  HEATMAP_INTENSITY_CLASSES,
+  HOURS,
+  type VelocityCell,
+} from "../constants"
 import HeatmapLegend from "./heatmap-legend"
-
-interface VelocityCell {
-  dayOfWeek: number
-  hour: number
-  count: number
-}
 
 interface WeeklyVelocityHeatmapProps {
   data: VelocityCell[]
@@ -17,34 +17,14 @@ interface WeeklyVelocityHeatmapProps {
   headerAction?: React.ReactNode
 }
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
-const HOURS = [
-  "8AM",
-  "9AM",
-  "10AM",
-  "11AM",
-  "12PM",
-  "1PM",
-  "2PM",
-  "3PM",
-  "4PM",
-  "5PM",
-  "6PM",
-]
+const CELL_INTENSITY_CLASSES: Record<number, string> = {
+  0: "bg-muted/30",
+  ...HEATMAP_INTENSITY_CLASSES,
+}
 
 function getIntensity(count: number, maxCount: number): number {
   if (maxCount === 0 || count === 0) return 0
   return Math.ceil((count / maxCount) * 5)
-}
-
-const intensityClass: Record<number, string> = {
-  0: "bg-muted/30",
-  1: "bg-amber-100 dark:bg-amber-950/60",
-  2: "bg-amber-200 dark:bg-amber-900/60",
-  3: "bg-amber-300 dark:bg-amber-800/60",
-  4: "bg-amber-400 dark:bg-amber-700/60",
-  5: "bg-amber-500 dark:bg-amber-600/60",
 }
 
 export default function WeeklyVelocityHeatmap({
@@ -85,10 +65,7 @@ export default function WeeklyVelocityHeatmap({
             {dateRange ?? "Peak activity across all transactions"}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {headerAction}
-          <HeatmapLegend />
-        </div>
+        {headerAction}
       </div>
       <div className="overflow-x-auto">
         <div
@@ -120,7 +97,7 @@ export default function WeeklyVelocityHeatmap({
                   "h-6 rounded-md animate-fade-in",
                   isLoading
                     ? "animate-pulse bg-muted"
-                    : intensityClass[cell.intensity]
+                    : CELL_INTENSITY_CLASSES[cell.intensity]
                 )}
                 title={
                   isLoading
@@ -131,6 +108,9 @@ export default function WeeklyVelocityHeatmap({
             )),
           ])}
         </div>
+      </div>
+      <div className="flex justify-center w-full">
+        <HeatmapLegend />
       </div>
     </div>
   )
