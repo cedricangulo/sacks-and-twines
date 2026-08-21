@@ -46,7 +46,7 @@ export default function DemandComparisonChart({
         <BarChart
           data={chartData}
           xDataKey="week"
-          aspectRatio="2 / 1"
+          aspectRatio="4 / 3"
           orientation="vertical"
         >
           <Bar dataKey="actual" fill="var(--foreground)" lineCap="round" />

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select"
 import DemandComparisonChart from "@/features/dashboard/components/demand-comparison-chart"
 import MonthlyDispatchChart from "@/features/dashboard/components/monthly-dispatch-chart"
+import ProductMovement from "@/features/dashboard/components/product-movement"
 import StatCards from "@/features/dashboard/components/stat-cards"
 import WeeklyVelocityHeatmap from "@/features/dashboard/components/weekly-velocity-heatmap"
 import {
@@ -41,6 +42,8 @@ export default function Dashboard() {
     velocityLoading,
     forecast,
     forecastLoading,
+    productMovement,
+    productMovementLoading,
   } = useDashboardData(
     startMs,
     endMs,
@@ -59,7 +62,7 @@ export default function Dashboard() {
         isLoading={statsLoading}
       />
 
-      <div className="grid grid-cols-1 h-fit gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 h-fit lg:grid-cols-2">
         <Card size="sm">
           <CardContent>
             <MonthlyDispatchChart
@@ -103,22 +106,25 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card size="sm">
-          <CardContent>
-            <h3 className="font-heading text-base font-medium">
-              🚧 Product Movement 🚧
-            </h3>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 col-span-1 gap-6 md:col-span-2 h-fit lg:grid-cols-2">
+          <Card size="sm" className="h-fit">
+            <CardContent>
+              <ProductMovement
+                data={productMovement}
+                isLoading={productMovementLoading}
+              />
+            </CardContent>
+          </Card>
 
-        <Card size="sm">
-          <CardContent>
-            <DemandComparisonChart
-              data={forecast}
-              isLoading={forecastLoading}
-            />
-          </CardContent>
-        </Card>
+          <Card size="sm" className="h-fit">
+            <CardContent>
+              <DemandComparisonChart
+                data={forecast}
+                isLoading={forecastLoading}
+              />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

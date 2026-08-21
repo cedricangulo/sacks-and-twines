@@ -27,9 +27,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
 const data = {
   navMain: [
     {
@@ -98,6 +98,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { signOut } = useAuthActions()
   const { push } = useRouter()
   const pathname = usePathname()
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  // Close the sidebar on mobile when a link is clicked.
+  const closeMobile = () => {
+    if (isMobile) setOpenMobile(false)
+  }
+
+  // Check if the current pathname matches the given URL to determine if the link is active.
   const isActive = (url: string) => {
     return url === pathname
   }
@@ -112,7 +120,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/dashboard" />}>
+            <SidebarMenuButton
+              size="lg"
+              onClick={closeMobile}
+              render={<Link href="/dashboard" />}
+            >
               <Image
                 src="/logo.png"
                 alt="Sacks and Twines"
@@ -142,6 +154,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 {item.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
+                      onClick={closeMobile}
                       render={
                         <Link
                           href={item.url}
@@ -167,6 +180,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => {
+                closeMobile()
                 push("/sign-in")
                 signOut()
               }}

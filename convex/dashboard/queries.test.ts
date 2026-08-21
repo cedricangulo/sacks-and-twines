@@ -1063,3 +1063,155 @@ describe("weeklyDemand", () => {
     expect(phtResult[0]).toMatchObject({ date: "2026-07-11", value: 50 })
   })
 })
+
+// ---------------------------------------------------------------------------
+// productMovement
+// ---------------------------------------------------------------------------
+
+describe("productMovement", () => {
+  function makeTest() {
+    return convexTest({ schema, modules })
+  }
+
+  beforeEach(() => {
+    authMocks.getAuthUserId.mockReset()
+  })
+
+  it("rejects unauthenticated", async () => {
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+    await expect(
+      t.query(api.dashboard.queries.productMovement, {
+        startMs: 0,
+        endMs: Date.now(),
+      })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("rejects staff role", async () => {
+    const t = makeTest()
+    const userId = await createUser(t, { role: "staff" })
+    authMocks.getAuthUserId.mockResolvedValueOnce(userId)
+
+    await expect(
+      t.query(api.dashboard.queries.productMovement, {
+        startMs: 0,
+        endMs: Date.now(),
+      })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("aggregates quantityDeducted per product and excludes voided dispatches", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t)
+    const supplierId = await createSupplier(t)
+    const pFast = await createProduct(t, { name: "Fast Product" })
+    const pSlow = await createProduct(t, { name: "Slow Product" })
+    const pArchived = await createProduct(t, {
+      name: "Archived Product",
+      status: "archived",
+    })
+
+    const batchFast = await createBatch(t, {
+      productId: pFast,
+      supplierId,
+      userId: ownerId,
+    })
+    const batchSlow = await createBatch(t, {
+      productId: pSlow,
+      supplierId,
+      userId: ownerId,
+    })
+
+    const now = Date.now()
+    const completed = await createDispatch(t, {
+      userId: ownerId,
+      status: "completed",
+      createdAt: now - 1000,
+    })
+    const voided = await createDispatch(t, {
+      userId: ownerId,
+      status: "voided",
+      createdAt: now - 1000,
+    })
+
+    // 30 + 20 = 50 units of Fast across two items; 5 units of Slow.
+    await createDispatchItem(t, {
+      dispatchId: completed,
+      batchId: batchFast,
+      productId: pFast,
+      quantityDeducted: 30,
+    })
+    await createDispatchItem(t, {
+      dispatchId: completed,
+      batchId: batchFast,
+      productId: pFast,
+      quantityDeducted: 20,
+    })
+    await createDispatchItem(t, {
+      dispatchId: completed,
+      batchId: batchSlow,
+      productId: pSlow,
+      quantityDeducted: 5,
+    })
+    // Voided dispatch must not count.
+    await createDispatchItem(t, {
+      dispatchId: voided,
+      batchId: batchFast,
+      productId: pFast,
+      quantityDeducted: 999,
+    })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const result = await t.query(api.dashboard.queries.productMovement, {
+      startMs: now - 86_400_000,
+      endMs: now,
+    })
+
+    // Archived product is excluded; active products included with 0 fallback.
+    const fast = result.find((r) => r.productId === pFast)
+    const slow = result.find((r) => r.productId === pSlow)
+    const archived = result.find((r) => r.productId === pArchived)
+
+    expect(fast?.unitsSold).toBe(50)
+    expect(slow?.unitsSold).toBe(5)
+    expect(archived).toBeUndefined()
+  })
+
+  it("ignores dispatches outside the date window", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t)
+    const supplierId = await createSupplier(t)
+    const product = await createProduct(t, { name: "Product" })
+    const batch = await createBatch(t, {
+      productId: product,
+      supplierId,
+      userId: ownerId,
+    })
+
+    const now = Date.now()
+    const oldDispatch = await createDispatch(t, {
+      userId: ownerId,
+      status: "completed",
+      createdAt: now - 90 * 86_400_000,
+    })
+    await createDispatchItem(t, {
+      dispatchId: oldDispatch,
+      batchId: batch,
+      productId: product,
+      quantityDeducted: 40,
+    })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const result = await t.query(api.dashboard.queries.productMovement, {
+      startMs: now - 86_400_000,
+      endMs: now,
+    })
+
+    const entry = result.find((r) => r.productId === product)
+    expect(entry?.unitsSold).toBe(0)
+  })
+})

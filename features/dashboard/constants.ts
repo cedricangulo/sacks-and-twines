@@ -45,3 +45,23 @@ export const HEATMAP_INTENSITY_CLASSES: Record<HeatmapIntensity, string> = {
   4: "bg-amber-400 dark:bg-amber-700/60",
   5: "bg-amber-500 dark:bg-amber-600/60",
 }
+
+// ---------------------------------------------------------------------------
+// Product Movement velocity classification
+// ---------------------------------------------------------------------------
+
+// Velocity tiers are relative to the best-selling product's units in the
+// window, so they self-tune to any dataset. With a 1,250-unit leader these
+// cutoffs (>=50% High, >=15% Medium) reproduce High/High/High/Medium/Medium
+// for the fast list and all-Low for the slow list.
+export const VELOCITY_HIGH_FRACTION = 0.5
+export const VELOCITY_MEDIUM_FRACTION = 0.15
+
+export type Velocity = "High" | "Medium" | "Low"
+
+export function classifyVelocity(units: number, maxUnits: number): Velocity {
+  if (maxUnits <= 0) return "Low"
+  if (units >= VELOCITY_HIGH_FRACTION * maxUnits) return "High"
+  if (units >= VELOCITY_MEDIUM_FRACTION * maxUnits) return "Medium"
+  return "Low"
+}
