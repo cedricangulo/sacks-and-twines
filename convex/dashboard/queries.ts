@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
+import type { Id } from "../_generated/dataModel"
 import { query } from "../_generated/server"
 import { fetchDispatches } from "../lib/fetch_entities"
 
@@ -164,6 +165,63 @@ export const weeklyVelocity = query({
         count,
       }
     })
+  },
+})
+
+/**
+ * Product movement ranking for the Product Movement card.
+ *
+ * Aggregates units sold (sum of dispatchItems.quantityDeducted) per active
+ * product across completed dispatches in the given window, returning one
+ * entry per active product (units 0 when nothing sold). The client selects
+ * the top-5 fastest and bottom-5 slowest and classifies velocity.
+ *
+ * Access: Owner only.
+ */
+export const productMovement = query({
+  args: {
+    startMs: v.number(),
+    endMs: v.number(),
+  },
+  handler: async (ctx, { startMs, endMs }) => {
+    const userId = await getAuthUserId(ctx)
+    if (userId === null) throw new Error("Unauthorized")
+
+    const caller = await ctx.db.get(userId)
+    if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
+
+    const dispatches = await fetchDispatches(ctx, startMs, endMs, "completed")
+
+    // TODO(scale): N+1 query — one dispatchItems read per dispatch. At current
+    // volume (~50/month) this is fine. If it grows, denormalize a
+    // productBreakdown field on dispatches at write time (same pattern as
+    // totalQuantity) and read it directly here.
+    const unitsByProduct = new Map<Id<"products">, number>()
+    await Promise.all(
+      dispatches.map(async (d) => {
+        const items = await ctx.db
+          .query("dispatchItems")
+          .withIndex("by_dispatch", (q) => q.eq("dispatchId", d._id))
+          .collect()
+        for (const item of items) {
+          unitsByProduct.set(
+            item.productId,
+            (unitsByProduct.get(item.productId) ?? 0) + item.quantityDeducted
+          )
+        }
+      })
+    )
+
+    const products = await ctx.db
+      .query("products")
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .collect()
+
+    return products.map((p) => ({
+      productId: p._id,
+      productName: p.name,
+      unitsSold: Math.round(unitsByProduct.get(p._id) ?? 0),
+    }))
   },
 })
 

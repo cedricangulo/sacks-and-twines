@@ -59,6 +59,16 @@ export function useDashboardData(
     [isAuthenticated, monthStartMs, monthEndMs, tzOffset]
   )
 
+  // productMovement doesn't need timezoneOffsetMs — it aggregates per-product
+  // totals, not per-day/hour buckets, so the raw UTC range is sufficient.
+  const productMovementArgs = useMemo(
+    () =>
+      isAuthenticated
+        ? ({ startMs: monthStartMs, endMs: monthEndMs } as const)
+        : ("skip" as const),
+    [isAuthenticated, monthStartMs, monthEndMs]
+  )
+
   const stats = useQuery(api.dashboard.queries.summaryStats, statsArgs)
   const dispatchVolume = useQuery(
     api.dashboard.queries.dailyDispatchVolume,
@@ -66,6 +76,10 @@ export function useDashboardData(
   )
   const velocity = useQuery(api.dashboard.queries.weeklyVelocity, velocityArgs)
   const demand = useQuery(api.dashboard.queries.weeklyDemand, demandArgs)
+  const productMovement = useQuery(
+    api.dashboard.queries.productMovement,
+    productMovementArgs
+  )
 
   const forecast = useMemo(() => {
     if (!demand || demand.length === 0) return []
@@ -81,5 +95,7 @@ export function useDashboardData(
     velocityLoading: velocity === undefined && isAuthenticated,
     forecast,
     forecastLoading: demand === undefined && isAuthenticated,
+    productMovement: productMovement ?? [],
+    productMovementLoading: productMovement === undefined && isAuthenticated,
   }
 }
