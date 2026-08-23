@@ -1,0 +1,14 @@
+{
+  "$schema": "https://react.doctor/schema/config.json",
+  "ignore": {
+    "files": [
+      "components/ui/**",
+      "components/charts/**",
+      "convex/http.ts",
+      "convex/migrations.ts",
+      "convex/seed/clear.ts",
+      "convex/init.ts",
+      "convex/seedAction.ts"
+    ]
+  }
+}
