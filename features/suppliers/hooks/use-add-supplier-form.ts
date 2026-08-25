@@ -8,26 +8,32 @@ import {
 } from "../validation"
 import { useCreateSupplier } from "./use-create-supplier"
 
-// Manages the add-supplier dialog form state: fields, validation, and submission.
+/**
+ * Empty form — hoisted to module scope so it’s not re-created on every render.
+ * Fixes `react-doctor/prefer-module-scope-static-value` and keeps `setFormValues(INITIAL_VALUE)` stable.
+ */
+const INITIAL_VALUE: SupplierFormData = {
+  companyName: "",
+  contactPerson: "",
+  contactNumber: "",
+  address: "",
+}
+
+/** Dialog state for creating a supplier. Holds `formValues`, field `errors`, and `open` toggle. */
 export function useAddSupplierForm() {
   const create = useCreateSupplier()
   const [open, setOpen] = useState(false)
   const [errors, setErrors] = useState<SupplierFieldErrors>({})
 
-  const initialValue: SupplierFormData = {
-    companyName: "",
-    contactPerson: "",
-    contactNumber: "",
-    address: "",
-  }
+  const [formValues, setFormValues] = useState(INITIAL_VALUE)
 
-  const [formValues, setFormValues] = useState(initialValue)
-
+  /** Update a single field and clear its error. */
   const handleChange = (field: keyof SupplierFormData, value: string) => {
     setFormValues((prev) => ({ ...prev, [field]: value }))
     clearFieldError(field)
   }
 
+  /** Validate with `validateSupplier`, reset to `INITIAL_VALUE` on success, then call `create.submit`. */
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setErrors({})
@@ -40,7 +46,7 @@ export function useAddSupplierForm() {
     }
 
     setOpen(false)
-    setFormValues(initialValue)
+    setFormValues(INITIAL_VALUE)
     await create.submit(result.data)
   }
 

@@ -14,18 +14,28 @@ import {
 } from "../validation"
 import { useUpdateProduct } from "./use-update-product"
 
+/** Max image size (5 MB) — keep in sync with `lib/hooks/use-image-upload.ts`. */
 const MAX_FILE_SIZE = 5 * 1024 * 1024
+/** MIME filter for the edit-product dropzone. */
 const ALLOWED_TYPES = ["image/jpeg", "image/png"]
 
-// Current state of the edit-product dialog.
+/** Snapshot of the edit-product dialog. */
 type DialogState = {
+  /** Validated form fields (null until product detail loads). */
   formValues: ProductUpdateFormData | null
+  /** Preview URL — either remote `imageUrl` or local `blob:` URL. */
   imagePreview: string | null
+  /** True when user cleared the image (so submit sends `imageStorageId: null`). */
   imageCleared: boolean
+  /** Raw file waiting to be uploaded on submit. */
   selectedFile: File | null
+  /** Image validation / upload error shown under the dropzone. */
   imageError: string | null
+  /** Fields locked because batches exist (`hasBatches`). */
   lockedFields: Record<string, boolean>
+  /** Whether user changed anything (enables Save). */
   dirty: boolean
+  /** Field-level validation errors. */
   errors: ProductUpdateFieldErrors
 }
 
@@ -49,7 +59,7 @@ type DialogAction =
   | { type: "setLockedFields"; lockedFields: Record<string, boolean> }
   | { type: "setDirty" }
 
-// Default state for the edit-product reducer.
+/** Empty dialog state before a product is loaded. */
 const INITIAL_DIALOG_STATE: DialogState = {
   formValues: null,
   imagePreview: null,
@@ -61,7 +71,13 @@ const INITIAL_DIALOG_STATE: DialogState = {
   errors: {},
 }
 
-// Reducer managing edit-product dialog state: form values, validation errors, image upload, locked fields.
+/**
+ * State machine for the edit dialog.
+ * - `open`: hydrates form from `getEditDetail`.
+ * - `changeField` / `setLockedFields` / `setErrors`: form edits.
+ * - `selectImage`: stages a file and creates a `blob:` preview (revokes
+ *   previous `blob:` URL to avoid leaks).
+ */
 function dialogReducer(state: DialogState, action: DialogAction): DialogState {
   switch (action.type) {
     case "open":
@@ -87,6 +103,11 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
       return { ...state, formValues: next, dirty: true, errors }
     }
     case "selectImage": {
+      // Revoke previous blob preview before replacing — prevents leak when
+      // user re-selects files multiple times without clearing.
+      if (state.imagePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(state.imagePreview)
+      }
       const next = {
         imagePreview: null,
         selectedFile: null,
@@ -122,7 +143,13 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
   }
 }
 
-// Manages the edit-product dialog lifecycle: fetches detail on open, validates input, handles image upload, and submits to Convex.
+/**
+ * Lifecycle hook for the Edit Product dialog.
+ * - Fetches `getEditDetail` when `open` is true.
+ * - Exposes `formValues`, `imagePreview`, `handleChange`, `handleImageSelect`,
+ *   `handleSubmit` (validates → uploads image to Convex storage with `ok` +
+ *   `storageId` checks → `update.submit`).
+ */
 export function useEditProductForm({
   productId,
   open: openProp,
@@ -159,6 +186,16 @@ export function useEditProductForm({
 
   const hasBatches = (detail?.batchCount ?? 0) > 0
 
+  // Cleanup: revoke the active blob preview when the hook unmounts or when
+  // `imagePreview` changes (covers the "cancel without clear" case).
+  useEffect(() => {
+    return () => {
+      if (dialogState.imagePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(dialogState.imagePreview)
+      }
+    }
+  }, [dialogState.imagePreview])
+
   useEffect(() => {
     if (open && detail) {
       dispatch({
@@ -180,6 +217,14 @@ export function useEditProductForm({
     }
   }, [open, detail, hasBatches])
 
+  /**
+   * Stage an image for the dialog.
+   * - Validates type/size → `imageError`.
+   * - `file === null` → revokes current `blob:` preview (keeps remote URLs
+   *   untouched) and marks `imageCleared`.
+   * - Delegates actual `blob:` creation to the reducer so revoke happens
+   *   exactly once per transition.
+   */
   const handleImageSelect = (file: File | null) => {
     if (file) {
       if (!ALLOWED_TYPES.includes(file.type)) {
@@ -196,7 +241,7 @@ export function useEditProductForm({
         })
         return
       }
-    } else if (imagePreview) {
+    } else if (imagePreview?.startsWith("blob:")) {
       URL.revokeObjectURL(imagePreview)
     }
     dispatch({ type: "selectImage", file })
@@ -216,6 +261,14 @@ export function useEditProductForm({
     })
   }
 
+  /**
+   * Validate, optionally upload the staged image, then persist the product.
+   * Image handling:
+   * - `selectedFile` → POST to Convex upload URL, require `res.ok` and a
+   *   non-empty `storageId`, else show `imageError` and abort.
+   * - `imageCleared` → `imageStorageId = null` (remove image).
+   * - neither → `undefined` (keep existing image).
+   */
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     dispatch({ type: "setErrors", errors: {} })
@@ -240,8 +293,14 @@ export function useEditProductForm({
           headers: { "Content-Type": selectedFile.type },
           body: selectedFile,
         })
-        const { storageId } = await uploadResult.json()
-        imageStorageId = storageId as string
+        if (!uploadResult.ok) {
+          throw new Error(`Upload failed: ${uploadResult.status}`)
+        }
+        const body = (await uploadResult.json()) as { storageId?: unknown }
+        if (typeof body.storageId !== "string" || body.storageId.length === 0) {
+          throw new Error("Missing storageId in upload response")
+        }
+        imageStorageId = body.storageId
       } catch {
         dispatch({
           type: "setImageError",

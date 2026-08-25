@@ -8,25 +8,31 @@ import {
 } from "../validation"
 import { useCreateStaff } from "./use-create-staff"
 
-// Manages the add-staff dialog form state: fields, validation, and submission.
+/**
+ * Empty form — hoisted to module scope (stable reference, no per-render allocation).
+ * See `react-doctor/prefer-module-scope-static-value`.
+ */
+const INITIAL_VALUE: StaffFormData = {
+  name: "",
+  email: "",
+  password: "",
+}
+
+/** Dialog state for creating a staff user. Mirrors `useAddSupplierForm` but uses `StaffSchema`. */
 export function useAddStaffForm() {
   const create = useCreateStaff()
   const [open, setOpen] = useState(false)
   const [errors, setErrors] = useState<StaffFieldErrors>({})
 
-  const initialValue: StaffFormData = {
-    name: "",
-    email: "",
-    password: "",
-  }
+  const [formValues, setFormValues] = useState(INITIAL_VALUE)
 
-  const [formValues, setFormValues] = useState(initialValue)
-
+  /** Update a field and clear its validation error. */
   const handleChange = (field: keyof StaffFormData, value: string) => {
     setFormValues((prev) => ({ ...prev, [field]: value }))
     clearFieldError(field)
   }
 
+  /** Validate via `StaffSchema.safeParse`, surface `StaffFieldErrors`, reset to `INITIAL_VALUE` on success. */
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setErrors({})
@@ -46,7 +52,7 @@ export function useAddStaffForm() {
     }
 
     setOpen(false)
-    setFormValues(initialValue)
+    setFormValues(INITIAL_VALUE)
     await create.submit(result.data)
   }
 

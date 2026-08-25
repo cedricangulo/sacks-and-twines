@@ -1,8 +1,20 @@
+# pnpm supply-chain hardening — see https://pnpm.io/settings#minimumReleaseAge
 allowBuilds:
   esbuild: true # Allow esbuild to run its build script
   msw: true # Allow msw
   sharp: true # Allow sharp
   # some-other-package: false  # Explicitly block
+
+# Require 3 days of vetting before a newly published version is installed.
+minimumReleaseAge: 4320
+# Trust downgrade protection — see https://pnpm.io/settings#trustPolicy
+# Excludes: `resend`/`semver`/`sileo` flagged as High-risk downgrade in
+# pnpm audit but verified provenance (follow-up: `pnpm trust`).
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - resend@6.18.1
+  - semver@6.3.1
+  - sileo@0.1.5
 
 minimumReleaseAgeExclude:
   - '@next/env@16.3.0'
