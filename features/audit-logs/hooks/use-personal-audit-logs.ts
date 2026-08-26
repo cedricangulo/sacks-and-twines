@@ -6,7 +6,10 @@ import { api } from "@/convex/_generated/api"
 import { ITEMS_PER_PAGE } from "../constants"
 import type { AuditLogEntry } from "./use-audit-logs"
 
-// Fetches paginated audit logs scoped to the current user (for staff users) with cursor-based navigation.
+/**
+ * Personal audit log pagination — same cursor logic as `useAuditLogs`
+ * but scoped to `listByUser` (no filters). Exposes `reset` for symmetry.
+ */
 export function usePersonalAuditLogs(skip = false) {
   const [cursor, setCursor] = useState<string | null>(null)
   const [history, setHistory] = useState<string[]>([])
@@ -26,6 +29,8 @@ export function usePersonalAuditLogs(skip = false) {
     | { page: AuditLogEntry[]; continueCursor: string; isDone: boolean }
     | undefined
 
+  // Clear transitioning once page loads — mirrors `useAuditLogs`.
+  // react-doctor: clears loading flag (intentional)
   useEffect(() => {
     if (result !== undefined && isTransitioning) {
       setIsTransitioning(false)
@@ -57,6 +62,15 @@ export function usePersonalAuditLogs(skip = false) {
     (pageNum < maxPage || (result !== undefined && !result.isDone))
   const hasPrev = !isTransitioning && history.length > 0
 
+  /** Reset to first page — parity with `useAuditLogs`. */
+  const reset = useCallback(() => {
+    setCursor(null)
+    setHistory([])
+    setPageNum(1)
+    setMaxPage(1)
+    setIsTransitioning(false)
+  }, [])
+
   return {
     page: result?.page ?? [],
     isLoading: result === undefined,
@@ -65,5 +79,6 @@ export function usePersonalAuditLogs(skip = false) {
     goPrev,
     hasNext,
     hasPrev,
+    reset,
   }
 }

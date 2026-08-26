@@ -400,9 +400,11 @@ export const exportMonthlyReport = query({
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const mergedDispatches = await fetchDispatches(ctx, startMs, endMs)
-
-    const mergedAdjustments = await fetchAdjustments(ctx, startMs, endMs)
+    // Independent range reads — run in parallel.
+    const [mergedDispatches, mergedAdjustments] = await Promise.all([
+      fetchDispatches(ctx, startMs, endMs),
+      fetchAdjustments(ctx, startMs, endMs),
+    ])
 
     let totalItems = 0
     let totalValue = 0

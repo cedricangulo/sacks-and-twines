@@ -3,31 +3,55 @@
 import { parseAsInteger, useQueryStates } from "nuqs"
 import { useEffect, useMemo } from "react"
 
-const now = new Date()
-const CURRENT_MONTH = now.getMonth()
-const CURRENT_YEAR = now.getFullYear()
+/**
+ * Read current month/year at call time — not at module load — so the value
+ * never goes stale across SSR or long-lived tabs. Fixes
+ * `react-doctor/no-impure-call-at-module-scope`.
+ */
+function getNowParts() {
+  const n = new Date()
+  return { month: n.getMonth(), year: n.getFullYear() }
+}
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
 }
 
+/** Clamp `day` to the target month’s length (e.g. 31 → 28 for Feb). */
 function clampDay(day: number | null, year: number, month: number) {
   if (day === null) return null
   const max = getDaysInMonth(year, month)
   return Math.min(day, max)
 }
 
-const calendarParsers = {
-  month: parseAsInteger.withDefault(CURRENT_MONTH),
-  year: parseAsInteger.withDefault(CURRENT_YEAR),
-  day: parseAsInteger,
-  page: parseAsInteger.withDefault(1),
-}
-
 const nuqsOptions = { history: "replace" as const }
 
-// Calendar navigation and day selection state synced to URL query params.
+/** Hoisted — reused for `formattedDate`; explicit `Asia/Manila` for hydration consistency. */
+const FILTER_DATE_FMT = new Intl.DateTimeFormat("en-PH", {
+  month: "long",
+  day: "numeric",
+  timeZone: "Asia/Manila",
+})
+
+/**
+ * Calendar navigation + day selection synced to URL (`nuqs`).
+ * - `nowParts` is computed inside the hook via `getNowParts()` so it reflects
+ *   the real current month/year at render time.
+ * - `calendarParsers` are memoized from `nowParts` — no module-level `new Date()`.
+ * - Exposes `monthStartMs`/`monthEndMs`/`selectedDay*` timestamps and helpers
+ *   `goPrevMonth`/`goNextMonth`/`selectDay`/`setMonthValue`/`setYearValue`.
+ */
 export function useReportFilters() {
+  const nowParts = useMemo(() => getNowParts(), [])
+  const calendarParsers = useMemo(
+    () => ({
+      month: parseAsInteger.withDefault(nowParts.month),
+      year: parseAsInteger.withDefault(nowParts.year),
+      day: parseAsInteger,
+      page: parseAsInteger.withDefault(1),
+    }),
+    [nowParts.month, nowParts.year]
+  )
   const [filters, setQueries] = useQueryStates(calendarParsers, nuqsOptions)
 
   const { month, year, day, page } = filters
@@ -35,14 +59,14 @@ export function useReportFilters() {
   // Clamp year and month to current limits if URL has out-of-range values.
   useEffect(() => {
     const updates: Record<string, number> = {}
-    if (year > CURRENT_YEAR) updates.year = CURRENT_YEAR
-    if (year === CURRENT_YEAR && month > CURRENT_MONTH) {
-      updates.month = CURRENT_MONTH
+    if (year > nowParts.year) updates.year = nowParts.year
+    if (year === nowParts.year && month > nowParts.month) {
+      updates.month = nowParts.month
     }
     if (Object.keys(updates).length > 0) {
       setQueries(updates)
     }
-  }, [year, month, setQueries])
+  }, [year, month, setQueries, nowParts.month, nowParts.year])
 
   const monthStartMs = useMemo(
     () => new Date(year, month, 1).getTime(),
@@ -65,10 +89,7 @@ export function useReportFilters() {
 
   const formattedDate = useMemo(() => {
     if (day === null) return null
-    return new Date(year, month, day).toLocaleDateString("en-PH", {
-      month: "long",
-      day: "numeric",
-    })
+    return FILTER_DATE_FMT.format(new Date(year, month, day))
   }, [year, month, day])
 
   const goPrevMonth = () => {
@@ -114,8 +135,8 @@ export function useReportFilters() {
     year,
     selectedDay: day,
     page,
-    currentMonth: CURRENT_MONTH,
-    currentYear: CURRENT_YEAR,
+    currentMonth: nowParts.month,
+    currentYear: nowParts.year,
     monthStartMs,
     monthEndMs,
     selectedDayStartMs,

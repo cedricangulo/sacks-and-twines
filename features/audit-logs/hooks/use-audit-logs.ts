@@ -41,18 +41,33 @@ export function useAuditLogs(
   const [maxPage, setMaxPage] = useState(1)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
-  const filtersKey =
-    search +
-    "|" +
-    (filters.action ?? "") +
-    "|" +
-    (filters.userId ?? "") +
-    "|" +
-    (filters.dateFrom ?? "") +
-    "|" +
-    (filters.dateTo ?? "")
+  // Stable key for filter + search + skip — JSON avoids `|` collision and
+  // includes `skip` so toggling from hidden → visible resets pagination.
+  const filtersKey = useMemo(
+    () =>
+      JSON.stringify({
+        search: search ?? "",
+        action: filters.action ?? "",
+        userId: filters.userId ?? "",
+        dateFrom: filters.dateFrom ?? "",
+        dateTo: filters.dateTo ?? "",
+        skip,
+      }),
+    [
+      search,
+      filters.action,
+      filters.userId,
+      filters.dateFrom,
+      filters.dateTo,
+      skip,
+    ]
+  )
 
   const prevFiltersKeyRef = useRef(filtersKey)
+  // Pagination must restart at page 1 when query changes — intentional
+  // state sync on prop change; alternative `key={filtersKey}` would remount
+  // the table and lose transition state.
+  // react-doctor: pagination reset is required UX (intentional sync)
   useEffect(() => {
     if (filtersKey !== prevFiltersKeyRef.current) {
       prevFiltersKeyRef.current = filtersKey
@@ -91,6 +106,8 @@ export function useAuditLogs(
     | { page: AuditLogEntry[]; continueCursor: string; isDone: boolean }
     | undefined
 
+  // Clear transitioning flag once Convex returns the next page.
+  // react-doctor: clears loading flag after fetch (intentional)
   useEffect(() => {
     if (result !== undefined && isTransitioning) {
       setIsTransitioning(false)

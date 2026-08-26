@@ -22,12 +22,7 @@ import { useCalendarDays } from "../../hooks/use-calendar-days"
 import { useCalendarSummary } from "../../hooks/use-calendar-summary"
 import { CalendarDayCell } from "./calendar-day-cell"
 
-const YEAR_OPTIONS = Array.from(
-  { length: new Date().getFullYear() - 1950 + 1 },
-  (_, i) => 1950 + i
-).map(String)
-
-// Calendar grid showing a single month with day cells and activity badges
+/** Calendar grid for the selected month — renders year/month pickers + day cells with activity badges. */
 export default function CalendarGrid() {
   const {
     month,
@@ -52,6 +47,16 @@ export default function CalendarGrid() {
   )
 
   const [calendarVisible, setCalendarVisible] = useState(true)
+
+  // Derived from `currentYear` (via `useReportFilters`) so the list updates
+  // when the year rolls over without a reload. Fixes `no-impure-call-at-module-scope`.
+  const yearOptions = useMemo(
+    () =>
+      Array.from({ length: currentYear - 1950 + 1 }, (_, i) =>
+        String(1950 + i)
+      ),
+    [currentYear]
+  )
 
   const availableMonths = useMemo(() => {
     if (year < currentYear) return MONTH_NAMES
@@ -87,7 +92,7 @@ export default function CalendarGrid() {
           </Combobox>
           <ButtonGroupSeparator />
           <Combobox
-            items={YEAR_OPTIONS}
+            items={yearOptions}
             value={String(year)}
             onValueChange={(value) => {
               const y = Number(value)
@@ -144,7 +149,7 @@ export default function CalendarGrid() {
       </div>
 
       <div
-        className="grid transition-all duration-200"
+        className="grid transition-[grid-template-rows] duration-200"
         style={{ gridTemplateRows: calendarVisible ? "1fr" : "0fr" }}
       >
         <div className="overflow-hidden min-h-0">

@@ -2,12 +2,26 @@
 
 import { WarningCircleIcon, WarningIcon, XIcon } from "@phosphor-icons/react"
 import { useQuery } from "convex-helpers/react/cache"
-import { useEffect, useState } from "react"
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react"
 import { api } from "@/convex/_generated/api"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 
 const DISMISSED_KEY = "stock-banner-dismissed"
 
+function subscribeToDismissed(callback: () => void) {
+  window.addEventListener("storage", callback)
+  return () => window.removeEventListener("storage", callback)
+}
+
+function getDismissedSnapshot(): boolean {
+  try {
+    return localStorage.getItem(DISMISSED_KEY) === "true"
+  } catch {
+    return true
+  }
+}
+
+/** Stock alert banner — shows out-of-stock / low-stock counts until dismissed. */
 export function StockBanner() {
   const { isAuthenticated } = useCurrentUser()
   const stats = useQuery(
@@ -15,17 +29,38 @@ export function StockBanner() {
     isAuthenticated ? ({} as const) : ("skip" as const)
   )
 
-  const [dismissed, setDismissed] = useState(true)
+  const dismissedFromStore = useSyncExternalStore(
+    subscribeToDismissed,
+    getDismissedSnapshot,
+    () => true
+  )
+  const [localDismissed, setLocalDismissed] = useState(false)
+  const dismissed = dismissedFromStore || localDismissed
 
-  useEffect(() => {
-    setDismissed(localStorage.getItem(DISMISSED_KEY) === "true")
+  const handleDismiss = useCallback(() => {
+    try {
+      localStorage.setItem(DISMISSED_KEY, "true")
+    } catch {
+      // ignore
+    }
+    setLocalDismissed(true)
+    // Cross-tab sync
+    window.dispatchEvent(new Event("storage"))
   }, [])
 
+  // Single pass — avoids double `filter` iteration over `stockAlerts`.
+  const { outOfStock, lowStock } = useMemo(() => {
+    if (!stats) return { outOfStock: [], lowStock: [] } as const
+    const out: typeof stats.stockAlerts = []
+    const low: typeof stats.stockAlerts = []
+    for (const a of stats.stockAlerts) {
+      if (a.currentQuantity === 0) out.push(a)
+      else if (a.currentQuantity > 0) low.push(a)
+    }
+    return { outOfStock: out, lowStock: low } as const
+  }, [stats])
+
   if (dismissed || !stats) return null
-
-  const outOfStock = stats.stockAlerts.filter((a) => a.currentQuantity === 0)
-  const lowStock = stats.stockAlerts.filter((a) => a.currentQuantity > 0)
-
   if (outOfStock.length === 0 && lowStock.length === 0) return null
 
   const parts: string[] = []
@@ -34,11 +69,6 @@ export function StockBanner() {
   }
   if (lowStock.length > 0) {
     parts.push(`${lowStock.length} low on stock`)
-  }
-
-  function handleDismiss() {
-    localStorage.setItem(DISMISSED_KEY, "true")
-    setDismissed(true)
   }
 
   return (

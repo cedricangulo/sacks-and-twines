@@ -160,7 +160,8 @@ export const stockIn = zMutation({
       status: "active",
     })
 
-    // Increment supplier batchCount
+    // Insert must complete before reading supplier for the patch (FK integrity).
+    // react-doctor/server-sequential-independent-await: dependent read-after-write (intentional)
     const supplierDoc = await ctx.db.get(supplierId)
     if (supplierDoc) {
       await ctx.db.patch(supplierId, {

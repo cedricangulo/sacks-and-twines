@@ -136,6 +136,9 @@ export const seedAll = internalAction({
     const userNameMap = await ctx.runQuery(internal.seed.getUserNames)
 
     // ── Run the bounded seed pipeline ────────────────────────────────────
+    // `userNameMap` + `base` could be parallelized, but `base` threads `batches`
+    // state that later chunks depend on — keep sequential for pipeline clarity.
+    // react-doctor: pipeline is sequential by design
     const base = await ctx.runMutation(internal.seed.writeBase, {
       ownerId: ownerId as never,
       staffId: staffId as never,
@@ -230,6 +233,8 @@ export const seedClean = internalAction({
     console.log("\n  → Running seedClean...")
 
     const totals = await clearAllDomainTables(ctx)
+    // Must run after clear — not parallelizable.
+    // react-doctor: read-after-clear (sequential intentional)
     const statusAfterClear = await ctx.runQuery(internal.seed.seedStatus)
     console.log("  → Post-clear status:", statusAfterClear)
 

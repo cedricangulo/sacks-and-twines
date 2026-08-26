@@ -80,6 +80,14 @@ const formatAsCsv = (
   return "\uFEFF" + header.join(",") + "\n" + rows.join("\n")
 }
 
+/** Hoisted formatter — `en-PH` + `Asia/Manila` avoids hydration mismatch vs `toLocaleDateString()` default. */
+const AUDIT_DATE_FMT = new Intl.DateTimeFormat("en-PH", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  timeZone: "Asia/Manila",
+})
+
 // Formats audit log data as a formatted JSON string.
 const formatAsJson = (
   data: Array<
@@ -201,10 +209,10 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
   const summaryLines: string[] = []
   if (filterArgs.dateFrom || filterArgs.dateTo) {
     const from = filterArgs.dateFrom
-      ? new Date(filterArgs.dateFrom).toLocaleDateString()
+      ? AUDIT_DATE_FMT.format(new Date(filterArgs.dateFrom))
       : "earliest"
     const to = filterArgs.dateTo
-      ? new Date(filterArgs.dateTo).toLocaleDateString()
+      ? AUDIT_DATE_FMT.format(new Date(filterArgs.dateTo))
       : "latest"
     summaryLines.push(`Time period: ${from} – ${to}`)
   } else {
