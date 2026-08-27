@@ -2,15 +2,18 @@ import type { MutationCtx } from "../_generated/server"
 
 const OR_TIME_ZONE = "Asia/Manila"
 
+/** Hoisted — reused per dispatch; avoids rebuilding locale data. */
+const OR_DATE_FMT = new Intl.DateTimeFormat("en-CA", {
+  timeZone: OR_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+})
+
 // Returns the `YYYYMMDD` portion of an OR number for the given timestamp in
 // Philippine time, so late-evening dispatches group with their business day.
 export function orDatePart(timestampMs: number): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: OR_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(timestampMs)
+  const parts = OR_DATE_FMT.formatToParts(timestampMs)
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? ""
   return `${get("year")}${get("month")}${get("day")}`
 }

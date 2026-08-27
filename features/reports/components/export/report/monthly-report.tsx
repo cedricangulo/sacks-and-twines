@@ -7,9 +7,11 @@ import { MonthlyTrendChart } from "./monthly-trend-chart"
 import { usePdfPrimitives } from "./pdf-primitives"
 import { ReasonBreakdownChart } from "./reason-breakdown-chart"
 
+/** Hoisted — explicit `Asia/Manila` keeps server and client rendering identical. */
 const monthFormatter = new Intl.DateTimeFormat("en-PH", {
   month: "long",
   year: "numeric",
+  timeZone: "Asia/Manila",
 })
 
 const generatedDateFormatter = new Intl.DateTimeFormat("en-PH", {
@@ -18,6 +20,7 @@ const generatedDateFormatter = new Intl.DateTimeFormat("en-PH", {
   year: "numeric",
   hour: "numeric",
   minute: "2-digit",
+  timeZone: "Asia/Manila",
 })
 
 type MonthlyReportData = {

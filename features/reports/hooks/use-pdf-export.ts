@@ -17,6 +17,14 @@ import { downloadPdf } from "@/lib/csv"
 import { setCachedPrimitives } from "../components/export/report/pdf-primitives"
 import { computeQuickRange, type QuickRange } from "../constants"
 
+/** Hoisted — reused for `From`/`To` summary lines. */
+const PDF_DATE_FMT = new Intl.DateTimeFormat("en-PH", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "Asia/Manila",
+})
+
 type MonthlyReportData = Awaited<
   FunctionReturnType<typeof api.reports.queries.exportMonthlyReport>
 >
@@ -179,14 +187,10 @@ export function usePdfExport() {
 
   const summaryLines: string[] = []
   if (startDate) {
-    summaryLines.push(
-      `From: ${new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric" }).format(new Date(startMs))} ${startTime}`
-    )
+    summaryLines.push(`From: ${PDF_DATE_FMT.format(new Date(startMs))} ${startTime}`)
   }
   if (endDate) {
-    summaryLines.push(
-      `To: ${new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric" }).format(new Date(endMs))} ${endTime}`
-    )
+    summaryLines.push(`To: ${PDF_DATE_FMT.format(new Date(endMs))} ${endTime}`)
   }
   if (data) {
     summaryLines.push(

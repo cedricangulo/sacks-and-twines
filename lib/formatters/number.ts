@@ -27,7 +27,10 @@ export function formatQuantity(value: number) {
   return formatNumber(value, { locale: "en-PH", maximumFractionDigits: 4 })
 }
 
+/** Hoisted — reused for every compact number cell. */
+const COMPACT_FMT = new Intl.NumberFormat("en-PH", { notation: "compact" })
+
 export function formatCompact(value: number) {
   if (value === 0) return "0"
-  return new Intl.NumberFormat("en-PH", { notation: "compact" }).format(value)
+  return COMPACT_FMT.format(value)
 }

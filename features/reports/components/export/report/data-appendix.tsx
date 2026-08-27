@@ -1,11 +1,13 @@
 import { useMemo } from "react"
 import { usePdfPrimitives } from "./pdf-primitives"
 
+/** Hoisted — reused for every dispatch/adjustment row; explicit `Asia/Manila` for SSR/CSR consistency. */
 const dateFormatter = new Intl.DateTimeFormat("en-PH", {
   month: "short",
   day: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: "Asia/Manila",
 })
 
 function formatDate(ms: number): string {

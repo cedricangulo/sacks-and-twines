@@ -93,9 +93,11 @@ function computePerWeekPredictions(
 }
 
 function computeWeightedAverage(historyTotals: number[]): number {
-  const activeIndexes = historyTotals
-    .map((val, idx) => (val > 0 ? idx : -1))
-    .filter((idx) => idx >= 0)
+  // Single pass — avoids map+filter double iteration.
+  const activeIndexes: number[] = []
+  for (let idx = 0; idx < historyTotals.length; idx++) {
+    if (historyTotals[idx] > 0) activeIndexes.push(idx)
+  }
 
   if (activeIndexes.length === 0) return 0
 

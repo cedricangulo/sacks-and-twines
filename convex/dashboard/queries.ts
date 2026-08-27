@@ -29,21 +29,28 @@ export const summaryStats = query({
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect()
 
-    const totalAssetValue = products.reduce(
-      (sum, p) => sum + p.totalAssetValue,
-      0
-    )
+    // Single pass — avoids 3 iterations over `products`.
+    let totalAssetValue = 0
+    const categories = new Set<string>()
+    const stockAlerts: Array<{
+      productId: (typeof products)[number]["_id"]
+      productName: string
+      currentQuantity: number
+      lowStockThreshold: number
+    }> = []
+    for (const p of products) {
+      totalAssetValue += p.totalAssetValue
+      categories.add(p.category)
+      if (p.currentQuantity <= p.lowStockThreshold) {
+        stockAlerts.push({
+          productId: p._id,
+          productName: p.name,
+          currentQuantity: p.currentQuantity,
+          lowStockThreshold: p.lowStockThreshold,
+        })
+      }
+    }
     const activeProductCount = products.length
-    const categories = new Set(products.map((p) => p.category))
-
-    const stockAlerts = products
-      .filter((p) => p.currentQuantity <= p.lowStockThreshold)
-      .map((p) => ({
-        productId: p._id,
-        productName: p.name,
-        currentQuantity: p.currentQuantity,
-        lowStockThreshold: p.lowStockThreshold,
-      }))
 
     return {
       totalAssetValue,

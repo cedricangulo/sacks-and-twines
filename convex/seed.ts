@@ -510,6 +510,9 @@ export const writeBase = internalMutation({
       SUPPLIER_DEFS.map((def) => ctx.db.insert("suppliers", def))
     )
 
+    // Sequential: `nextSkuCode()` is a global counter — parallelizing across
+    // suppliers + products would interleave IDs non-deterministically.
+    // react-doctor: deterministic SKU order (sequential intentional)
     const productResults = await Promise.all(
       PRODUCT_DEFS.map(async (def) => {
         const productCreatedAt = randDate(DATE_BASE, DATE_END)
@@ -1241,15 +1244,16 @@ export const writeTest = internalMutation({
         const product = rnd(available)
         usedProducts.add(product.id)
 
+        const baseUom = product.def.baseUom
         const dispatchQty =
-          product.def.baseUom === "piece"
+          baseUom === "piece"
             ? rndInt(5, 30)
-            : product.def.baseUom === "roll"
+            : baseUom === "roll"
               ? rndInt(1, 5)
               : toFloat(rndInt(2, 20) + Math.random())
 
         const qtyDeducted =
-          product.def.baseUom === "meter" ? toFloat(dispatchQty) : dispatchQty
+          baseUom === "meter" ? toFloat(dispatchQty) : dispatchQty
 
         const productBatchesList = (
           activeBatchesByProduct.get(product.id) ?? []
@@ -1392,13 +1396,16 @@ export const writeTest = internalMutation({
       .filter((b) => b.status === "active" && b.quantityRemaining > 10)
       .slice(0, 5)
 
+    // Map for O(1) lookup — avoids `find` per iteration (react-doctor/js-index-maps)
+    const productById = new Map(productList.map((p) => [p.id, p] as const))
     for (let i = 0; i < adjBatches.length; i++) {
       const batch = adjBatches[i]
-      const product = productList.find((p) => p.id === batch.productId)
+      const product = productById.get(batch.productId)
       if (!product) continue
 
+      const baseUom = product.def.baseUom
       const qty =
-        product.def.baseUom === "meter"
+        baseUom === "meter"
           ? toFloat(rndInt(1, 10) + Math.random())
           : rndInt(1, 10)
 

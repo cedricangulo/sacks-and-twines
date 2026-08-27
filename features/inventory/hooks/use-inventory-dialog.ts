@@ -232,7 +232,10 @@ export function useInventoryDialog() {
 
       const keywords =
         mode === "new"
-          ? rawKeywords.map((k) => k.trim()).filter(Boolean)
+          ? rawKeywords.flatMap((k) => {
+              const t = k.trim()
+              return t ? [t] : []
+            })
           : undefined
 
       const payload = {

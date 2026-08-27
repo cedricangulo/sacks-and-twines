@@ -14,15 +14,19 @@ import {
   type QuickRange,
 } from "../constants"
 
+/** Hoisted — reused for every CSV cell that holds a timestamp. */
+const TIMESTAMP_FMT = new Intl.DateTimeFormat("en-PH", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZone: "Asia/Manila",
+})
+
 function formatTimestamp(ms: number): string {
-  return new Intl.DateTimeFormat("en-PH", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(new Date(ms))
+  return TIMESTAMP_FMT.format(new Date(ms))
 }
 
 export function useReportExport(entity: ExportEntity | null) {
@@ -122,9 +126,11 @@ export function useReportExport(entity: ExportEntity | null) {
 
   const toggleAll = useCallback(() => {
     if (!entity) return
-    const allIds = EXPORT_COLUMN_MAP[entity]
-      .filter((c) => !c.required)
-      .map((c) => c.id)
+    // Single pass — filter+map combined.
+    const allIds: string[] = []
+    for (const c of EXPORT_COLUMN_MAP[entity]) {
+      if (!c.required) allIds.push(c.id)
+    }
     setSelectedColumns((prev) => {
       const allSelected = allIds.every((id) => prev.has(id))
       const next = new Set(prev)

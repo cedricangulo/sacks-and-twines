@@ -7,6 +7,7 @@ import {
   WarningIcon,
 } from "@phosphor-icons/react"
 
+import { useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCurrency } from "@/lib/formatters"
@@ -31,6 +32,17 @@ export default function StatCards({
   stockAlerts,
   isLoading,
 }: StatCardsProps) {
+  // Partition once — avoids 6 filter/map passes over `stockAlerts`.
+  const { lowStock, outOfStock } = useMemo(() => {
+    const low: NonNullable<StatCardsProps["stockAlerts"]> = []
+    const out: NonNullable<StatCardsProps["stockAlerts"]> = []
+    for (const a of stockAlerts ?? []) {
+      if (a.currentQuantity === 0) out.push(a)
+      else low.push(a)
+    }
+    return { lowStock: low, outOfStock: out }
+  }, [stockAlerts])
+
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div className="grid gap-6">
@@ -101,17 +113,12 @@ export default function StatCards({
                   <Skeleton className="w-12 h-8" />
                 ) : (
                   <div className="font-mono type-h2 tabular-nums animate-fade-in">
-                    {stockAlerts?.filter((a) => a.currentQuantity > 0).length ??
-                      0}
+                    {lowStock.length}
                   </div>
                 )}
-                {!isLoading &&
-                stockAlerts &&
-                stockAlerts.filter((a) => a.currentQuantity > 0).length > 0 ? (
+                {!isLoading && lowStock.length > 0 ? (
                   <ul className="mt-2 space-y-1 animate-fade-in">
-                    {stockAlerts
-                      .filter((a) => a.currentQuantity > 0)
-                      .map((alert) => (
+                    {lowStock.map((alert) => (
                         <li
                           key={alert.productName}
                           title={alert.productName}
@@ -146,18 +153,12 @@ export default function StatCards({
                   <Skeleton className="w-12 h-8" />
                 ) : (
                   <div className="font-mono type-h2 tabular-nums animate-fade-in">
-                    {stockAlerts?.filter((a) => a.currentQuantity === 0)
-                      .length ?? 0}
+                    {outOfStock.length}
                   </div>
                 )}
-                {!isLoading &&
-                stockAlerts &&
-                stockAlerts.filter((a) => a.currentQuantity === 0).length >
-                  0 ? (
+                {!isLoading && outOfStock.length > 0 ? (
                   <ul className="mt-2 space-y-1 animate-fade-in">
-                    {stockAlerts
-                      .filter((a) => a.currentQuantity === 0)
-                      .map((alert) => (
+                    {outOfStock.map((alert) => (
                         <li
                           key={alert.productName}
                           title={alert.productName}

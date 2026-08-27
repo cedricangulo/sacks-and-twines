@@ -26,7 +26,8 @@ export default defineSchema({
     emailVerificationTime: v.optional(v.number()),
   })
     .index("by_email", ["email"])
-    .index("by_role", ["role"]),
+    .index("by_role", ["role"])
+    .index("by_status", ["status"]),
 
   products: defineTable({
     skuCode: v.string(),

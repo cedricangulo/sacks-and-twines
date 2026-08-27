@@ -109,7 +109,7 @@ export default function InventoryTable({
                     colSpan={totalColumns}
                     className="px-12 bg-muted/50"
                   >
-                    <div className="overflow-hidden overflow-y-auto transition-all max-h-70">
+                    <div className="overflow-hidden overflow-y-auto transition-[max-height] duration-200 max-h-70">
                       <BatchDetailsRow
                         productId={row.original._id}
                         columnVisibility={batchColumnVisibility}

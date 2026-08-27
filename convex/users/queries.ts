@@ -45,10 +45,12 @@ export const listNames = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const users = await ctx.db.query("users").collect()
-    return users
-      .filter((u) => u.status === "active")
-      .map((u) => ({ _id: u._id, name: u.name }))
+    // Filter at DB level — avoids pulling deactivated users over the wire.
+    const users = await ctx.db
+      .query("users")
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .collect()
+    return users.map((u) => ({ _id: u._id, name: u.name }))
   },
 })
 

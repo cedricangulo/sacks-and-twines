@@ -8,18 +8,13 @@
  * @module
  */
 
-
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
+import type * as ResendOTP from "../ResendOTP.js";
 import type * as auditLogs_mutations from "../auditLogs/mutations.js";
 import type * as auditLogs_queries from "../auditLogs/queries.js";
+import type * as auth from "../auth.js";
 import type * as auth_guards from "../auth/guards.js";
 import type * as auth_logAttempt from "../auth/logAttempt.js";
 import type * as auth_verify from "../auth/verify.js";
-import type * as auth from "../auth.js";
 import type * as batches_mutations from "../batches/mutations.js";
 import type * as batches_queries from "../batches/queries.js";
 import type * as batches_validators from "../batches/validators.js";
@@ -29,7 +24,6 @@ import type * as dispatches_queries from "../dispatches/queries.js";
 import type * as dispatches_validators from "../dispatches/validators.js";
 import type * as http from "../http.js";
 import type * as init from "../init.js";
-import type * as lib_codes from "../lib/codes.js";
 import type * as lib_constants from "../lib/constants.js";
 import type * as lib_csv_escape from "../lib/csv_escape.js";
 import type * as lib_fetch_entities from "../lib/fetch_entities.js";
@@ -38,11 +32,10 @@ import type * as migrations from "../migrations.js";
 import type * as products_mutations from "../products/mutations.js";
 import type * as products_queries from "../products/queries.js";
 import type * as products_validators from "../products/validators.js";
-import type * as ResendOTP from "../ResendOTP.js";
 import type * as rate_limiter from "../rate_limiter.js";
 import type * as reports_queries from "../reports/queries.js";
-import type * as seed_clear from "../seed/clear.js";
 import type * as seed from "../seed.js";
+import type * as seed_clear from "../seed/clear.js";
 import type * as seedAction from "../seedAction.js";
 import type * as server from "../server.js";
 import type * as stock_adjustments_mutations from "../stock_adjustments/mutations.js";
@@ -55,7 +48,12 @@ import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
 import type * as users_validators from "../users/validators.js";
 import type * as validators_helpers from "../validators/helpers.js";
-import type * as verifySeed from "../verifySeed.js";
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 
 declare const fullApi: ApiFromModules<{
   ResendOTP: typeof ResendOTP;
@@ -74,7 +72,6 @@ declare const fullApi: ApiFromModules<{
   "dispatches/validators": typeof dispatches_validators;
   http: typeof http;
   init: typeof init;
-  "lib/codes": typeof lib_codes;
   "lib/constants": typeof lib_constants;
   "lib/csv_escape": typeof lib_csv_escape;
   "lib/fetch_entities": typeof lib_fetch_entities;
@@ -99,7 +96,6 @@ declare const fullApi: ApiFromModules<{
   "users/queries": typeof users_queries;
   "users/validators": typeof users_validators;
   "validators/helpers": typeof validators_helpers;
-  verifySeed: typeof verifySeed;
 }>;
 
 /**
