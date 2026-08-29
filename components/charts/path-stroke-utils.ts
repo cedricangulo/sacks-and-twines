@@ -58,6 +58,7 @@ export function usePathStrokeMetrics(
         ? prev
         : { pathD: d, pathLength: len }
     )
+    // biome-ignore lint/correctness/useExhaustiveDependencies: caller-supplied deps array drives path remeasure
   }, deps)
 
   return metrics

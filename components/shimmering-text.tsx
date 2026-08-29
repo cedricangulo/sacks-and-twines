@@ -1,11 +1,12 @@
 "use client"
 
-import { motion, useReducedMotion, type Variants } from "motion/react"
+import { domAnimation, LazyMotion, m, useReducedMotion } from "motion/react"
+import type { Variants } from "motion/react"
 import { type ComponentProps, useCallback } from "react"
 import { cn } from "@/lib/utils"
 
 export type ShimmeringTextProps = Omit<
-  ComponentProps<typeof motion.span>,
+  ComponentProps<typeof m.span>,
   "children"
 > & {
   /** The text to render with the shimmering effect. */
@@ -63,28 +64,29 @@ export function ShimmeringText({
   )
 
   return (
-    <motion.span
-      className={cn(
-        "inline-flex select-none items-center leading-none",
-        "[--color:var(--muted-foreground)] [--shimmering-color:var(--foreground)]",
-        className
-      )}
-      {...props}
-    >
-      {text.split("").map((char, index) => (
-        <motion.span
-          animate={stopped ? "stopped" : "running"}
-          aria-hidden
-          className="inline-block whitespace-pre leading-none"
-          initial="stopped"
-          // biome-ignore lint/suspicious/noArrayIndexKey: static label text, order never changes
-          key={index}
-          variants={createCharVariants(index)}
-        >
-          {char}
-        </motion.span>
-      ))}
-      <span className="sr-only">{text}</span>
-    </motion.span>
+    <LazyMotion features={domAnimation} strict>
+      <m.span
+        className={cn(
+          "inline-flex select-none items-center leading-none",
+          "[--color:var(--muted-foreground)] [--shimmering-color:var(--foreground)]",
+          className
+        )}
+        {...props}
+      >
+        {text.split("").map((char, index) => (
+          <m.span
+            animate={stopped ? "stopped" : "running"}
+            aria-hidden
+            className="inline-block whitespace-pre leading-none"
+            initial="stopped"
+            key={index}
+            variants={createCharVariants(index)}
+          >
+            {char}
+          </m.span>
+        ))}
+        <span className="sr-only">{text}</span>
+      </m.span>
+    </LazyMotion>
   )
 }

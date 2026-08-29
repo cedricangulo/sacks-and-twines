@@ -632,7 +632,6 @@ const ChartCore = memo(function ChartCore({
 
         <rect fill="transparent" height={height} width={width} x={0} y={0} />
 
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: Chart interaction area */}
         <g
           onMouseLeave={canInteract ? handleMouseLeave : undefined}
           onMouseMove={canInteract ? handleMouseMove : undefined}

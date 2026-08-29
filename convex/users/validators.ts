@@ -9,7 +9,7 @@ const auditMeta = {
 // Arguments for creating a new staff user.
 export const createUserArgs = {
   name: normalizedString(1, 255),
-  email: z.string().email("Enter a valid email address."),
+  email: z.email("Enter a valid email address."),
   password: z.string().min(8, "Password must be at least 8 characters"),
   ...auditMeta,
 }
