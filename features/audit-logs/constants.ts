@@ -28,9 +28,6 @@ export const AUDIT_LOG_DETAIL_FIELDS = [
   "userAgent",
 ] as const
 
-// Static action filter options (dynamic options come from the Convex query).
-export const ACTION_OPTIONS = [{ value: "all", label: "All Actions" }]
-
 // Quick-select date preset options for the audit log filter.
 export const DATE_PRESETS = [
   { value: "all", label: "All Time" },
