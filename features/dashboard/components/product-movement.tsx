@@ -1,7 +1,7 @@
 "use client"
 
 import { TrendDownIcon, TrendUpIcon } from "@phosphor-icons/react"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Empty } from "@/components/ui/empty"
@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatNumber } from "@/lib/formatters"
 import { classifyVelocity, type Velocity } from "../constants"
 
@@ -110,23 +111,6 @@ function MovementTable({
   )
 }
 
-function SectionHeading({
-  icon,
-  iconClassName,
-  children,
-}: {
-  icon: React.ReactNode
-  iconClassName: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="mb-3 flex items-center gap-2">
-      <span className={iconClassName}>{icon}</span>
-      <h4 className="font-heading text-sm font-medium">{children}</h4>
-    </div>
-  )
-}
-
 const MOVEMENT_SKELETON_COLUMNS: SkeletonColumn[] = [
   { label: "Product", type: "text" },
   { label: "Units Sold", type: "number" },
@@ -149,6 +133,8 @@ export default function ProductMovement({
   data: ProductMovementItem[] | undefined
   isLoading: boolean
 }) {
+  const [tab, setTab] = useState("fast")
+
   const { fast, slow } = useMemo(() => {
     if (!data) return { fast: [], slow: [] }
     const sorted = [...data].sort((a, b) => b.unitsSold - a.unitsSold)
@@ -166,58 +152,49 @@ export default function ProductMovement({
     return { fast, slow }
   }, [data])
 
-  const body =
-    isLoading || data === undefined ? (
-      <>
+  if (isLoading || data === undefined) {
+    return (
+      <div>
+        {header}
         <SkeletonTable
           columns={MOVEMENT_SKELETON_COLUMNS}
           actions="none"
           rowCount={5}
         />
-        <SkeletonTable
-          columns={MOVEMENT_SKELETON_COLUMNS}
-          actions="none"
-          rowCount={5}
-        />
-      </>
-    ) : data.length === 0 ? (
-      <Empty className="md:col-span-2">No product movement data</Empty>
-    ) : (
-      <>
-        <div>
-          <SectionHeading
-            icon={<TrendUpIcon weight="bold" className="size-4" />}
-            iconClassName="text-emerald-600 dark:text-emerald-400"
-          >
-            Top 5 Fast-Moving
-          </SectionHeading>
-          {fast.length > 0 ? (
-            <MovementTable rows={fast} />
-          ) : (
-            <MovementTableEmpty />
-          )}
-        </div>
-
-        <div>
-          <SectionHeading
-            icon={<TrendDownIcon weight="bold" className="size-4" />}
-            iconClassName="text-red-600 dark:text-red-400"
-          >
-            Top 5 Slow-Moving
-          </SectionHeading>
-          {slow.length > 0 ? (
-            <MovementTable rows={slow} />
-          ) : (
-            <MovementTableEmpty />
-          )}
-        </div>
-      </>
+      </div>
     )
+  }
+
+  if (data.length === 0) {
+    return (
+      <div>
+        {header}
+        <Empty>No product movement data</Empty>
+      </div>
+    )
+  }
 
   return (
     <div>
       {header}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">{body}</div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="mb-3 w-full">
+          <TabsTrigger value="fast" className="gap-1.5">
+            <TrendUpIcon weight="bold" className="size-4 text-emerald-600 dark:text-emerald-400" />
+            Fast-Moving
+          </TabsTrigger>
+          <TabsTrigger value="slow" className="gap-1.5">
+            <TrendDownIcon weight="bold" className="size-4 text-red-600 dark:text-red-400" />
+            Slow-Moving
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="fast">
+          {fast.length > 0 ? <MovementTable rows={fast} /> : <MovementTableEmpty />}
+        </TabsContent>
+        <TabsContent value="slow">
+          {slow.length > 0 ? <MovementTable rows={slow} /> : <MovementTableEmpty />}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
