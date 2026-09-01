@@ -5,7 +5,7 @@ allowBuilds:
   sharp: true # Allow sharp
   # some-other-package: false  # Explicitly block
 
-# Require 3 days of vetting before a newly published version is installed.
+  # Require 3 days of vetting before a newly published version is installed.
 minimumReleaseAge: 4320
 # Trust downgrade protection — see https://pnpm.io/settings#trustPolicy
 # Excludes: `resend`/`semver`/`sileo` flagged as High-risk downgrade in
