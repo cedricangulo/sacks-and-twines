@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation } from "convex/react"
+import { play } from "cuelume"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -16,6 +17,8 @@ export function useCreateStockAdjustment() {
     productId: Id<"products">,
     data: StockAdjustmentFormData
   ) => {
+    play("loading")
+
     await sileo
       .promise(
         createAdjustment({
@@ -33,6 +36,8 @@ export function useCreateStockAdjustment() {
           error: (err) => handleConvexError(err, "Failed to adjust stock"),
         }
       )
+      .then(() => play("success"))
+      .catch(() => play("error"))
       .catch(() => {})
   }
 

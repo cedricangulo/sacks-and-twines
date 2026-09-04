@@ -261,6 +261,7 @@ function SidebarTrigger({
     <Button
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
+      data-cuelume-toggle="toggle"
       variant="ghost"
       size="icon-sm"
       className={cn(className)}

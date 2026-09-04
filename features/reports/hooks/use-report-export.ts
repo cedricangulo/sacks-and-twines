@@ -2,6 +2,7 @@
 
 import { useConvex } from "convex/react"
 import type { FunctionReturnType } from "convex/server"
+import { play } from "cuelume"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
@@ -211,6 +212,7 @@ export function useReportExport(entity: ExportEntity | null) {
       title: `${EXPORT_ENTITY_NAMES[entity]} exported`,
       description: `${recordCount} record${recordCount === 1 ? "" : "s"} downloaded as CSV`,
     })
+    play("success")
   }, [data, entity, selectedColumns, recordCount])
 
   const summaryLines: string[] = []

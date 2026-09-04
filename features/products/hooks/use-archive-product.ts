@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation } from "convex/react"
+import { play } from "cuelume"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -11,6 +12,7 @@ export function useArchiveProduct() {
   const archiveProduct = useMutation(api.products.mutations.archive)
 
   const submit = async (productId: Id<"products">, productName: string) => {
+    play("loading")
     await sileo
       .promise(archiveProduct({ productId, userAgent: navigator.userAgent }), {
         loading: { title: "Archiving product..." },
@@ -20,6 +22,8 @@ export function useArchiveProduct() {
         },
         error: (err) => handleConvexError(err, "Failed to archive product"),
       })
+      .then(() => play("success"))
+      .catch(() => play("error"))
       .catch(() => {})
   }
 
@@ -31,6 +35,7 @@ export function useUnarchiveProduct() {
   const unarchiveProduct = useMutation(api.products.mutations.unarchive)
 
   const submit = async (productId: Id<"products">, productName: string) => {
+    play("loading")
     await sileo
       .promise(
         unarchiveProduct({ productId, userAgent: navigator.userAgent }),
@@ -43,6 +48,8 @@ export function useUnarchiveProduct() {
           error: (err) => handleConvexError(err, "Failed to unarchive product"),
         }
       )
+      .then(() => play("success"))
+      .catch(() => play("error"))
       .catch(() => {})
   }
 

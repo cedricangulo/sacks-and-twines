@@ -83,9 +83,11 @@ export default function ProductCard({ product }: Props) {
       <CardFooter className="flex flex-col gap-2 px-4 pt-0">
         <ButtonGroup role="group" className="w-full">
           <Button
+            aria-label="Decrease quantity"
             type="button"
             variant="outline"
             size="icon"
+            data-cuelume-toggle="toggle"
             onClick={decrementQuantity}
             disabled={quantity === 0 || isOutOfStock}
           >
@@ -112,9 +114,11 @@ export default function ProductCard({ product }: Props) {
           />
 
           <Button
+            aria-label="Increase quantity"
             type="button"
             variant="outline"
             size="icon"
+            data-cuelume-toggle="toggle"
             onClick={incrementQuantity}
             disabled={isAtMax || isOutOfStock}
           >

@@ -16,6 +16,7 @@ export default function InventoryTableRow({
   return (
     <TableRow
       key={row.id}
+      data-cuelume-toggle="toggle"
       className="cursor-pointer transition-colors border-border/50"
       onClick={onToggle}
     >

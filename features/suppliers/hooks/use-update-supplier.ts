@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation } from "convex/react"
+import { play } from "cuelume"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -15,6 +16,8 @@ export function useUpdateSupplier() {
     supplierId: Id<"suppliers">,
     data: SupplierFormData
   ) => {
+    play("loading")
+
     await sileo
       .promise(
         updateSupplier({ supplierId, ...data, userAgent: navigator.userAgent }),
@@ -27,6 +30,8 @@ export function useUpdateSupplier() {
           error: (err) => handleConvexError(err, "Failed to update supplier"),
         }
       )
+      .then(() => play("success"))
+      .catch(() => play("error"))
       .catch(() => {})
   }
 

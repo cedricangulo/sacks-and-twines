@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation } from "convex/react"
+import { play } from "cuelume"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -11,6 +12,8 @@ export function useUnarchiveSupplier() {
   const unarchiveSupplier = useMutation(api.suppliers.mutations.unarchive)
 
   const submit = async (supplierId: Id<"suppliers">, companyName: string) => {
+    play("loading")
+
     await sileo
       .promise(
         unarchiveSupplier({ supplierId, userAgent: navigator.userAgent }),
@@ -24,6 +27,8 @@ export function useUnarchiveSupplier() {
             handleConvexError(err, "Failed to unarchive supplier"),
         }
       )
+      .then(() => play("success"))
+      .catch(() => play("error"))
       .catch(() => {})
   }
 

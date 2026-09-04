@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation } from "convex/react"
+import { play } from "cuelume"
 import { useState } from "react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
@@ -20,6 +21,8 @@ export function useDispatchSubmit(onSuccess?: () => void) {
     if (itemCount === 0) return
 
     setIsSubmitting(true)
+    play("loading")
+
     await sileo
       .promise(
         submitDispatch({
@@ -42,6 +45,8 @@ export function useDispatchSubmit(onSuccess?: () => void) {
         setCustomerReference("")
         onSuccess?.()
       })
+      .then(() => play("success"))
+      .catch(() => play("error"))
       .catch(() => {})
       .finally(() => {
         setIsSubmitting(false)

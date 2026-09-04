@@ -119,14 +119,14 @@ export default function StatCards({
                 {!isLoading && lowStock.length > 0 ? (
                   <ul className="mt-2 space-y-1 animate-fade-in">
                     {lowStock.map((alert) => (
-                        <li
-                          key={alert.productName}
-                          title={alert.productName}
-                          className="type-body-small line-clamp-1"
-                        >
-                          {alert.productName}
-                        </li>
-                      ))}
+                      <li
+                        key={alert.productName}
+                        title={alert.productName}
+                        className="type-body-small line-clamp-1"
+                      >
+                        {alert.productName}
+                      </li>
+                    ))}
                   </ul>
                 ) : !isLoading ? (
                   <p className="mt-2 text-green-500 type-body-small">None</p>
@@ -159,14 +159,14 @@ export default function StatCards({
                 {!isLoading && outOfStock.length > 0 ? (
                   <ul className="mt-2 space-y-1 animate-fade-in">
                     {outOfStock.map((alert) => (
-                        <li
-                          key={alert.productName}
-                          title={alert.productName}
-                          className="type-body-small line-clamp-1"
-                        >
-                          {alert.productName}
-                        </li>
-                      ))}
+                      <li
+                        key={alert.productName}
+                        title={alert.productName}
+                        className="type-body-small line-clamp-1"
+                      >
+                        {alert.productName}
+                      </li>
+                    ))}
                   </ul>
                 ) : !isLoading ? (
                   <p className="mt-2 text-green-500 type-body-small">None</p>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation } from "convex/react"
+import { play } from "cuelume"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -11,6 +12,8 @@ export function useArchiveSupplier() {
   const archiveSupplier = useMutation(api.suppliers.mutations.archive)
 
   const submit = async (supplierId: Id<"suppliers">, companyName: string) => {
+    play("loading")
+
     await sileo
       .promise(
         archiveSupplier({ supplierId, userAgent: navigator.userAgent }),
@@ -23,6 +26,8 @@ export function useArchiveSupplier() {
           error: (err) => handleConvexError(err, "Failed to archive supplier"),
         }
       )
+      .then(() => play("success"))
+      .catch(() => play("error"))
       .catch(() => {})
   }
 

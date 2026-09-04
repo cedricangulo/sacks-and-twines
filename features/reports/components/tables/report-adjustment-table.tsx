@@ -31,6 +31,7 @@ export default function ReportAdjustmentTable({
               <TableHead key={header.id} className="text-muted-foreground">
                 {header.isPlaceholder ? null : header.column.getCanSort() ? (
                   <button
+                    data-cuelume-toggle="toggle"
                     type="button"
                     className="inline-flex items-center gap-1"
                     onClick={header.column.getToggleSortingHandler()}

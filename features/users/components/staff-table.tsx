@@ -47,6 +47,7 @@ export default function StaffTable({ table }: StaffTableProps) {
               <TableHead key={header.id}>
                 {header.isPlaceholder ? null : header.column.getCanSort() ? (
                   <button
+                    data-cuelume-toggle="toggle"
                     type="button"
                     className="inline-flex items-center gap-1"
                     onClick={header.column.getToggleSortingHandler()}

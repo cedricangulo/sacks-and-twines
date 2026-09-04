@@ -24,6 +24,7 @@ export function StaffHeader() {
       <div className="flex items-center gap-2">
         <Button
           variant="secondary"
+          data-cuelume-toggle="toggle"
           nativeButton={false}
           render={<Link href="/products" transitionTypes={["nav-forward"]} />}
         >
@@ -32,6 +33,7 @@ export function StaffHeader() {
         </Button>
         <Button
           variant="secondary"
+          data-cuelume-toggle="toggle"
           nativeButton={false}
           render={
             <Link

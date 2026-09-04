@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation } from "convex/react"
+import { play } from "cuelume"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -11,6 +12,8 @@ export function useVoidBatch() {
   const voidBatch = useMutation(api.batches.mutations.voidBatch)
 
   const submit = async (batchId: Id<"batches">, reason?: string) => {
+    play("loading")
+
     await sileo
       .promise(voidBatch({ batchId, reason, userAgent: navigator.userAgent }), {
         loading: { title: "Voiding batch..." },
@@ -22,6 +25,8 @@ export function useVoidBatch() {
         },
         error: (err) => handleConvexError(err, "Failed to void batch"),
       })
+      .then(() => play("success"))
+      .catch(() => play("error"))
       .catch(() => {})
   }
 

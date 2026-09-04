@@ -3,6 +3,7 @@
 import type { DocumentProps } from "@react-pdf/renderer"
 import { useConvex } from "convex/react"
 import type { FunctionReturnType } from "convex/server"
+import { play } from "cuelume"
 import {
   createElement,
   type ReactElement,
@@ -143,6 +144,7 @@ export function usePdfExport() {
     }
     setGenerateError(null)
     setIsGenerating(true)
+    play("loading")
 
     try {
       const pdfModule = await import("@react-pdf/renderer")
@@ -175,10 +177,12 @@ export function usePdfExport() {
       downloadPdf(blob, filename)
       setDialogOpen(false)
       sileo.success({ title: "Monthly report downloaded" })
+      play("success")
     } catch (err) {
       console.error("PDF generation failed:", err)
       setGenerateError("PDF generation failed. Please try again.")
       sileo.error({ title: "PDF generation failed" })
+      play("error")
       setCachedPrimitives(null)
     } finally {
       setIsGenerating(false)
@@ -187,7 +191,9 @@ export function usePdfExport() {
 
   const summaryLines: string[] = []
   if (startDate) {
-    summaryLines.push(`From: ${PDF_DATE_FMT.format(new Date(startMs))} ${startTime}`)
+    summaryLines.push(
+      `From: ${PDF_DATE_FMT.format(new Date(startMs))} ${startTime}`
+    )
   }
   if (endDate) {
     summaryLines.push(`To: ${PDF_DATE_FMT.format(new Date(endMs))} ${endTime}`)

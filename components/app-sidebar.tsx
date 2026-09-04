@@ -122,6 +122,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
+              data-cuelume-press
+              data-cuelume-release
               onClick={closeMobile}
               render={<Link href="/dashboard" />}
             >
@@ -154,6 +156,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 {item.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
+                      data-cuelume-toggle="toggle"
                       onClick={closeMobile}
                       render={
                         <Link
@@ -179,6 +182,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
+              data-cuelume-press
+              data-cuelume-release
               onClick={() => {
                 closeMobile()
                 push("/sign-in")

@@ -45,6 +45,7 @@ function PaginationLink({
 }: PaginationLinkProps) {
   return (
     <Button
+      data-cuelume-toggle="page"
       render={<a aria-current={isActive ? "page" : undefined} data-slot="pagination-link" data-active={isActive} {...props} />}
       variant={isActive ? "outline" : "ghost"}
       size={size}

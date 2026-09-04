@@ -1,7 +1,7 @@
 "use client"
 
-import { domAnimation, LazyMotion, m, useReducedMotion } from "motion/react"
 import type { Variants } from "motion/react"
+import { domAnimation, LazyMotion, m, useReducedMotion } from "motion/react"
 import { type ComponentProps, useCallback } from "react"
 import { cn } from "@/lib/utils"
 

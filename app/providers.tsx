@@ -4,6 +4,7 @@ import { ConvexAuthNextjsProvider } from "@convex-dev/auth/nextjs"
 import { ConvexReactClient } from "convex/react"
 import { ConvexQueryCacheProvider } from "convex-helpers/react/cache/provider"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
+import { CuelumeProvider } from "@/components/cuelume-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ThemedToaster } from "@/components/themed-toaster"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -20,10 +21,12 @@ export default function Providers({ children }: Props) {
       <ConvexAuthNextjsProvider client={convex}>
         <ConvexQueryCacheProvider>
           <ThemeProvider>
-            <ThemedToaster />
-            <TooltipProvider>
-              <CurrentUserProvider>{children}</CurrentUserProvider>
-            </TooltipProvider>
+            <CuelumeProvider>
+              <ThemedToaster />
+              <TooltipProvider>
+                <CurrentUserProvider>{children}</CurrentUserProvider>
+              </TooltipProvider>
+            </CuelumeProvider>
           </ThemeProvider>
         </ConvexQueryCacheProvider>
       </ConvexAuthNextjsProvider>

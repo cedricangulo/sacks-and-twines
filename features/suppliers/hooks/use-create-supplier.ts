@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation } from "convex/react"
+import { play } from "cuelume"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import { handleConvexError } from "@/lib/error-handler"
@@ -11,6 +12,8 @@ export function useCreateSupplier() {
   const createSupplier = useMutation(api.suppliers.mutations.create)
 
   const submit = async (data: SupplierFormData) => {
+    play("loading")
+
     await sileo
       .promise(createSupplier({ ...data, userAgent: navigator.userAgent }), {
         loading: { title: "Creating supplier..." },
@@ -20,6 +23,8 @@ export function useCreateSupplier() {
         },
         error: (err) => handleConvexError(err, "Failed to create supplier"),
       })
+      .then(() => play("success"))
+      .catch(() => play("error"))
       .catch(() => {})
   }
 

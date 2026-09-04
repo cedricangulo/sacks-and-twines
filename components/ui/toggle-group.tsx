@@ -67,6 +67,7 @@ function ToggleGroupItem({
   return (
     <TogglePrimitive
       data-slot="toggle-group-item"
+      data-cuelume-toggle="toggle"
       data-variant={context.variant || variant}
       data-size={context.size || size}
       data-spacing={context.spacing}

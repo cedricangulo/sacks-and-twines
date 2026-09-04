@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation } from "convex/react"
+import { play } from "cuelume"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import { handleConvexError } from "@/lib/error-handler"
@@ -17,6 +18,8 @@ export function useCreateStaff() {
   const createStaff = useMutation(api.users.mutations.create)
 
   const submit = async (data: CreateStaffData) => {
+    play("loading")
+
     await sileo
       .promise(createStaff({ ...data, userAgent: navigator.userAgent }), {
         loading: { title: "Creating staff account..." },
@@ -26,6 +29,8 @@ export function useCreateStaff() {
         },
         error: (err) => handleConvexError(err, "Failed to create staff"),
       })
+      .then(() => play("success"))
+      .catch(() => play("error"))
       .catch(() => {})
   }
 
