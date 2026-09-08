@@ -77,6 +77,7 @@ export default function DispatchFilterBar({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button
+        aria-label="Back to products"
         size="icon"
         variant="ghost"
         nativeButton={false}

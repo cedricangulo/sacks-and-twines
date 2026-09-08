@@ -47,6 +47,7 @@ function PageHeaderBar() {
       <div className="flex items-center flex-1 min-w-0 gap-2">
         {backHref ? (
           <Button
+            aria-label="Go back"
             variant="ghost"
             size="icon"
             className="shrink-0"
