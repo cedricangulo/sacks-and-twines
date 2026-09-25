@@ -131,6 +131,15 @@ export const stockIn = zMutation({
 
     const product = await ctx.db.get(resolvedProductId)
 
+    // Read supplier + caller up front: both are needed for the denormalized
+    // display fields on the batch, and the supplier doc is also required for the
+    // `batchCount` patch below. One read, two consumers.
+    // Convex has no foreign-key constraints, so reading before the insert is safe.
+    const [supplierDoc, callerDoc] = await Promise.all([
+      ctx.db.get(supplierId),
+      ctx.db.get(callerId),
+    ])
+
     const unitCost = totalProcurementCost / quantityReceived
     const bDate = new Date().toISOString().slice(0, 10).replace(/-/g, "")
     let batchCode = ""
@@ -158,11 +167,21 @@ export const stockIn = zMutation({
       quantityReceived,
       quantityRemaining: quantityReceived,
       status: "active",
+      // Required for the `by_createdAt` / `by_supplier_createdAt` index ranges.
+      // Legacy rows are backfilled by `backfillBatchCreatedAt`.
+      createdAt: Date.now(),
+      // Denormalized display fields — see schema comment and
+      // `backfillBatchDenorm`. Optional, so pre-backfill rows stay valid and
+      // reads fall back to the live documents. `receivedBy` falls back to the
+      // literal `"Unknown"` rather than `undefined`: `users.name` is optional,
+      // and an absent field is indistinguishable from "never backfilled", so
+      // every read of such a row would re-issue the fallback point read.
+      productName: product?.name,
+      productSku: product?.skuCode,
+      supplierName: supplierDoc?.companyName,
+      receivedBy: callerDoc?.name ?? "Unknown",
     })
 
-    // Insert must complete before reading supplier for the patch (FK integrity).
-    // react-doctor/server-sequential-independent-await: dependent read-after-write (intentional)
-    const supplierDoc = await ctx.db.get(supplierId)
     if (supplierDoc) {
       await ctx.db.patch(supplierId, {
         batchCount: (supplierDoc.batchCount ?? 0) + 1,
@@ -174,6 +193,7 @@ export const stockIn = zMutation({
         currentQuantity: product.currentQuantity + quantityReceived,
         totalAssetValue: product.totalAssetValue + totalProcurementCost,
         batchCount: (product.batchCount ?? 0) + 1,
+        lastSupplierId: supplierId,
       }
       if (imageStorageId) {
         patch.imagePath = imageStorageId

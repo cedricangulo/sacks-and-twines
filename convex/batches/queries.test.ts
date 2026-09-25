@@ -37,7 +37,7 @@ describe("batch queries", () => {
     t: ReturnType<typeof convexTest>,
     user: {
       email: string
-      name: string
+      name?: string
       role: "owner" | "staff"
       status: "active" | "deactivated"
     }
@@ -88,6 +88,11 @@ describe("batch queries", () => {
       status: "active" | "depleted" | "voided"
       quantityReceived: number
       quantityRemaining: number
+      createdAt: number
+      productName: string
+      productSku: string
+      supplierName: string
+      receivedBy: string
     }>
   ) {
     return await t.run(async (ctx) => {
@@ -103,6 +108,21 @@ describe("batch queries", () => {
         quantityReceived: overrides.quantityReceived ?? 50,
         quantityRemaining: overrides.quantityRemaining ?? 50,
         status: overrides.status ?? "active",
+        ...(overrides.createdAt !== undefined
+          ? { createdAt: overrides.createdAt }
+          : {}),
+        ...(overrides.productName !== undefined
+          ? { productName: overrides.productName }
+          : {}),
+        ...(overrides.productSku !== undefined
+          ? { productSku: overrides.productSku }
+          : {}),
+        ...(overrides.supplierName !== undefined
+          ? { supplierName: overrides.supplierName }
+          : {}),
+        ...(overrides.receivedBy !== undefined
+          ? { receivedBy: overrides.receivedBy }
+          : {}),
       })
     })
   }
@@ -190,32 +210,6 @@ describe("batch queries", () => {
     })
 
     expect(result).toHaveLength(0)
-  })
-
-  it("returns batch count by product", async () => {
-    const t = makeTest()
-    const ownerId = await createUser(t, {
-      email: "owner@test.com",
-      name: "Owner",
-      role: "owner",
-      status: "active",
-    })
-    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
-
-    const [productId, supplierId] = await Promise.all([
-      createProduct(t, "Counted Product"),
-      createSupplier(t, "Supplier"),
-    ])
-
-    await createBatch(t, { productId, supplierId, userId: ownerId })
-    await createBatch(t, { productId, supplierId, userId: ownerId })
-    await createBatch(t, { productId, supplierId, userId: ownerId })
-
-    const count = await t.query(api.batches.queries.getCountByProduct, {
-      productId,
-    })
-
-    expect(count).toBe(3)
   })
 
   it("gets batch detail with computed fields", async () => {
@@ -515,5 +509,398 @@ describe("batch queries", () => {
     })
 
     expect(result).toHaveLength(0)
+  })
+
+  // ── listHistory ──────────────────────────────────────────
+
+  describe("listHistory", () => {
+    const NOW = 1_700_000_000_000
+    const DAY = 86_400_000
+    const RANGE = { startMs: NOW - 30 * DAY, endMs: NOW + DAY }
+
+    async function seedHistory() {
+      const t = makeTest()
+      const [ownerId, staffId] = await Promise.all([
+        createUser(t, {
+          email: "owner@test.com",
+          name: "Owner",
+          role: "owner",
+          status: "active",
+        }),
+        createUser(t, {
+          email: "staff@test.com",
+          name: "Staff",
+          role: "staff",
+          status: "active",
+        }),
+      ])
+      const [productId, supplierA, supplierB] = await Promise.all([
+        createProduct(t, "Sack A"),
+        createSupplier(t, "Supplier A"),
+        createSupplier(t, "Supplier B"),
+      ])
+
+      // Inside the range, newest last so desc order is verifiable.
+      const olderId = await createBatch(t, {
+        productId,
+        supplierId: supplierA,
+        userId: ownerId,
+        createdAt: NOW - 3 * DAY,
+        productName: "Sack A",
+        productSku: "SKU-A",
+        supplierName: "Supplier A",
+        receivedBy: "Owner",
+      })
+      const middleId = await createBatch(t, {
+        productId,
+        supplierId: supplierB,
+        userId: staffId,
+        createdAt: NOW - 2 * DAY,
+        status: "depleted",
+        productName: "Sack A",
+        productSku: "SKU-A",
+        supplierName: "Supplier B",
+        receivedBy: "Staff",
+      })
+      const newerId = await createBatch(t, {
+        productId,
+        supplierId: supplierA,
+        userId: ownerId,
+        createdAt: NOW - 1 * DAY,
+        productName: "Sack A",
+        productSku: "SKU-A",
+        supplierName: "Supplier A",
+        receivedBy: "Owner",
+      })
+
+      // Outside the range on both sides.
+      await createBatch(t, {
+        productId,
+        supplierId: supplierA,
+        userId: ownerId,
+        createdAt: NOW - 40 * DAY,
+        productName: "Sack A",
+        productSku: "SKU-A",
+        supplierName: "Supplier A",
+        receivedBy: "Owner",
+      })
+      await createBatch(t, {
+        productId,
+        supplierId: supplierA,
+        userId: ownerId,
+        createdAt: NOW + 5 * DAY,
+        productName: "Sack A",
+        productSku: "SKU-A",
+        supplierName: "Supplier A",
+        receivedBy: "Owner",
+      })
+
+      return {
+        t,
+        ownerId,
+        staffId,
+        olderId,
+        middleId,
+        newerId,
+        supplierA,
+        supplierB,
+      }
+    }
+
+    const page = { numItems: 50, cursor: null }
+
+    it("rejects unauthenticated", async () => {
+      const t = makeTest()
+      authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+      await expect(
+        t.query(api.batches.queries.listHistory, {
+          paginationOpts: page,
+          ...RANGE,
+        })
+      ).rejects.toThrowError("Unauthorized")
+    })
+
+    it("rejects staff — stock-in is owner-only", async () => {
+      const { t, staffId } = await seedHistory()
+      authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
+
+      await expect(
+        t.query(api.batches.queries.listHistory, {
+          paginationOpts: page,
+          ...RANGE,
+        })
+      ).rejects.toThrowError("Only owners can view receiving history")
+    })
+
+    it("rejects deactivated owners", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "deactivated",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      await expect(
+        t.query(api.batches.queries.listHistory, {
+          paginationOpts: page,
+          ...RANGE,
+        })
+      ).rejects.toThrowError("Only owners can view receiving history")
+    })
+
+    it("returns only rows inside the date range, newest first", async () => {
+      const { t, ownerId, olderId, middleId, newerId } = await seedHistory()
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      const result = await t.query(api.batches.queries.listHistory, {
+        paginationOpts: page,
+        ...RANGE,
+      })
+
+      expect(result.page.map((b) => b._id)).toEqual([
+        newerId,
+        middleId,
+        olderId,
+      ])
+    })
+
+    it("paginates with cursors", async () => {
+      const { t, ownerId } = await seedHistory()
+      // Not `mockResolvedValueOnce` — this issues two queries, and the `Once`
+      // variant would return `undefined` on the second call.
+      authMocks.getAuthUserId.mockResolvedValue(ownerId)
+
+      const first = await t.query(api.batches.queries.listHistory, {
+        paginationOpts: { numItems: 2, cursor: null },
+        ...RANGE,
+      })
+
+      expect(first.page).toHaveLength(2)
+      expect(first.isDone).toBe(false)
+
+      const second = await t.query(api.batches.queries.listHistory, {
+        paginationOpts: { numItems: 2, cursor: first.continueCursor },
+        ...RANGE,
+      })
+
+      expect(second.page).toHaveLength(1)
+      expect(second.isDone).toBe(true)
+      // No overlap between pages.
+      const firstIds = new Set(first.page.map((b) => b._id))
+      expect(second.page.every((b) => !firstIds.has(b._id))).toBe(true)
+    })
+
+    it("filters by supplier via by_supplier_createdAt", async () => {
+      const { t, ownerId, supplierB, middleId } = await seedHistory()
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      const result = await t.query(api.batches.queries.listHistory, {
+        paginationOpts: page,
+        ...RANGE,
+        supplierId: supplierB,
+      })
+
+      // Only the middle batch was received from supplier B.
+      expect(result.page.map((b) => b._id)).toEqual([middleId])
+      expect(result.page[0].supplierName).toBe("Supplier B")
+    })
+
+    it("filters by status", async () => {
+      const { t, ownerId, middleId } = await seedHistory()
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      const result = await t.query(api.batches.queries.listHistory, {
+        paginationOpts: page,
+        ...RANGE,
+        status: "depleted",
+      })
+
+      expect(result.page.map((b) => b._id)).toEqual([middleId])
+    })
+
+    it("uses denormalized fields when present", async () => {
+      const { t, ownerId } = await seedHistory()
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      const result = await t.query(api.batches.queries.listHistory, {
+        paginationOpts: page,
+        ...RANGE,
+      })
+
+      expect(result.page[0].productName).toBe("Sack A")
+      expect(result.page[0].productSku).toBe("SKU-A")
+      expect(result.page[0].supplierName).toBe("Supplier A")
+      expect(result.page[0].receivedBy).toBe("Owner")
+    })
+
+    it("falls back to live documents when denormalized fields are absent", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Receiving Owner",
+        role: "owner",
+        status: "active",
+      })
+      const [productId, supplierId] = await Promise.all([
+        createProduct(t, "Legacy Sack"),
+        createSupplier(t, "Legacy Supplier"),
+      ])
+
+      // A row with no denormalized fields — as it exists before
+      // `backfillBatchDenorm` runs.
+      await createBatch(t, {
+        productId,
+        supplierId,
+        userId: ownerId,
+        createdAt: NOW,
+      })
+
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      const result = await t.query(api.batches.queries.listHistory, {
+        paginationOpts: page,
+        startMs: NOW - DAY,
+        endMs: NOW + DAY,
+      })
+
+      expect(result.page).toHaveLength(1)
+      expect(result.page[0].productName).toBe("Legacy Sack")
+      expect(result.page[0].supplierName).toBe("Legacy Supplier")
+      expect(result.page[0].receivedBy).toBe("Receiving Owner")
+    })
+
+    it("returns an empty page when nothing is in range", async () => {
+      const { t, ownerId } = await seedHistory()
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      const result = await t.query(api.batches.queries.listHistory, {
+        paginationOpts: page,
+        startMs: NOW + 100 * DAY,
+        endMs: NOW + 200 * DAY,
+      })
+
+      expect(result.page).toHaveLength(0)
+      expect(result.isDone).toBe(true)
+    })
+
+    // Regression: `status` and `receivedBy` used to be applied *after*
+    // pagination, so a page could come back empty while the matching rows sat
+    // past the cursor. With no pagination controls rendered on an empty page,
+    // those rows were unreachable — clearing filters was the only way out.
+    describe("filters are applied before pagination", () => {
+      async function seedManyActive() {
+        const { t, ownerId, staffId, supplierA, middleId } = await seedHistory()
+        const productId = await createProduct(t, "Bulk Sack")
+
+        // 10 active batches received by the owner, all newer than the depleted
+        // row `seedHistory` created.
+        for (let i = 0; i < 10; i++) {
+          await createBatch(t, {
+            productId,
+            supplierId: supplierA,
+            userId: ownerId,
+            createdAt: NOW - (i + 1) * 60_000,
+            status: "active",
+            productName: "Bulk Sack",
+            productSku: "SKU-BULK",
+            supplierName: "Supplier A",
+            receivedBy: "Owner",
+          })
+        }
+
+        return { t, ownerId, staffId, middleId }
+      }
+
+      it("status filter reaches rows past the first page", async () => {
+        const { t, ownerId, middleId } = await seedManyActive()
+        authMocks.getAuthUserId.mockResolvedValue(ownerId)
+
+        // Page 1 of the *unfiltered* newest rows is all `active`; the only
+        // `depleted` row is older than all ten.
+        const firstPage = await t.query(api.batches.queries.listHistory, {
+          paginationOpts: { numItems: 5, cursor: null },
+          ...RANGE,
+        })
+        expect(firstPage.page).toHaveLength(5)
+        expect(firstPage.page.every((b) => b.status === "active")).toBe(true)
+
+        const filtered = await t.query(api.batches.queries.listHistory, {
+          paginationOpts: { numItems: 5, cursor: null },
+          ...RANGE,
+          status: "depleted",
+        })
+
+        expect(filtered.page.map((b) => b._id)).toEqual([middleId])
+        // The metadata describes the filtered set, so the client can tell the
+        // difference between "no matches" and "no matches on this page".
+        expect(filtered.isDone).toBe(true)
+      })
+
+      it("reports the filtered set as done rather than hiding later pages", async () => {
+        // The residual path — supplier plus status — cannot use a compound index,
+        // so the status filter runs on the returned page. The client's job is to
+        // keep pagination mounted; this pins the metadata it renders from.
+        const { t, ownerId, supplierB } = await seedHistory()
+        authMocks.getAuthUserId.mockResolvedValue(ownerId)
+
+        const residual = await t.query(api.batches.queries.listHistory, {
+          paginationOpts: { numItems: 5, cursor: null },
+          ...RANGE,
+          supplierId: supplierB,
+          status: "active",
+        })
+
+        // Supplier B only has the one `depleted` batch, so an `active` filter
+        // leaves nothing — and says so, rather than looking like more pages.
+        expect(residual.page).toHaveLength(0)
+        expect(residual.isDone).toBe(true)
+      })
+    })
+
+    it('treats a nameless receiver as "Unknown" rather than un-backfilled', async () => {
+      // `users.name` is optional. A row written with the `"Unknown"` sentinel no
+      // longer trips the fallback read on every page it appears on.
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      const namelessId = await createUser(t, {
+        email: "nameless@test.com",
+        role: "staff",
+        status: "active",
+      })
+      const [productId, supplierId] = await Promise.all([
+        createProduct(t, "Sack"),
+        createSupplier(t, "Supplier"),
+      ])
+
+      await createBatch(t, {
+        productId,
+        supplierId,
+        userId: namelessId,
+        createdAt: NOW,
+        productName: "Sack",
+        productSku: "SKU",
+        supplierName: "Supplier",
+        receivedBy: "Unknown",
+      })
+
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      const result = await t.query(api.batches.queries.listHistory, {
+        paginationOpts: page,
+        startMs: NOW - DAY,
+        endMs: NOW + DAY,
+      })
+
+      expect(result.page).toHaveLength(1)
+      expect(result.page[0].receivedBy).toBe("Unknown")
+    })
   })
 })

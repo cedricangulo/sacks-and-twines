@@ -12,6 +12,7 @@ const isProtectedRoute = createRouteMatcher([
   "/products(.*)",
   "/suppliers(.*)",
   "/dispatch-history(.*)",
+  "/receiving-history(.*)",
   "/users(.*)",
   "/audit-logs(.*)",
   "/audit-logs/personal(.*)",
@@ -22,6 +23,9 @@ const isOwnerOnlyRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/inventory(.*)",
   "/suppliers(.*)",
+  // Stock-in is owner-only (`batches.mutations.stockIn` → requireOwner), so its
+  // history is too.
+  "/receiving-history(.*)",
   "/users(.*)",
   "/reports(.*)",
 ])
