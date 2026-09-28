@@ -75,6 +75,13 @@ export const create = zMutation({
       totalAssetValue: 0,
       lowStockThreshold: lowStockThreshold ?? 0,
       status: "active",
+      // Start the batch counter at 0 rather than leaving it undefined. When it
+      // was undefined, `products.queries.getEditDetail` fell back to collecting
+      // every batch of the product on each call.
+      batchCount: 0,
+      // Required for the `by_createdAt` index range; legacy rows are backfilled
+      // by `backfillProductCreatedAt`.
+      createdAt: Date.now(),
       ...(normalizedKeywords ? { keywords: normalizedKeywords } : {}),
     })
 

@@ -1,12 +1,64 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
-import type { Id } from "../_generated/dataModel"
+import type { Doc, Id } from "../_generated/dataModel"
 import { query } from "../_generated/server"
 import { fetchDispatches } from "../lib/fetch_entities"
 
 // ---------------------------------------------------------------------------
 // Queries
 // ---------------------------------------------------------------------------
+
+/**
+ * Low-stock / out-of-stock alerts only.
+ *
+ * Split out of `summaryStats` so the global `StockBanner` does not pay for the
+ * asset-value and category aggregation it never reads.
+ *
+ * Note this reduces CPU and payload, **not** the read set — the banner still
+ * needs one point read per active product, so Convex's lack of field projections
+ * means any product patch still invalidates it. The banner therefore reads this
+ * **point-in-time** rather than holding a live subscription. See
+ * docs/PERFORMANCE-AUDIT.md P4 / §III.5.
+ *
+ * Access: Owner only.
+ */
+export const stockAlerts = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (userId === null) throw new Error("Unauthorized")
+
+    const caller = await ctx.db.get(userId)
+    if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
+
+    const products = await ctx.db
+      .query("products")
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .collect()
+
+    const alerts: Array<{
+      productId: (typeof products)[number]["_id"]
+      productName: string
+      skuCode: string
+      currentQuantity: number
+      lowStockThreshold: number
+    }> = []
+
+    for (const p of products) {
+      if (p.currentQuantity <= p.lowStockThreshold) {
+        alerts.push({
+          productId: p._id,
+          productName: p.name,
+          skuCode: p.skuCode,
+          currentQuantity: p.currentQuantity,
+          lowStockThreshold: p.lowStockThreshold,
+        })
+      }
+    }
+
+    return alerts
+  },
+})
 
 /**
  * Summary statistics for the dashboard header card row.
@@ -35,6 +87,7 @@ export const summaryStats = query({
     const stockAlerts: Array<{
       productId: (typeof products)[number]["_id"]
       productName: string
+      skuCode: string
       currentQuantity: number
       lowStockThreshold: number
     }> = []
@@ -45,6 +98,7 @@ export const summaryStats = query({
         stockAlerts.push({
           productId: p._id,
           productName: p.name,
+          skuCode: p.skuCode,
           currentQuantity: p.currentQuantity,
           lowStockThreshold: p.lowStockThreshold,
         })
@@ -82,7 +136,12 @@ export const dailyDispatchVolume = query({
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const dispatches = await fetchDispatches(ctx, startMs, endMs, "completed")
+    const { docs: dispatches } = await fetchDispatches(
+      ctx,
+      startMs,
+      endMs,
+      "completed"
+    )
 
     const dayMap = new Map<number, { units: number; dispatchCount: number }>()
 
@@ -148,7 +207,11 @@ export const weeklyVelocity = query({
     const VELOCITY_WINDOW_MS = 13 * 7 * 24 * 60 * 60 * 1000
     const effectiveStartMs = Math.max(startMs, Date.now() - VELOCITY_WINDOW_MS)
 
-    const dispatches = await fetchDispatches(ctx, effectiveStartMs, endMs)
+    const { docs: dispatches } = await fetchDispatches(
+      ctx,
+      effectiveStartMs,
+      endMs
+    )
 
     const cellMap = new Map<string, number>()
 
@@ -197,27 +260,51 @@ export const productMovement = query({
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const dispatches = await fetchDispatches(ctx, startMs, endMs, "completed")
+    const { docs: dispatches } = await fetchDispatches(
+      ctx,
+      startMs,
+      endMs,
+      "completed"
+    )
 
-    // TODO(scale): N+1 query — one dispatchItems read per dispatch. At current
-    // volume (~50/month) this is fine. If it grows, denormalize a
-    // productBreakdown field on dispatches at write time (same pattern as
-    // totalQuantity) and read it directly here.
+    // Per-product units are denormalized onto each dispatch at submit time, so
+    // this is a local aggregation rather than one `dispatchItems.by_dispatch`
+    // read per dispatch. The live read only runs for dispatches written before
+    // the field existed.
     const unitsByProduct = new Map<Id<"products">, number>()
-    await Promise.all(
-      dispatches.map(async (d) => {
-        const items = await ctx.db
-          .query("dispatchItems")
-          .withIndex("by_dispatch", (q) => q.eq("dispatchId", d._id))
-          .collect()
+    const missingProductUnits: Doc<"dispatches">[] = []
+
+    for (const d of dispatches) {
+      if (d.productUnits === undefined) {
+        missingProductUnits.push(d)
+        continue
+      }
+      for (const { productId, units } of d.productUnits) {
+        unitsByProduct.set(
+          productId,
+          (unitsByProduct.get(productId) ?? 0) + units
+        )
+      }
+    }
+
+    if (missingProductUnits.length > 0) {
+      const itemsByDispatch = await Promise.all(
+        missingProductUnits.map((d) =>
+          ctx.db
+            .query("dispatchItems")
+            .withIndex("by_dispatch", (q) => q.eq("dispatchId", d._id))
+            .collect()
+        )
+      )
+      for (const items of itemsByDispatch) {
         for (const item of items) {
           unitsByProduct.set(
             item.productId,
             (unitsByProduct.get(item.productId) ?? 0) + item.quantityDeducted
           )
         }
-      })
-    )
+      }
+    }
 
     const products = await ctx.db
       .query("products")
@@ -259,7 +346,7 @@ export const weeklyDemand = query({
     const fourWeeksMs = 4 * 7 * 24 * 60 * 60 * 1000
     const historyStartMs = startMs - fourWeeksMs
 
-    const dispatches = await fetchDispatches(
+    const { docs: dispatches } = await fetchDispatches(
       ctx,
       historyStartMs,
       endMs,

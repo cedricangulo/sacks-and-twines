@@ -1,4 +1,5 @@
 import { internal } from "../_generated/api"
+import type { Id } from "../_generated/dataModel"
 import { requireActive } from "../auth/guards"
 import { DISPATCH_UOM_BY_CATEGORY, INTEGER_UOMS } from "../lib/constants"
 import { nextOrNumber } from "../lib/orNumber"
@@ -44,6 +45,10 @@ export const submit = zMutation({
     let totalCostDeducted = 0
     const batchChanges: Record<string, { old: number; new: number }> = {}
     const itemSummaries: string[] = []
+    // Per-product unit totals, denormalized onto the dispatch so
+    // `dashboard.queries.productMovement` does not need an N+1 over
+    // dispatchItems. See docs/N-1-QUERY-AUDIT.md F2.
+    const unitsByProduct = new Map<Id<"products">, number>()
 
     for (const item of items) {
       const product = await ctx.db.get(item.productId)
@@ -122,6 +127,11 @@ export const submit = zMutation({
             dispatchQuantity: dispatchQty,
             quantityDeducted: deducted,
             unitCost: batch.unitCost,
+            // Required for the `by_createdAt` index range that lets the reports
+            // exports read a date window in one pass instead of one range per
+            // dispatch. Legacy rows are backfilled by
+            // `backfillDispatchItemCreatedAt`.
+            createdAt: timestampMs,
           }),
           ctx.db.patch(batch._id, {
             quantityRemaining: newRemaining,
@@ -152,6 +162,13 @@ export const submit = zMutation({
         currentQuantity: Math.max(0, product.currentQuantity - toDeduct),
         totalAssetValue: Math.max(0, product.totalAssetValue - itemCost),
       })
+
+      // Accumulate per-product units for the dispatch. One dispatch line maps to
+      // one product, so a plain sum is exact — no cross-item merging needed.
+      unitsByProduct.set(
+        item.productId,
+        (unitsByProduct.get(item.productId) ?? 0) + toDeduct
+      )
     }
 
     await ctx.runMutation(internal.auditLogs.mutations.log, {
@@ -178,6 +195,10 @@ export const submit = zMutation({
       itemCount: totalDispatchItems,
       totalQuantity,
       totalValue: totalCostDeducted,
+      productUnits: [...unitsByProduct].map(([productId, units]) => ({
+        productId,
+        units,
+      })),
     })
 
     return {

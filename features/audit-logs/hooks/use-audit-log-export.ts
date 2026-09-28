@@ -2,10 +2,11 @@
 
 import { useMutation } from "convex/react"
 import type { FunctionReturnType } from "convex/server"
-import { useQueries, useQuery } from "convex-helpers/react/cache"
-import { useMemo, useState } from "react"
+import { useQueries } from "convex-helpers/react/cache"
+import { useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Doc } from "@/convex/_generated/dataModel"
+import { AUDIT_LOG_ACTIONS } from "@/convex/lib/constants"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import type { AuditLogFilters } from "./use-audit-logs"
 
@@ -89,16 +90,18 @@ const AUDIT_DATE_FMT = new Intl.DateTimeFormat("en-PH", {
 })
 
 // Formats audit log data as a formatted JSON string.
-const formatAsJson = (
-  data: Array<
-    Doc<"auditLogs"> & {
-      userName: string | null
-      userEmail: string | null
-      userRole: string | null
-    }
-  >
-) => {
-  const pick = (log: (typeof data)[number]): Record<string, unknown> => ({
+type EnrichedAuditLog = Doc<"auditLogs"> & {
+  userName: string | null
+  userEmail: string | null
+  userRole: string | null
+}
+
+const formatAsJson = (data: {
+  records: EnrichedAuditLog[]
+  truncated: boolean
+  limit: number
+}) => {
+  const pick = (log: EnrichedAuditLog): Record<string, unknown> => ({
     timestamp: log.createdAt ?? log._creationTime,
     user: log.userName,
     email: log.userEmail,
@@ -110,7 +113,19 @@ const formatAsJson = (
     ipAddress: log.ipAddress,
     userAgent: log.userAgent,
   })
-  return JSON.stringify(data.map(pick), null, 2)
+  // The truncation flag travels with the payload — a downstream reader must not
+  // be able to mistake a capped result set for the complete audit trail.
+  return JSON.stringify(
+    {
+      exportedAt: new Date().toISOString(),
+      truncated: data.truncated,
+      limit: data.limit,
+      recordCount: data.records.length,
+      records: data.records.map(pick),
+    },
+    null,
+    2
+  )
 }
 
 type ExportFormat = "csv" | "json"
@@ -124,15 +139,7 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("csv")
 
-  const actionsArgs = useMemo(
-    () => (isAuthenticated ? {} : "skip"),
-    [isAuthenticated]
-  )
-
-  const actions =
-    (useQuery(api.auditLogs.queries.listActions, actionsArgs) as
-      | string[]
-      | undefined) ?? []
+  const actions = AUDIT_LOG_ACTIONS
 
   const exportResult = useQueries(
     isAuthenticated && (exportMenuOpen || exportDialogOpen)
@@ -175,7 +182,9 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
     setExportDialogOpen(false)
 
     const isCsv = selectedFormat === "csv"
-    const content = isCsv ? formatAsCsv(exportData) : formatAsJson(exportData)
+    const content = isCsv
+      ? formatAsCsv(exportData.records)
+      : formatAsJson(exportData)
     const mimeType = isCsv
       ? "text/csv;charset=utf-8"
       : "application/json;charset=utf-8"
@@ -184,6 +193,7 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
     logExport({
       format: selectedFormat,
       recordCount: recordCount,
+      truncated: exportData.truncated,
       filters: JSON.stringify({
         search: search || undefined,
         action: filterArgs.action,
@@ -204,7 +214,7 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
     setTimeout(() => setIsExporting(false), 500)
   }
 
-  const recordCount = exportData?.length ?? 0
+  const recordCount = exportData?.records.length ?? 0
 
   const summaryLines: string[] = []
   if (filterArgs.dateFrom || filterArgs.dateTo) {

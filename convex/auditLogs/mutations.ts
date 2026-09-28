@@ -48,17 +48,27 @@ export const logExport = mutation({
   args: {
     format: v.string(),
     recordCount: v.number(),
+    truncated: v.optional(v.boolean()),
     filters: v.optional(v.string()),
   },
-  handler: async (ctx, { format, recordCount, filters }) => {
+  handler: async (ctx, { format, recordCount, truncated, filters }) => {
     const userId = await requireOwner(ctx)
 
     await ctx.db.insert("auditLogs", {
       userId,
       action: "audit_log_export",
       description: JSON.stringify({
-        summary: `Exported ${recordCount} audit log(s) as ${format.toUpperCase()}`,
-        details: { format, recordCount, filters: filters ?? null },
+        // State the truncation explicitly. Recording `recordCount` as though it
+        // were the whole set made the audit trail itself misleading.
+        summary: truncated
+          ? `Exported the ${recordCount} most recent of a larger result set as ${format.toUpperCase()} (TRUNCATED)`
+          : `Exported ${recordCount} audit log(s) as ${format.toUpperCase()}`,
+        details: {
+          format,
+          recordCount,
+          truncated: truncated ?? false,
+          filters: filters ?? null,
+        },
       }),
       resourceType: "auditLog",
       userAgent: undefined,

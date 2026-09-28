@@ -572,6 +572,31 @@ describe("weeklyVelocity", () => {
     authMocks.getAuthUserId.mockReset()
   })
 
+  /**
+   * A UTC timestamp on the given day-of-week (0 = Sunday) at the given hour,
+   * somewhere in the last week.
+   *
+   * `weeklyVelocity` clamps its own scan start to `Date.now() - 13 weeks`
+   * (`convex/dashboard/queries.ts`) so a stray unbounded `startMs` can never
+   * rescan the whole dispatch table. That clamp is deliberate, but it makes
+   * absolute fixture dates expire: a test pinned to a fixed calendar date
+   * silently starts returning `[]` once the wall clock walks past it, and the
+   * failure looks like a bucketing bug rather than a stale fixture. Anchoring
+   * to `Date.now()` keeps these assertions about *which* day/hour bucket each
+   * dispatch lands in, which is what they are actually testing.
+   */
+  function recentWeekdayAt(dayOfWeek: number, hour: number): number {
+    const d = new Date()
+    // Step to yesterday before setting the hour, so an `hour` later than the
+    // current time can't produce a fixture in the future.
+    d.setUTCDate(d.getUTCDate() - 1)
+    d.setUTCHours(hour, 0, 0, 0)
+    while (d.getUTCDay() !== dayOfWeek) {
+      d.setUTCDate(d.getUTCDate() - 1)
+    }
+    return d.getTime()
+  }
+
   it("rejects unauthenticated", async () => {
     const t = makeTest()
     authMocks.getAuthUserId.mockResolvedValueOnce(null)
@@ -615,9 +640,9 @@ describe("weeklyVelocity", () => {
     const ownerId = await createUser(t)
 
     // Monday 10 AM UTC = dayOfWeek 1, hour 10
-    const mon10am = Date.UTC(2026, 6, 6, 10, 0, 0)
+    const mon10am = recentWeekdayAt(1, 10)
     // Wednesday 2 PM UTC = dayOfWeek 3, hour 14
-    const wed2pm = Date.UTC(2026, 6, 8, 14, 0, 0)
+    const wed2pm = recentWeekdayAt(3, 14)
 
     await createDispatch(t, {
       userId: ownerId,
@@ -635,8 +660,8 @@ describe("weeklyVelocity", () => {
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     const result = await t.query(api.dashboard.queries.weeklyVelocity, {
-      startMs: Date.UTC(2026, 6, 1),
-      endMs: Date.UTC(2026, 6, 31, 23, 59, 59, 999),
+      startMs: 0,
+      endMs: Date.now() + 86_400_000,
       timezoneOffsetMs: 0,
     })
 
@@ -650,11 +675,11 @@ describe("weeklyVelocity", () => {
     const ownerId = await createUser(t)
 
     // 7 AM UTC = hour 7 (before business)
-    const beforeHours = Date.UTC(2026, 6, 6, 7, 0, 0)
+    const beforeHours = recentWeekdayAt(1, 7)
     // 7 PM UTC = hour 19 (after business)
-    const afterHours = Date.UTC(2026, 6, 6, 19, 0, 0)
+    const afterHours = recentWeekdayAt(1, 19)
     // 9 AM UTC = hour 9 (within business)
-    const inHours = Date.UTC(2026, 6, 6, 9, 0, 0)
+    const inHours = recentWeekdayAt(1, 9)
 
     await createDispatch(t, { userId: ownerId, createdAt: beforeHours })
     await createDispatch(t, { userId: ownerId, createdAt: afterHours })
@@ -663,8 +688,8 @@ describe("weeklyVelocity", () => {
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     const result = await t.query(api.dashboard.queries.weeklyVelocity, {
-      startMs: Date.UTC(2026, 6, 1),
-      endMs: Date.UTC(2026, 6, 31, 23, 59, 59, 999),
+      startMs: 0,
+      endMs: Date.now() + 86_400_000,
       timezoneOffsetMs: 0,
     })
 
@@ -676,8 +701,8 @@ describe("weeklyVelocity", () => {
     const t = makeTest()
     const ownerId = await createUser(t)
 
-    const at8am = Date.UTC(2026, 6, 6, 8, 0, 0)
-    const at6pm = Date.UTC(2026, 6, 6, 18, 0, 0)
+    const at8am = recentWeekdayAt(1, 8)
+    const at6pm = recentWeekdayAt(1, 18)
 
     await createDispatch(t, { userId: ownerId, createdAt: at8am })
     await createDispatch(t, { userId: ownerId, createdAt: at6pm })
@@ -685,8 +710,8 @@ describe("weeklyVelocity", () => {
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
     const result = await t.query(api.dashboard.queries.weeklyVelocity, {
-      startMs: at8am - 86_400_000,
-      endMs: at6pm + 86_400_000,
+      startMs: 0,
+      endMs: Date.now() + 86_400_000,
       timezoneOffsetMs: 0,
     })
 
@@ -700,7 +725,7 @@ describe("weeklyVelocity", () => {
     const ownerId = await createUser(t)
 
     // Midnight Tuesday UTC = hour 0 (outside business in UTC)
-    const tueMidnight = Date.UTC(2026, 6, 7, 0, 0, 0)
+    const tueMidnight = recentWeekdayAt(2, 0)
 
     await createDispatch(t, {
       userId: ownerId,
@@ -711,8 +736,8 @@ describe("weeklyVelocity", () => {
 
     // With UTC offset (0): midnight → hour 0, filtered out
     const utcResult = await t.query(api.dashboard.queries.weeklyVelocity, {
-      startMs: Date.UTC(2026, 6, 1),
-      endMs: Date.UTC(2026, 6, 31, 23, 59, 59, 999),
+      startMs: 0,
+      endMs: Date.now() + 86_400_000,
       timezoneOffsetMs: 0,
     })
     expect(utcResult).toHaveLength(0)
@@ -721,8 +746,8 @@ describe("weeklyVelocity", () => {
 
     // With PHT offset (+8h): midnight UTC → 8AM same day → within business
     const phtResult = await t.query(api.dashboard.queries.weeklyVelocity, {
-      startMs: Date.UTC(2026, 6, 1),
-      endMs: Date.UTC(2026, 6, 31, 23, 59, 59, 999),
+      startMs: 0,
+      endMs: Date.now() + 86_400_000,
       timezoneOffsetMs: 28_800_000,
     })
     expect(phtResult).toHaveLength(1)

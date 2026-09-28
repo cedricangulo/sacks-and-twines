@@ -51,7 +51,7 @@ const DATE_END = new Date(`${SEED_DATE_END}T00:00:00+08:00`)
 let skuCounter = 0
 function nextSkuCode(): string {
   skuCounter++
-  const ds = "20250501"
+  const ds = "20260501"
   const suffix = String(skuCounter).padStart(4, "0")
   return `SKU-${ds}-${suffix}`
 }
@@ -59,7 +59,7 @@ function nextSkuCode(): string {
 let batchCounter = 0
 function nextBatchCode(): string {
   batchCounter++
-  const ds = "20250501"
+  const ds = "20260501"
   const suffix = String(batchCounter).padStart(4, "0")
   return `BAT-${ds}-${suffix}`
 }
@@ -93,7 +93,7 @@ interface ProductDef {
   name: string
   category: "sacks" | "twines" | "thread"
   baseUom: "piece" | "roll" | "meter"
-  conversionFactor: number | undefined
+  conversionFactor: number
   lowStockThreshold: number
   keywords?: string[]
 }
@@ -145,7 +145,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     name: "Sewing Twine",
     category: "twines",
     baseUom: "meter",
-    conversionFactor: undefined,
+    conversionFactor: 0,
     lowStockThreshold: 50,
     keywords: ["twine", "sewing", "string"],
   },
@@ -153,7 +153,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     name: "Banana Twine",
     category: "twines",
     baseUom: "meter",
-    conversionFactor: undefined,
+    conversionFactor: 0,
     lowStockThreshold: 50,
     keywords: ["twine", "banana", "baling"],
   },
@@ -161,7 +161,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     name: "Twist Twine",
     category: "twines",
     baseUom: "meter",
-    conversionFactor: undefined,
+    conversionFactor: 0,
     lowStockThreshold: 50,
     keywords: ["twine", "twist", "straw", "hay", "tie"],
   },
@@ -170,7 +170,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     name: "Sewing Thread Small",
     category: "thread",
     baseUom: "roll",
-    conversionFactor: undefined,
+    conversionFactor: 0,
     lowStockThreshold: 20,
     keywords: ["thread", "sewing", "small"],
   },
@@ -178,7 +178,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     name: "Sewing Thread Medium",
     category: "thread",
     baseUom: "roll",
-    conversionFactor: undefined,
+    conversionFactor: 0,
     lowStockThreshold: 20,
     keywords: ["thread", "sewing", "medium"],
   },
@@ -186,7 +186,7 @@ const PRODUCT_DEFS: ProductDef[] = [
     name: "Sewing Thread Large",
     category: "thread",
     baseUom: "roll",
-    conversionFactor: undefined,
+    conversionFactor: 0,
     lowStockThreshold: 20,
     keywords: ["thread", "sewing", "large"],
   },

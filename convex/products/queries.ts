@@ -3,27 +3,69 @@ import { v } from "convex/values"
 import { query } from "../_generated/server"
 
 /**
- * Lists all products with their last supplier and image URL.
+ * Lists products with their last supplier and image URL.
+ *
+ * `status` is pushed to the `by_status` index rather than collecting the whole
+ * table and filtering client-side. Defaults to `"active"`, matching the
+ * inventory page's default filter — archived rows were previously shipped to
+ * the client only to be discarded there. `"all"` reads both index ranges, which
+ * is still bounded and indexed rather than a full scan.
+ *
+ * `lastSupplierId` is read from the denormalized field, with a live fallback
+ * for rows written before `backfillProductLastSupplierId` ran. The fallback is
+ * only taken when the field is missing, so the read set stays narrow once the
+ * backfill has run.
+ *
  * Owner-only access.
+ * @param status - Optional product status filter. Defaults to "active".
  */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    status: v.optional(
+      v.union(v.literal("all"), v.literal("active"), v.literal("archived"))
+    ),
+  },
+  handler: async (ctx, { status }) => {
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const products = await ctx.db.query("products").collect()
+    const resolvedStatus = status ?? "active"
+    const products =
+      resolvedStatus === "all"
+        ? (
+            await Promise.all([
+              ctx.db
+                .query("products")
+                .withIndex("by_status", (q) => q.eq("status", "active"))
+                .collect(),
+              ctx.db
+                .query("products")
+                .withIndex("by_status", (q) => q.eq("status", "archived"))
+                .collect(),
+            ])
+          )
+            .flat()
+            .sort((a, b) => a._creationTime - b._creationTime)
+        : await ctx.db
+            .query("products")
+            .withIndex("by_status", (q) => q.eq("status", resolvedStatus))
+            .collect()
 
     return await Promise.all(
       products.map(async (product) => {
-        const lastBatch = await ctx.db
-          .query("batches")
-          .withIndex("by_product", (q) => q.eq("productId", product._id))
-          .order("desc")
-          .first()
+        let lastSupplierId = product.lastSupplierId
+
+        if (lastSupplierId === undefined) {
+          const lastBatch = await ctx.db
+            .query("batches")
+            .withIndex("by_product", (q) => q.eq("productId", product._id))
+            .order("desc")
+            .first()
+          lastSupplierId = lastBatch?.supplierId
+        }
 
         let imageUrl: string | undefined
         if (product.imagePath) {
@@ -37,7 +79,7 @@ export const list = query({
 
         return {
           ...product,
-          lastSupplierId: lastBatch?.supplierId ?? undefined,
+          lastSupplierId,
           imageUrl,
         }
       })
@@ -46,7 +88,9 @@ export const list = query({
 })
 
 /**
- * Lists only active (non-archived) products with their last supplier and image URL.
+ * Lists only active (non-archived) products with their last supplier and image
+ * URL. Same shape as `list`, narrowed to active products.
+ *
  * Owner-only access.
  */
 export const listActive = query({
@@ -65,11 +109,16 @@ export const listActive = query({
 
     return await Promise.all(
       products.map(async (product) => {
-        const lastBatch = await ctx.db
-          .query("batches")
-          .withIndex("by_product", (q) => q.eq("productId", product._id))
-          .order("desc")
-          .first()
+        let lastSupplierId = product.lastSupplierId
+
+        if (lastSupplierId === undefined) {
+          const lastBatch = await ctx.db
+            .query("batches")
+            .withIndex("by_product", (q) => q.eq("productId", product._id))
+            .order("desc")
+            .first()
+          lastSupplierId = lastBatch?.supplierId
+        }
 
         let imageUrl: string | undefined
         if (product.imagePath) {
@@ -83,7 +132,7 @@ export const listActive = query({
 
         return {
           ...product,
-          lastSupplierId: lastBatch?.supplierId ?? undefined,
+          lastSupplierId,
           imageUrl,
         }
       })
@@ -93,6 +142,12 @@ export const listActive = query({
 
 /**
  * Lists active products with their available (FIFO-ordered) batches for dispatch.
+ *
+ * `lastSupplierId` is read from the denormalized field rather than issuing a
+ * second `batches` index range per product; the live lookup only runs for rows
+ * written before `backfillProductLastSupplierId`. This halves the per-product
+ * index-range count on the staff landing page.
+ *
  * Accessible to any active user (owner or staff).
  */
 export const listDispatchReady = query({
@@ -111,13 +166,15 @@ export const listDispatchReady = query({
 
     return await Promise.all(
       products.map(async (product) => {
-        // `lastBatch` and `activeBatches` are independent — fetch in parallel.
-        const [lastBatch, activeBatches] = await Promise.all([
-          ctx.db
-            .query("batches")
-            .withIndex("by_product", (q) => q.eq("productId", product._id))
-            .order("desc")
-            .first(),
+        // `lastSupplierId` and `activeBatches` are independent — fetch in parallel.
+        const [lastBatchFallback, activeBatches] = await Promise.all([
+          product.lastSupplierId === undefined
+            ? ctx.db
+                .query("batches")
+                .withIndex("by_product", (q) => q.eq("productId", product._id))
+                .order("desc")
+                .first()
+            : null,
           ctx.db
             .query("batches")
             .withIndex("by_product_status", (q) =>
@@ -126,6 +183,9 @@ export const listDispatchReady = query({
             .order("asc")
             .collect(),
         ])
+
+        const lastSupplierId =
+          product.lastSupplierId ?? lastBatchFallback?.supplierId
 
         const fifoBatches = activeBatches.filter((b) => b.quantityRemaining > 0)
 
@@ -141,7 +201,7 @@ export const listDispatchReady = query({
 
         return {
           ...product,
-          lastSupplierId: lastBatch?.supplierId ?? undefined,
+          lastSupplierId,
           imageUrl,
           availableBatches: fifoBatches.map((b) => ({
             _id: b._id,

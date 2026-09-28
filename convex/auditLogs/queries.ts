@@ -8,6 +8,15 @@ import { query } from "../_generated/server"
 import { escapeCsv } from "../lib/csv_escape"
 
 /**
+ * Maximum audit-log rows a single export may return.
+ *
+ * Truncation is detected (not silent) and surfaced in the CSV footer, the JSON
+ * payload and the audit record of the export. See
+ * docs/PERFORMANCE-AUDIT.md P13.
+ */
+export const EXPORT_LIMIT = 2000
+
+/**
  * Paginated audit log listing with optional filters (search, action, user, date range).
  * Enriches each log with the acting user's name. Owner-only access.
  * @param paginationOpts - Pagination options for cursor-based navigation.
@@ -49,9 +58,16 @@ export const list = query({
         .query("auditLogs")
         .withIndex("by_action", (q) => q.eq("action", action))
     } else if (userId) {
-      base = ctx.db
-        .query("auditLogs")
-        .withIndex("by_userId", (q) => q.eq("userId", userId))
+      // `by_userId_createdAt` already exists and is a superset of `by_userId`,
+      // so the date range can be pushed to storage here rather than filtered
+      // after the scan. `listByUser` was already doing this — the capability
+      // just was not copied across.
+      base = ctx.db.query("auditLogs").withIndex("by_userId_createdAt", (q) =>
+        q
+          .eq("userId", userId)
+          .gte("createdAt", dateFrom ?? 0)
+          .lte("createdAt", dateTo ?? Number.MAX_SAFE_INTEGER)
+      )
     } else {
       base = ctx.db
         .query("auditLogs")
@@ -62,19 +78,15 @@ export const list = query({
         )
     }
 
-    // Date bounds are pushed into the `by_createdAt` index above. The
-    // action/userId branches use their own indexes that lack `createdAt`, so
-    // the range must be filtered here instead.
-    if (
-      dateFrom !== undefined &&
-      (action !== undefined || userId !== undefined)
-    ) {
+    // Date bounds are pushed into the index above for the `by_createdAt` and
+    // `by_userId_createdAt` branches. The `by_action` branches use indexes that
+    // lack `createdAt` — adding `by_action_createdAt` would fix that but needs
+    // a schema change plus the `backfillAuditLogCreatedAt` migration to have run
+    // on the target deployment first. See docs/PERFORMANCE-AUDIT.md P8.
+    if (dateFrom !== undefined && action !== undefined) {
       base = base.filter((q) => q.gte(q.field("createdAt"), dateFrom))
     }
-    if (
-      dateTo !== undefined &&
-      (action !== undefined || userId !== undefined)
-    ) {
+    if (dateTo !== undefined && action !== undefined) {
       base = base.filter((q) => q.lte(q.field("createdAt"), dateTo))
     }
 
@@ -90,18 +102,28 @@ export const list = query({
 
     const result = await base.order("desc").paginate(paginationOpts)
 
+    // Dedupe before reading — the page holds up to `numItems` rows but the users
+    // table has only a handful of active users, so a per-row `db.get` would
+    // re-read the same few documents up to 30 times.
+    const pageUserIds = new Set(
+      result.page
+        .map((log) => log.userId)
+        .filter((id): id is Id<"users"> => id !== undefined)
+    )
+    const userNames = new Map<Id<"users">, string | null>()
+    await Promise.all(
+      [...pageUserIds].map(async (id) => {
+        userNames.set(id, (await ctx.db.get(id))?.name ?? null)
+      })
+    )
+
     return {
       ...result,
-      page: await Promise.all(
-        result.page.map(async (log) => {
-          let userName: string | null = null
-          if (log.userId) {
-            const user = await ctx.db.get(log.userId)
-            userName = user?.name ?? null
-          }
-          return { ...log, userName }
-        })
-      ),
+      page: result.page.map((log) => ({
+        ...log,
+        userName:
+          log.userId === undefined ? null : (userNames.get(log.userId) ?? null),
+      })),
     }
   },
 })
@@ -216,38 +238,19 @@ export const listByUser = query({
 
     const result = await base.order("desc").paginate(paginationOpts)
 
+    // Every branch above ranges on `eq("userId", callerId)`, so every log on the
+    // page provably belongs to the caller — and `caller` is already in scope.
+    // `userName` is therefore a constant; reading it per row was 30 identical
+    // point reads of one document on every page turn.
+    const callerName = caller.name ?? null
+
     return {
       ...result,
-      page: await Promise.all(
-        result.page.map(async (log) => {
-          let userName: string | null = null
-          if (log.userId) {
-            const user = await ctx.db.get(log.userId)
-            userName = user?.name ?? null
-          }
-          return { ...log, userName }
-        })
-      ),
+      page: result.page.map((log) => ({
+        ...log,
+        userName: log.userId === callerId ? callerName : null,
+      })),
     }
-  },
-})
-
-/**
- * Returns the distinct set of audit action types that exist in the logs.
- * Owner-only access.
- */
-export const listActions = query({
-  args: {},
-  handler: async (ctx) => {
-    const callerId = await getAuthUserId(ctx)
-    if (callerId === null) throw new Error("Unauthorized")
-
-    const caller = await ctx.db.get(callerId)
-    if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
-
-    const logs = await ctx.db.query("auditLogs").order("desc").take(500)
-    const actions = [...new Set(logs.map((l) => l.action))]
-    return actions.sort()
   },
 })
 
@@ -291,19 +294,30 @@ async function fetchExportLogs(
       .query("auditLogs")
       .withIndex("by_action", (q) => q.eq("action", action))
   } else if (userId) {
-    base = ctx.db
-      .query("auditLogs")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+    // Same as `list`: `by_userId_createdAt` pushes the date range to storage.
+    base = ctx.db.query("auditLogs").withIndex("by_userId_createdAt", (q) =>
+      q
+        .eq("userId", userId)
+        .gte("createdAt", dateFrom ?? 0)
+        .lte("createdAt", dateTo ?? Number.MAX_SAFE_INTEGER)
+    )
   } else {
+    // Both bounds must reach the index here — the JS fallback below only
+    // applies to the `by_action` branches.
     base = ctx.db
       .query("auditLogs")
-      .withIndex("by_createdAt", (q) => q.gte("createdAt", 0))
+      .withIndex("by_createdAt", (q) =>
+        q
+          .gte("createdAt", dateFrom ?? 0)
+          .lte("createdAt", dateTo ?? Number.MAX_SAFE_INTEGER)
+      )
   }
 
-  if (dateFrom !== undefined) {
+  // Only the `by_action` branches still filter in JS — see the note in `list`.
+  if (dateFrom !== undefined && action !== undefined) {
     base = base.filter((q) => q.gte(q.field("createdAt"), dateFrom))
   }
-  if (dateTo !== undefined) {
+  if (dateTo !== undefined && action !== undefined) {
     base = base.filter((q) => q.lte(q.field("createdAt"), dateTo))
   }
 
@@ -317,7 +331,13 @@ async function fetchExportLogs(
     )
   }
 
-  const logs = await base.order("desc").take(2000)
+  // Over-fetch by one so truncation is detectable. Previously the result was
+  // silently cut at 2000 and that truncated length flowed into the audit record
+  // of the export itself — so the audit trail recorded a count that was false.
+  // See docs/PERFORMANCE-AUDIT.md P13.
+  const overFetched = await base.order("desc").take(EXPORT_LIMIT + 1)
+  const truncated = overFetched.length > EXPORT_LIMIT
+  const logs = truncated ? overFetched.slice(0, EXPORT_LIMIT) : overFetched
 
   const userIdSet = new Set(
     logs
@@ -341,15 +361,19 @@ async function fetchExportLogs(
     })
   )
 
-  return logs.map((log) => {
-    const user = log.userId ? userMap.get(log.userId) : null
-    return {
-      ...log,
-      userName: user?.name ?? null,
-      userEmail: user?.email ?? null,
-      userRole: user?.role ?? null,
-    }
-  })
+  return {
+    records: logs.map((log) => {
+      const user = log.userId ? userMap.get(log.userId) : null
+      return {
+        ...log,
+        userName: user?.name ?? null,
+        userEmail: user?.email ?? null,
+        userRole: user?.role ?? null,
+      }
+    }),
+    truncated,
+    limit: EXPORT_LIMIT,
+  }
 }
 
 /**
@@ -393,7 +417,11 @@ export const exportCsv = query({
     dateTo: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const enriched = await fetchExportLogs(ctx, args)
+    const {
+      records: enriched,
+      truncated,
+      limit,
+    } = await fetchExportLogs(ctx, args)
 
     const header = [
       "Timestamp",
@@ -425,6 +453,12 @@ export const exportCsv = query({
         .join(",")
     )
 
-    return "\uFEFF" + header.join(",") + "\n" + rows.join("\n")
+    // A silent cap on a compliance export is indistinguishable from the whole
+    // dataset downstream, so say so in the file itself.
+    const footer = truncated
+      ? `\n# TRUNCATED: contains the ${limit} most recent matching records only. Older records exist — narrow the date range or split the export.`
+      : ""
+
+    return "\uFEFF" + header.join(",") + "\n" + rows.join("\n") + footer
   },
 })

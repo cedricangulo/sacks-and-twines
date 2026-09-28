@@ -1,7 +1,9 @@
 import { convexTest } from "convex-test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { api } from "../_generated/api"
+import { AUDIT_LOG_ACTIONS } from "../lib/constants"
 import schema from "../schema"
+import { EXPORT_LIMIT } from "./queries"
 
 const authMocks = vi.hoisted(() => ({
   getAuthUserId: vi.fn(),
@@ -1013,34 +1015,66 @@ describe("audit log queries", () => {
     })
   })
 
-  // ── listActions ────────────────────────────────────────────
+  // ── AUDIT_LOG_ACTIONS (replaced the listActions query) ───
 
-  describe("listActions", () => {
-    it("rejects unauthenticated", async () => {
-      const t = makeTest()
-      authMocks.getAuthUserId.mockResolvedValueOnce(null)
+  describe("AUDIT_LOG_ACTIONS", () => {
+    // `listActions` used to scan 500 audit logs to build this list, which both
+    // cost a 500-document read on every /audit-logs load and silently dropped
+    // action types absent from the newest 500 rows. The list is now a constant,
+    // so these invariants are what the filter dropdown depends on.
 
-      await expect(
-        t.query(api.auditLogs.queries.listActions, {})
-      ).rejects.toThrowError("Unauthorized")
+    it("is sorted alphabetically", () => {
+      expect([...AUDIT_LOG_ACTIONS]).toEqual([...AUDIT_LOG_ACTIONS].sort())
     })
 
-    it("rejects non-owners", async () => {
-      const t = makeTest()
-      const staffId = await createUser(t, {
-        email: "staff@test.com",
-        name: "Staff",
-        role: "staff",
-        status: "active",
-      })
-      authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
-
-      await expect(
-        t.query(api.auditLogs.queries.listActions, {})
-      ).rejects.toThrowError("Unauthorized")
+    it("has no duplicates", () => {
+      expect(new Set(AUDIT_LOG_ACTIONS).size).toBe(AUDIT_LOG_ACTIONS.length)
     })
 
-    it("returns distinct sorted action names", async () => {
+    it("is non-empty", () => {
+      expect(AUDIT_LOG_ACTIONS.length).toBeGreaterThan(0)
+    })
+
+    it("covers auth actions written by logAttempt", () => {
+      expect(AUDIT_LOG_ACTIONS).toContain("auth_sign_in")
+      expect(AUDIT_LOG_ACTIONS).toContain("auth_sign_in_failed")
+    })
+
+    it("covers every action the app mutations write", () => {
+      // The `action:` argument at each
+      // `ctx.runMutation(internal.auditLogs.mutations.log, …)` callsite.
+      for (const action of [
+        "audit_log_export",
+        "batch_update",
+        "batch_void",
+        "dispatch_submit",
+        "product_archive",
+        "product_create",
+        "product_unarchive",
+        "product_update",
+        "stock_adjustment",
+        "stock_in",
+        "supplier_archive",
+        "supplier_create",
+        "supplier_unarchive",
+        "supplier_update",
+        "user_activate",
+        "user_create",
+        "user_deactivate",
+      ] as const) {
+        expect(AUDIT_LOG_ACTIONS).toContain(action)
+      }
+    })
+
+    it("retains seed-only and legacy actions", () => {
+      // Written by convex/seed.ts only, but present in existing deployments —
+      // dropping them would make those historical rows unfilterable.
+      expect(AUDIT_LOG_ACTIONS).toContain("stock_out")
+    })
+
+    it("matches the actions actually present in the audit log", async () => {
+      // Guards the reverse direction: if a new mutation starts writing an action
+      // that is not in the constant, it will be missing from the dropdown.
       const t = makeTest()
       const ownerId = await createUser(t, {
         email: "owner@test.com",
@@ -1050,76 +1084,23 @@ describe("audit log queries", () => {
       })
       authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-      await createAuditLog(t, {
-        userId: ownerId,
-        action: "stock_in",
-        description: "Stock in",
-      })
-      await createAuditLog(t, {
-        userId: ownerId,
-        action: "product_create",
-        description: "Create",
-      })
-      await createAuditLog(t, {
-        userId: ownerId,
-        action: "product_create",
-        description: "Create another",
-      })
-      await createAuditLog(t, {
-        userId: ownerId,
-        action: "auth_login",
-        description: "Login",
+      for (const action of AUDIT_LOG_ACTIONS) {
+        await createAuditLog(t, {
+          userId: ownerId,
+          action,
+          description: action,
+        })
+      }
+
+      const result = await t.query(api.auditLogs.queries.list, {
+        paginationOpts: { numItems: 100, cursor: null },
       })
 
-      const result = await t.query(api.auditLogs.queries.listActions, {})
-
-      expect(result).toEqual(["auth_login", "product_create", "stock_in"])
-    })
-
-    it("returns empty array when no audit logs exist", async () => {
-      const t = makeTest()
-      const ownerId = await createUser(t, {
-        email: "owner@test.com",
-        name: "Owner",
-        role: "owner",
-        status: "active",
-      })
-      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
-
-      const result = await t.query(api.auditLogs.queries.listActions, {})
-
-      expect(result).toEqual([])
-    })
-
-    it("returns distinct sorted actions ignoring order of inserts", async () => {
-      const t = makeTest()
-      const ownerId = await createUser(t, {
-        email: "owner@test.com",
-        name: "Owner",
-        role: "owner",
-        status: "active",
-      })
-      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
-
-      await createAuditLog(t, {
-        userId: ownerId,
-        action: "z_action",
-        description: "Z",
-      })
-      await createAuditLog(t, {
-        userId: ownerId,
-        action: "a_action",
-        description: "A",
-      })
-      await createAuditLog(t, {
-        userId: ownerId,
-        action: "m_action",
-        description: "M",
-      })
-
-      const result = await t.query(api.auditLogs.queries.listActions, {})
-
-      expect(result).toEqual(["a_action", "m_action", "z_action"])
+      const fromDb = new Set(result.page.map((log) => log.action))
+      const unlisted = [...fromDb].filter(
+        (a) => !(AUDIT_LOG_ACTIONS as readonly string[]).includes(a)
+      )
+      expect(unlisted).toEqual([])
     })
   })
 
@@ -1436,13 +1417,18 @@ describe("audit log queries", () => {
 
       const result = await t.query(api.auditLogs.queries.exportData, {})
 
-      expect(Array.isArray(result)).toBe(true)
-      expect(result).toHaveLength(1)
-      expect(result[0]).toHaveProperty("action", "product_create")
-      expect(result[0]).toHaveProperty("userName", "Owner")
-      expect(result[0]).toHaveProperty("userEmail", "owner@test.com")
-      expect(result[0]).toHaveProperty("userRole", "owner")
-      expect(result[0]).toHaveProperty("description", "Created product A")
+      expect(result.truncated).toBe(false)
+      expect(result.limit).toBe(EXPORT_LIMIT)
+      expect(Array.isArray(result.records)).toBe(true)
+      expect(result.records).toHaveLength(1)
+      expect(result.records[0]).toHaveProperty("action", "product_create")
+      expect(result.records[0]).toHaveProperty("userName", "Owner")
+      expect(result.records[0]).toHaveProperty("userEmail", "owner@test.com")
+      expect(result.records[0]).toHaveProperty("userRole", "owner")
+      expect(result.records[0]).toHaveProperty(
+        "description",
+        "Created product A"
+      )
     })
 
     it("filters by action", async () => {
@@ -1470,8 +1456,9 @@ describe("audit log queries", () => {
         action: "stock_in",
       })
 
-      expect(result).toHaveLength(1)
-      expect(result[0].action).toBe("stock_in")
+      expect(result.truncated).toBe(false)
+      expect(result.records).toHaveLength(1)
+      expect(result.records[0].action).toBe("stock_in")
     })
 
     it("filters by search", async () => {
@@ -1499,8 +1486,9 @@ describe("audit log queries", () => {
         search: "rope",
       })
 
-      expect(result).toHaveLength(1)
-      expect(result[0].description).toContain("rope")
+      expect(result.truncated).toBe(false)
+      expect(result.records).toHaveLength(1)
+      expect(result.records[0].description).toContain("rope")
     })
 
     it("filters by date range", async () => {
@@ -1546,10 +1534,17 @@ describe("audit log queries", () => {
         dateTo: ids.secondTime,
       })
 
-      expect(result).toHaveLength(2)
-      expect(result.some((l) => l.description === "Old product")).toBe(true)
-      expect(result.some((l) => l.description === "Middle product")).toBe(true)
-      expect(result.some((l) => l.description === "New product")).toBe(false)
+      expect(result.truncated).toBe(false)
+      expect(result.records).toHaveLength(2)
+      expect(result.records.some((l) => l.description === "Old product")).toBe(
+        true
+      )
+      expect(
+        result.records.some((l) => l.description === "Middle product")
+      ).toBe(true)
+      expect(result.records.some((l) => l.description === "New product")).toBe(
+        false
+      )
     })
 
     it("returns empty array when no logs match", async () => {
@@ -1572,7 +1567,42 @@ describe("audit log queries", () => {
         search: "nonexistent",
       })
 
-      expect(result).toHaveLength(0)
+      expect(result.truncated).toBe(false)
+      expect(result.records).toHaveLength(0)
+    })
+
+    it("flags truncation instead of silently capping the result", async () => {
+      // The export used to `.take(2000)` with no signal, and that truncated
+      // length was written into the audit record of the export itself.
+      // See docs/PERFORMANCE-AUDIT.md P13.
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+
+      await t.run(async (ctx) => {
+        const base = Date.now()
+        // EXPORT_LIMIT + 1 records, one transaction.
+        for (let i = 0; i <= EXPORT_LIMIT; i++) {
+          await ctx.db.insert("auditLogs", {
+            userId: ownerId,
+            action: "product_create",
+            description: `Product ${i}`,
+            createdAt: base + i,
+          })
+        }
+      })
+
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      const result = await t.query(api.auditLogs.queries.exportData, {})
+
+      expect(result.truncated).toBe(true)
+      expect(result.records).toHaveLength(EXPORT_LIMIT)
+      expect(result.limit).toBe(EXPORT_LIMIT)
     })
   })
 })

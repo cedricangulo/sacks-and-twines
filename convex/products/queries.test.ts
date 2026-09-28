@@ -76,7 +76,7 @@ describe("product queries", () => {
     const t = makeTest()
     authMocks.getAuthUserId.mockResolvedValueOnce(null)
 
-    await expect(t.query(api.products.queries.list)).rejects.toThrowError(
+    await expect(t.query(api.products.queries.list, {})).rejects.toThrowError(
       "Unauthorized"
     )
   })
@@ -90,7 +90,7 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(staffId)
 
-    await expect(t.query(api.products.queries.list)).rejects.toThrowError(
+    await expect(t.query(api.products.queries.list, {})).rejects.toThrowError(
       "Unauthorized"
     )
   })
@@ -107,7 +107,7 @@ describe("product queries", () => {
     await createProduct(t, { name: "Product A" })
     await createProduct(t, { name: "Product B" })
 
-    const result = await t.query(api.products.queries.list)
+    const result = await t.query(api.products.queries.list, {})
 
     expect(result).toHaveLength(2)
   })
@@ -121,9 +121,75 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const result = await t.query(api.products.queries.list)
+    const result = await t.query(api.products.queries.list, {})
 
     expect(result).toHaveLength(0)
+  })
+
+  it("excludes archived products by default", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createProduct(t, { name: "Active A" })
+    await createProduct(t, { name: "Archived B", status: "archived" })
+
+    const result = await t.query(api.products.queries.list, {})
+
+    // The default is `status: "active"` — reading it off the `by_status` index
+    // rather than collecting the table and filtering.
+    expect(result.map((p) => p.name)).toEqual(["Active A"])
+  })
+
+  it('status: "archived" returns only archived products', async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createProduct(t, { name: "Active A" })
+    await createProduct(t, { name: "Archived B", status: "archived" })
+
+    const result = await t.query(api.products.queries.list, {
+      status: "archived",
+    })
+
+    expect(result.map((p) => p.name)).toEqual(["Archived B"])
+  })
+
+  it('status: "all" concatenates both index ranges and re-sorts by _creationTime', async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    // Insertion order is the `_creationTime` order the sort relies on. The archived
+    // row is inserted first on purpose: a raw concat of the two `by_status`
+    // ranges yields active-then-archived, which here would be the *reverse* of
+    // the expected order — so this fails if the re-sort is dropped.
+    const archived = await createProduct(t, {
+      name: "Archived first",
+      status: "archived",
+    })
+    const active = await createProduct(t, { name: "Active second" })
+    expect(active).not.toBe(archived)
+
+    const result = await t.query(api.products.queries.list, { status: "all" })
+
+    expect(result.map((p) => p.name)).toEqual([
+      "Archived first",
+      "Active second",
+    ])
   })
 
   // ── listActive ──────────────────────────────────────────

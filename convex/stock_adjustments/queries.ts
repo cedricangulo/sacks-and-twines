@@ -22,7 +22,7 @@ export const listByDateRange = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const merged = await fetchAdjustments(ctx, startMs, endMs)
+    const { docs: merged } = await fetchAdjustments(ctx, startMs, endMs)
 
     const filtered = createdByUserId
       ? merged.filter((a) => a.userId === createdByUserId)
