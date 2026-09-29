@@ -28,6 +28,7 @@ interface CsvExportDialogProps {
   dateRange: DateRangeProps
   columns: ColumnSelectionProps
   recordCount: number
+  truncated: boolean
   isLoading: boolean
   error: string | null
   onOpenChange: (open: boolean) => void
@@ -61,6 +62,7 @@ export default function CsvExportDialog({
   dateRange,
   columns,
   recordCount,
+  truncated,
   isLoading,
   error,
   onOpenChange,
@@ -89,6 +91,13 @@ export default function CsvExportDialog({
           <QuickRangeButtons onSelect={applyQuickRange} />
           <DateRangeFields range={dateRange} />
         </div>
+
+        {truncated && !isLoading ? (
+          <p className="type-body-small text-destructive">
+            Only the first {recordCount} matching records can be exported. Older
+            records exist — narrow the date range or split the export.
+          </p>
+        ) : null}
 
         {entity && recordCount > 0 ? (
           <div className="space-y-3 overflow-y-auto max-h-52">

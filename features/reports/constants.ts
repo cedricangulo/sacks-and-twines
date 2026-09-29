@@ -1,5 +1,3 @@
-export type TimeRange = "month" | "year" | "all"
-
 // Number of items per page in detail panel tables.
 export const ITEMS_PER_PAGE = 20
 
@@ -31,16 +29,22 @@ export const DAY_NAMES = [
 ] as const
 
 // Computes start/end timestamps for the stats bar based on range and selection state.
-export function getStatsRange(
-  range: TimeRange,
-  filters: {
-    year: number
-    monthStartMs: number
-    monthEndMs: number
-    selectedDayStartMs: number | null
-    selectedDayEndMs: number | null
-  }
-): { startMs: number; endMs: number } {
+/**
+ * Range the stats bar summarises: the selected day when one is picked, otherwise
+ * the browsed month.
+ *
+ * Intentionally no year/all-time case. Summing every dispatch in those ranges
+ * exceeds the server's per-query read ceiling at this table's size, so they can
+ * only be answered with partial figures. See
+ * `features/reports/components/calendar/monthly-stats-bar.tsx` and
+ * docs/PERFORMANCE-AUDIT.md P11.
+ */
+export function getStatsRange(filters: {
+  monthStartMs: number
+  monthEndMs: number
+  selectedDayStartMs: number | null
+  selectedDayEndMs: number | null
+}): { startMs: number; endMs: number } {
   if (
     filters.selectedDayStartMs !== null &&
     filters.selectedDayEndMs !== null
@@ -50,17 +54,7 @@ export function getStatsRange(
       endMs: filters.selectedDayEndMs,
     }
   }
-  switch (range) {
-    case "month":
-      return { startMs: filters.monthStartMs, endMs: filters.monthEndMs }
-    case "year":
-      return {
-        startMs: new Date(filters.year, 0, 1).getTime(),
-        endMs: new Date(filters.year, 11, 31, 23, 59, 59, 999).getTime(),
-      }
-    case "all":
-      return { startMs: 0, endMs: Infinity }
-  }
+  return { startMs: filters.monthStartMs, endMs: filters.monthEndMs }
 }
 
 // ---------------------------------------------------------------------------

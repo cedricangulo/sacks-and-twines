@@ -265,4 +265,53 @@ describe("dispatch queries", () => {
     expect(items[0].conversionFactor).toBe(0)
     expect(items[0].lineTotal).toBe(2500)
   })
+
+  // ── listByDateRange ─────────────────────────────────────
+
+  // The reports detail panel reads this query. It passes `order: "desc"` so that
+  // a range wide enough to hit the server read ceiling keeps the newest
+  // dispatches rather than the oldest — otherwise the panel silently omits recent
+  // activity while implying it is all there.
+  it("listByDateRange returns newest first so a capped read keeps recent rows", async () => {
+    const t = makeTest()
+    const userA = await t.run(async (ctx) => {
+      return await ctx.db.insert("users", {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+    })
+
+    const base = Date.now() - 86_400_000
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 5; i++) {
+        await ctx.db.insert("dispatches", {
+          userId: userA,
+          customerReference: `REF-${i}`,
+          status: "completed",
+          itemCount: 1,
+          totalValue: 10,
+          userName: "Owner",
+          createdAt: base + i * 60_000,
+        })
+      }
+    })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(userA)
+
+    const result = await t.query(api.dispatches.queries.listByDateRange, {
+      startMs: 0,
+      endMs: 9e15,
+    })
+
+    expect(result).toHaveLength(5)
+    expect(result.map((d) => d.customerReference)).toEqual([
+      "REF-4",
+      "REF-3",
+      "REF-2",
+      "REF-1",
+      "REF-0",
+    ])
+  })
 })

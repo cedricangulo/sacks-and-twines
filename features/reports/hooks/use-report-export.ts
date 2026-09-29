@@ -64,9 +64,10 @@ export function useReportExport(entity: ExportEntity | null) {
   const shouldFetch = entity !== null && dialogOpen
 
   const convex = useConvex()
-  const [data, setData] = useState<Record<string, unknown>[] | undefined>(
-    undefined
-  )
+  const [data, setData] = useState<
+    | { records: Record<string, unknown>[]; truncated: boolean; limit: number }
+    | undefined
+  >(undefined)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -95,7 +96,7 @@ export function useReportExport(entity: ExportEntity | null) {
     convex
       .query(fn, { startMs, endMs })
       .then((res) => {
-        if (!cancelled) setData(res as Record<string, unknown>[])
+        if (!cancelled) setData(res as typeof data)
       })
       .catch((err) => {
         if (!cancelled) {
@@ -111,7 +112,10 @@ export function useReportExport(entity: ExportEntity | null) {
     }
   }, [convex, shouldFetch, entity, startMs, endMs])
 
-  const recordCount = data?.length ?? 0
+  const records = data?.records
+  const truncated = data?.truncated ?? false
+  const limit = data?.limit ?? 0
+  const recordCount = records?.length ?? 0
 
   const toggleColumn = useCallback((columnId: string) => {
     setSelectedColumns((prev) => {
@@ -185,13 +189,13 @@ export function useReportExport(entity: ExportEntity | null) {
   }, [])
 
   const download = useCallback(() => {
-    if (!data || !entity) return
+    if (!records || !entity) return
 
     const columns = EXPORT_COLUMN_MAP[entity]
     const activeColumns = columns.filter((c) => selectedColumns.has(c.id))
     const headers = activeColumns.map((c) => c.label)
 
-    const rows: Array<Array<string | number | null | undefined>> = data.map(
+    const rows: Array<Array<string | number | null | undefined>> = records.map(
       (row) =>
         activeColumns.map((c) => {
           const val = row[c.id]
@@ -204,16 +208,35 @@ export function useReportExport(entity: ExportEntity | null) {
         })
     )
 
-    const csvContent = formatCsv(headers, rows)
+    // A silent cap is indistinguishable from a complete export once the file
+    // leaves the app, so the truncation travels inside the file too.
+    const csvContent = formatCsv(
+      headers,
+      truncated
+        ? [
+            ...rows,
+            [
+              `# TRUNCATED: ${recordCount} of more than ${limit} matching records. Narrow the date range or split the export.`,
+            ],
+          ]
+        : rows
+    )
     const today = new Date().toISOString().slice(0, 10)
     downloadCsv(csvContent, `${entity}-${today}.csv`)
     setDialogOpen(false)
-    sileo.success({
-      title: `${EXPORT_ENTITY_NAMES[entity]} exported`,
-      description: `${recordCount} record${recordCount === 1 ? "" : "s"} downloaded as CSV`,
-    })
+    if (truncated) {
+      sileo.warning({
+        title: `${EXPORT_ENTITY_NAMES[entity]} export truncated`,
+        description: `Only the first ${recordCount} matching records were exported. Narrow the date range for the rest.`,
+      })
+    } else {
+      sileo.success({
+        title: `${EXPORT_ENTITY_NAMES[entity]} exported`,
+        description: `${recordCount} record${recordCount === 1 ? "" : "s"} downloaded as CSV`,
+      })
+    }
     play("success")
-  }, [data, entity, selectedColumns, recordCount])
+  }, [records, entity, selectedColumns, recordCount, truncated, limit])
 
   const summaryLines: string[] = []
   if (needsDateFilter) {
@@ -224,6 +247,11 @@ export function useReportExport(entity: ExportEntity | null) {
   summaryLines.push(
     `Entity: ${entity ? EXPORT_COLUMN_MAP[entity].length : 0} columns available`
   )
+  if (truncated) {
+    summaryLines.push(
+      `Limited to the first ${recordCount} matching records — older records exist outside this export`
+    )
+  }
 
   return {
     dialogOpen,
@@ -234,6 +262,7 @@ export function useReportExport(entity: ExportEntity | null) {
     toggleColumn,
     toggleAll,
     recordCount,
+    truncated,
     summaryLines,
     download,
     needsDateFilter,

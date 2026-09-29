@@ -1,7 +1,11 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { query } from "../_generated/server"
-import { fetchDispatches, fetchDispatchesOrdered } from "../lib/fetch_entities"
+import {
+  fetchDispatches,
+  fetchDispatchesOrdered,
+  UNBOUNDED_RANGE_LIMIT,
+} from "../lib/fetch_entities"
 
 /**
  * Lists dispatches within a date range, optionally filtered by creator.
@@ -32,11 +36,10 @@ export const list = query({
           )
           .order("desc")
           .take(500)
-      : await fetchDispatchesOrdered(ctx, startMs, endMs, 500)
-    const dispatches = allDispatches.filter((d) => {
-      const date = d.createdAt ?? d._creationTime
-      return date >= startMs && date <= endMs
-    })
+      : (await fetchDispatchesOrdered(ctx, startMs, endMs, 500)).docs
+    // Both branches above range on `createdAt` with `gte`/`lte`, so the window is
+    // already applied by the index — no second JS filter is needed.
+    const dispatches = allDispatches
 
     return await Promise.all(
       dispatches.map(async (dispatch) => {
@@ -88,7 +91,17 @@ export const listByDateRange = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const dispatches = await fetchDispatches(ctx, startMs, endMs)
+    // `"desc"`: this feeds the reports detail panel, so a range wide enough to
+    // hit the read ceiling must keep the newest dispatches rather than the
+    // oldest. Without it a capped read silently drops recent activity.
+    const { docs: dispatches } = await fetchDispatches(
+      ctx,
+      startMs,
+      endMs,
+      undefined,
+      UNBOUNDED_RANGE_LIMIT,
+      "desc"
+    )
 
     return await Promise.all(
       dispatches.map(async (dispatch) => {

@@ -202,6 +202,13 @@ export function usePdfExport() {
     summaryLines.push(
       `Dispatches: ${data.dispatchCount}, Adjustments: ${data.adjustmentCount}, Items Out: ${data.totalItems}`
     )
+    if (data.truncated) {
+      // The figures above are a capped view, and the PDF is a document that
+      // outlives this dialog — say so rather than implying they are complete.
+      summaryLines.push(
+        `Limited to the first ${data.limit} matching records — narrow the date range for a complete report`
+      )
+    }
   }
 
   return {

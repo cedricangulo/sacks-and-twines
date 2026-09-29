@@ -11,7 +11,15 @@ export interface CalendarSummaryEntry {
   adjustmentCount: number
 }
 
-/** Fetches calendar summary and buckets timestamps by day-of-month.
+/**
+ * Buckets dispatch/adjustment timestamps by day-of-month for the calendar grid.
+ *
+ * Reads `reports.queries.monthlyAggregates`, which now also returns the
+ * timestamps — they used to come from a separate `calendarSummary` query that
+ * re-read the same month range (and the same adjustment range) on every reports
+ * load. When the stats bar's range matches this one, the shared query cache
+ * collapses both into a single invocation. See docs/PERFORMANCE-AUDIT.md P5.
+ *
  * @param startMs - Start of the date range in milliseconds.
  * @param endMs - End of the date range in milliseconds.
  */
@@ -23,11 +31,20 @@ export function useCalendarSummary(startMs: number, endMs: number) {
     [isAuthenticated, startMs, endMs]
   )
 
-  const raw = useQuery(api.reports.queries.calendarSummary, queryArgs) as
-    | { dispatchTimestamps: number[]; adjustmentTimestamps: number[] }
+  const raw = useQuery(api.reports.queries.monthlyAggregates, queryArgs) as
+    | {
+        dispatchTimestamps: number[]
+        adjustmentTimestamps: number[]
+        truncated: boolean
+      }
     | undefined
 
   const isLoading = raw === undefined && isAuthenticated
+
+  // A truncated range yields only part of the timestamps, so some days that had
+  // activity are simply absent from `summary` — an unmarked gap the grid renders
+  // as "no dispatches". Callers should surface this alongside the summary.
+  const truncated = raw?.truncated ?? false
 
   // Bucket timestamps by day-of-month using client's local timezone.
   const summary = useMemo(() => {
@@ -54,5 +71,5 @@ export function useCalendarSummary(startMs: number, endMs: number) {
     }))
   }, [raw])
 
-  return { summary, isLoading }
+  return { summary, isLoading, truncated }
 }

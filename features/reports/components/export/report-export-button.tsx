@@ -93,6 +93,7 @@ export default function ReportExportButton() {
             toggleAll: csvExport.toggleAll,
           }}
           recordCount={csvExport.recordCount}
+          truncated={csvExport.truncated}
           isLoading={csvExport.isLoading}
           error={csvExport.error}
           onDownload={csvExport.download}
