@@ -20,6 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { headClassName, sortButtonAlignClass } from "@/lib/table-alignment"
+import { cn } from "@/lib/utils"
 import type { Dispatch as DispatchType } from "../../validation"
 import DispatchItemsRow from "./dispatch-items-row"
 import DispatchTableRow from "./dispatch-table-row"
@@ -49,12 +51,18 @@ export default function DispatchTable({
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="text-muted-foreground">
+                <TableHead
+                  key={header.id}
+                  className={headClassName(header.column.columnDef.meta)}
+                >
                   {header.isPlaceholder ? null : header.column.getCanSort() ? (
                     <button
                       data-cuelume-toggle="toggle"
                       type="button"
-                      className="inline-flex items-center gap-1"
+                      className={cn(
+                        "inline-flex items-center gap-1",
+                        sortButtonAlignClass(header.column.columnDef.meta)
+                      )}
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       {flexRender(

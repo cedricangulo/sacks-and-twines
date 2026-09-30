@@ -46,9 +46,10 @@ export default function ReportAdjustmentTableContainer({
         sortingFn: "alphanumeric",
       }),
       columnHelper.accessor("quantityAdjusted", {
+        meta: { align: "right" },
         header: "Qty",
         cell: (info) => (
-          <span className="font-mono tabular-nums">
+          <span className="block w-full text-right font-mono tabular-nums">
             {formatQuantity(info.getValue())}
           </span>
         ),

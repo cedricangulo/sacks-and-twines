@@ -8,6 +8,7 @@ import {
 } from "nuqs"
 import { useMemo } from "react"
 import type { DispatchReadyProduct } from "@/features/products/validation"
+import { getStockLevel } from "@/lib/stock-level"
 
 const DEFAULT_STOCK = "in_stock"
 
@@ -75,17 +76,15 @@ export function useProductFilters(
     // Stock status filter
     if (filters.stock !== "all") {
       result = result.filter((p) => {
+        // Shared classifier — see lib/stock-level.ts.
+        const level = getStockLevel(p.currentQuantity, p.lowStockThreshold)
         switch (filters.stock) {
           case "in_stock":
-            return (
-              p.currentQuantity > 0 && p.currentQuantity > p.lowStockThreshold
-            )
+            return level === "in_stock"
           case "low_stock":
-            return (
-              p.currentQuantity > 0 && p.currentQuantity <= p.lowStockThreshold
-            )
+            return level === "low_stock"
           case "out_of_stock":
-            return p.currentQuantity === 0
+            return level === "out_of_stock"
           default:
             return true
         }

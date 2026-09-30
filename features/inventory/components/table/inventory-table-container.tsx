@@ -14,6 +14,8 @@ import type { Dispatch, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/formatters"
+import { getStockLevel } from "@/lib/stock-level"
+import type { ColumnAlignmentMeta } from "@/lib/table-alignment"
 import { cn, getInitials } from "@/lib/utils"
 import type { Product } from "../../validation"
 import InventoryTable from "./inventory-table"
@@ -108,18 +110,20 @@ export default function InventoryTableContainer({
         sortingFn: "alphanumeric",
       }),
       columnHelper.accessor("currentQuantity", {
+        meta: { align: "right" } satisfies ColumnAlignmentMeta,
         header: "Stock",
         cell: (info) => (
-          <span className="block w-full font-mono text-right tabular-nums">
+          <span className="block w-full text-right font-mono tabular-nums">
             {formatNumber(info.getValue())}
           </span>
         ),
         sortingFn: "basic",
       }),
       columnHelper.accessor("totalAssetValue", {
+        meta: { align: "right" } satisfies ColumnAlignmentMeta,
         header: "Asset Value",
         cell: (info) => (
-          <span className="block w-full font-mono text-right tabular-nums">
+          <span className="block w-full text-right font-mono tabular-nums">
             {formatCurrency(info.getValue())}
           </span>
         ),
@@ -141,16 +145,16 @@ export default function InventoryTableContainer({
         cell: ({ row }) => {
           const p = row.original
           const isArchived = p.status === "archived"
-          const noStock = p.currentQuantity === 0
-          const isLowStock =
-            !noStock && p.currentQuantity <= p.lowStockThreshold
+          // Same classifier as the filters and the dashboard tiles, so the badge
+          // can never disagree with either.
+          const level = getStockLevel(p.currentQuantity, p.lowStockThreshold)
           return (
             <div className="flex items-center gap-2">
               {isArchived ? (
                 <Badge variant="secondary">Archived</Badge>
-              ) : noStock ? (
+              ) : level === "out_of_stock" ? (
                 <Badge variant="destructive">Out of Stock</Badge>
-              ) : isLowStock ? (
+              ) : level === "low_stock" ? (
                 <Badge variant="warning">Low</Badge>
               ) : (
                 <Badge variant="success">Good</Badge>

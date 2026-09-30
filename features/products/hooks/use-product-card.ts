@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useDispatchQueueContext } from "@/features/dispatches/hooks/dispatch-queue-context"
 import type { DispatchReadyProduct } from "@/features/products/validation"
+import { getStockLevel } from "@/lib/stock-level"
 
 // Manages a single product card's quantity input and stock-status indicators.
 export function useProductCard(product: DispatchReadyProduct) {
@@ -42,12 +43,17 @@ export function useProductCard(product: DispatchReadyProduct) {
     setInputValue(String(clamped))
   }
 
+  // Shared with the stock banner, stat tiles, inventory badge and the
+  // `/inventory?stock=low_stock` view, so a product at exactly its threshold is
+  // classified identically everywhere rather than disagreeing with the view
+  // this card links to.
   const isLowStock =
-    product.lowStockThreshold > 0 &&
-    product.currentQuantity > 0 &&
-    product.currentQuantity < product.lowStockThreshold
+    getStockLevel(product.currentQuantity, product.lowStockThreshold) ===
+    "low_stock"
 
-  const isOutOfStock = product.currentQuantity === 0
+  const isOutOfStock =
+    getStockLevel(product.currentQuantity, product.lowStockThreshold) ===
+    "out_of_stock"
   const isAtMax =
     quantity >= product.currentQuantity && product.currentQuantity > 0
 

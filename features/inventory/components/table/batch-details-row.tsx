@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/table"
 import type { Id } from "@/convex/_generated/dataModel"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/formatters"
+import { headClassName, sortButtonAlignClass } from "@/lib/table-alignment"
+import { cn } from "@/lib/utils"
 import { useBatches } from "../../hooks/use-batches"
 import type { Batch } from "../../validation"
 import BatchActionsMenu from "./batch-actions-menu"
@@ -74,6 +76,7 @@ export default function BatchDetailsRow({
         enableHiding: false,
       }),
       columnHelper.accessor("quantityReceived", {
+        meta: { align: "right" },
         header: "Qty Received",
         cell: (info) => (
           <span className="block w-full text-right font-mono tabular-nums">
@@ -83,6 +86,7 @@ export default function BatchDetailsRow({
         sortingFn: "basic",
       }),
       columnHelper.accessor("quantityRemaining", {
+        meta: { align: "right" },
         header: "Qty Remaining",
         cell: (info) => (
           <span className="block w-full text-right font-mono tabular-nums">
@@ -92,6 +96,7 @@ export default function BatchDetailsRow({
         sortingFn: "basic",
       }),
       columnHelper.accessor("unitCost", {
+        meta: { align: "right" },
         header: "Unit Cost",
         cell: (info) => (
           <span className="block w-full text-right font-mono tabular-nums">
@@ -101,6 +106,7 @@ export default function BatchDetailsRow({
         sortingFn: "basic",
       }),
       columnHelper.accessor("totalProcurementCost", {
+        meta: { align: "right" },
         header: "Total Cost",
         cell: (info) => (
           <span className="block w-full text-right font-mono tabular-nums">
@@ -177,12 +183,18 @@ export default function BatchDetailsRow({
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
-              <TableHead key={header.id} className="text-muted-foreground">
+              <TableHead
+                key={header.id}
+                className={headClassName(header.column.columnDef.meta)}
+              >
                 {header.isPlaceholder ? null : header.column.getCanSort() ? (
                   <button
                     data-cuelume-toggle="toggle"
                     type="button"
-                    className="inline-flex items-center gap-1"
+                    className={cn(
+                      "inline-flex items-center gap-1",
+                      sortButtonAlignClass(header.column.columnDef.meta)
+                    )}
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     {flexRender(

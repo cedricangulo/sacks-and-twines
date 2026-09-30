@@ -13,6 +13,7 @@ import {
 import SkeletonTable from "@/components/ui/skeleton-table"
 import DispatchFilterBar from "@/features/dispatch-history/components/dispatch-filter-bar"
 import DispatchTableContainer from "@/features/dispatch-history/components/table/dispatch-table-container"
+import { DISPATCH_SKELETON_COLUMNS } from "@/features/dispatch-history/constants"
 import { useDispatchHistoryFilters } from "@/features/dispatch-history/hooks/use-dispatch-history-filters"
 import { useDispatches } from "@/features/dispatch-history/hooks/use-dispatches"
 
@@ -65,19 +66,7 @@ export default function DispatchHistoryPage() {
         onItemsVisibilityChange={setItemsVisibility}
       />
       {isLoading ? (
-        <SkeletonTable
-          columns={[
-            { label: "", type: "expand" },
-            { label: "OR Number", type: "mono" },
-            { label: "Customer Ref", type: "text" },
-            { label: "Dispatched By", type: "text" },
-            { label: "Status", type: "badge" },
-            { label: "Total Items", type: "mono" },
-            { label: "Total Qty", type: "mono" },
-            { label: "Dispatched At", type: "date" },
-          ]}
-          actions="none"
-        />
+        <SkeletonTable columns={DISPATCH_SKELETON_COLUMNS} actions="none" />
       ) : displayData.length > 0 ? (
         <DispatchTableContainer
           dispatches={displayData}

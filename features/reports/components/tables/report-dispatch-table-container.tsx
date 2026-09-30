@@ -45,20 +45,25 @@ export default function ReportDispatchTableContainer({
         sortingFn: "alphanumeric",
       }),
       columnHelper.accessor("itemCount", {
+        meta: { align: "right" },
         header: "Items",
         cell: (info) => (
-          <span className="font-mono tabular-nums">{info.getValue()}</span>
+          <span className="block w-full text-right font-mono tabular-nums">
+            {info.getValue()}
+          </span>
         ),
         enableSorting: true,
         sortingFn: "basic",
       }),
       columnHelper.accessor("totalValue", {
+        meta: { align: "right" },
         header: "Value",
         cell: (info) => (
-          <span className="font-mono tabular-nums">
+          <span className="block w-full text-right font-mono tabular-nums">
             {formatCurrency(info.getValue())}
           </span>
         ),
+        sortingFn: "basic",
       }),
       columnHelper.accessor("status", {
         header: "Status",

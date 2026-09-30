@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/table"
 import type { Id } from "@/convex/_generated/dataModel"
 import { formatCurrency, formatNumber } from "@/lib/formatters"
+import { headClassName, sortButtonAlignClass } from "@/lib/table-alignment"
+import { cn } from "@/lib/utils"
 import { useDispatchItems } from "../../hooks/use-dispatch-items"
 import type { DispatchItem } from "../../validation"
 
@@ -108,7 +110,7 @@ export default function DispatchItemsRow({
           }
 
           return (
-            <span className="font-mono tabular-nums">
+            <span className="block w-full text-right font-mono tabular-nums">
               {quantityLabel}
               {detail ? (
                 <>
@@ -121,20 +123,23 @@ export default function DispatchItemsRow({
         },
         sortingFn: "basic",
         id: "dispatchQuantity",
+        meta: { align: "right" },
       }),
       columnHelper.accessor("unitCost", {
+        meta: { align: "right" },
         header: "Unit Cost",
         cell: (info) => (
-          <span className="font-mono tabular-nums">
+          <span className="block w-full text-right font-mono tabular-nums">
             {formatCurrency(info.getValue())}
           </span>
         ),
         sortingFn: "basic",
       }),
       columnHelper.accessor("lineTotal", {
+        meta: { align: "right" },
         header: "Line Total",
         cell: (info) => (
-          <span className="font-mono tabular-nums">
+          <span className="block w-full text-right font-mono tabular-nums">
             {formatCurrency(info.getValue())}
           </span>
         ),
@@ -165,12 +170,18 @@ export default function DispatchItemsRow({
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow className="border-border/50" key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
-              <TableHead key={header.id} className="text-muted-foreground">
+              <TableHead
+                key={header.id}
+                className={headClassName(header.column.columnDef.meta)}
+              >
                 {header.isPlaceholder ? null : header.column.getCanSort() ? (
                   <button
                     data-cuelume-toggle="toggle"
                     type="button"
-                    className="inline-flex items-center gap-1"
+                    className={cn(
+                      "inline-flex items-center gap-1",
+                      sortButtonAlignClass(header.column.columnDef.meta)
+                    )}
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     {flexRender(

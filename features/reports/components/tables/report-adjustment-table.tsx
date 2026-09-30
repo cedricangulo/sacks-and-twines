@@ -10,6 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { headClassName, sortButtonAlignClass } from "@/lib/table-alignment"
+import { cn } from "@/lib/utils"
 import type { ReportAdjustment } from "../../hooks/use-report-adjustments"
 
 interface ReportAdjustmentTableProps {
@@ -28,12 +30,18 @@ export default function ReportAdjustmentTable({
         {headerGroups.map((headerGroup) => (
           <TableRow key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
-              <TableHead key={header.id} className="text-muted-foreground">
+              <TableHead
+                key={header.id}
+                className={headClassName(header.column.columnDef.meta)}
+              >
                 {header.isPlaceholder ? null : header.column.getCanSort() ? (
                   <button
                     data-cuelume-toggle="toggle"
                     type="button"
-                    className="inline-flex items-center gap-1"
+                    className={cn(
+                      "inline-flex items-center gap-1",
+                      sortButtonAlignClass(header.column.columnDef.meta)
+                    )}
                     onClick={header.column.getToggleSortingHandler()}
                   >
                     {flexRender(

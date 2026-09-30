@@ -114,7 +114,7 @@ export default function ProductTableActions({ product }: { product: Product }) {
       </Popover>
 
       <EditProductDialog
-        productId={product._id}
+        product={product}
         open={editOpen}
         onOpenChange={setEditOpen}
       />

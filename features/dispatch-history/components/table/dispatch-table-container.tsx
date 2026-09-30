@@ -86,18 +86,24 @@ export default function DispatchTableContainer({
       }),
       columnHelper.accessor((row) => row.itemCount, {
         id: "itemCount",
+        meta: { align: "right" },
         header: "Total Items",
         cell: (info) => (
-          <span className="font-mono tabular-nums">{info.getValue()}</span>
+          <span className="block w-full text-right font-mono tabular-nums">
+            {info.getValue()}
+          </span>
         ),
         sortingFn: "basic",
         enableSorting: false,
       }),
       columnHelper.accessor((row) => row.totalQuantity ?? 0, {
         id: "totalQuantity",
+        meta: { align: "right" },
         header: "Total Qty",
         cell: (info) => (
-          <span className="font-mono tabular-nums">{info.getValue()}</span>
+          <span className="block w-full text-right font-mono tabular-nums">
+            {info.getValue()}
+          </span>
         ),
         sortingFn: "basic",
         enableSorting: false,
