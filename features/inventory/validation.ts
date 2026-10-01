@@ -20,6 +20,12 @@ export interface Product {
   imageUrl?: string
   lastSupplierId?: Id<"suppliers">
   keywords?: string[]
+  /**
+   * Denormalized count from `products.batchCount` (see `convex/schema.ts`).
+   * Lets the edit dialog derive `hasBatches` from the row it was opened
+   * from, without a round-trip.
+   */
+  batchCount?: number
 }
 
 // A batch record as displayed in the batch sub-table.

@@ -1,6 +1,11 @@
 "use client"
 
-import { LockIcon, PencilIcon, SpinnerGapIcon } from "@phosphor-icons/react"
+import {
+  LockIcon,
+  PencilIcon,
+  SpinnerGapIcon,
+  WarningIcon,
+} from "@phosphor-icons/react"
 import { Tag, TagInput } from "emblor"
 import { type ReactElement, type ReactNode, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -29,17 +34,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import UploadDropzone from "@/components/ui/upload-dropzone"
-import type { Id } from "@/convex/_generated/dataModel"
+import type { Product } from "@/features/inventory/validation"
 import { useEditProductForm } from "../../hooks/use-edit-product-form"
 
 // Dialog form for editing a product's name, category, UoM, conversion factor, low-stock threshold, and image.
 export default function EditProductDialog({
-  productId,
+  product,
   children,
   open,
   onOpenChange,
 }: {
-  productId: Id<"products">
+  /** Row from the products list query — seeds the form so it paints instantly. */
+  product: Product
   children?: ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -59,7 +65,7 @@ export default function EditProductDialog({
     handleUnlock,
     handleSubmit,
     handleImageSelect,
-  } = useEditProductForm({ productId, open, onOpenChange })
+  } = useEditProductForm({ product, open, onOpenChange })
 
   const [keywordTags, setKeywordTags] = useState<Tag[]>([])
   const [activeTagIndex, setActiveTagIndex] = useState<number | null>(null)
@@ -84,11 +90,19 @@ export default function EditProductDialog({
         <DialogHeader>
           <DialogTitle>Edit product</DialogTitle>
           <DialogDescription>
-            {detail?.name ?? "Loading&hellip;"}
+            {detail?.name ?? formValues?.name ?? "Loading&hellip;"}
           </DialogDescription>
         </DialogHeader>
 
-        {!detail || !formValues ? (
+        {detail === null ? (
+          <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+            <WarningIcon weight="fill" size={20} />
+            This product no longer exists.
+          </div>
+        ) : !formValues ? (
+          // Defensive only: `useEditProductForm` seeds `formValues` from the row
+          // it was opened from, so this is reachable only if that row ever fails
+          // to provide the required fields.
           <div className="flex items-center justify-center py-8 text-muted-foreground">
             <SpinnerGapIcon
               weight="fill"

@@ -23,8 +23,29 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png"]
 type DialogState = {
   /** Validated form fields (null until product detail loads). */
   formValues: ProductUpdateFormData | null
+  /**
+   * Product the current `formValues` were hydrated from. Cleared on close so
+   * the next open refetches in the background, but `formValues` itself is
+   * deliberately kept — that is what lets a reopened dialog paint instantly
+   * instead of flashing a spinner.
+   */
+  hydratedFor: Id<"products"> | null
   /** Preview URL — either remote `imageUrl` or local `blob:` URL. */
   imagePreview: string | null
+  /**
+   * Last known *persisted* image (from the row seed or `getEditDetail`).
+   * `close` restores this into `imagePreview`, so reopening never shows a
+   * discarded `blob:` upload or a falsely-empty dropzone — both would be
+   * lies, since `selectedFile`/`imageCleared` are cleared and a submit would
+   * send `imageStorageId: undefined` (keep existing).
+   *
+   * Known staleness: this is not refreshed after a successful upload, because
+   * the new URL lives in Convex storage and the client cannot derive it. So
+   * save-a-new-image → close → reopen shows the *previous* image for one paint
+   * until the `getEditDetail` hydration lands. Self-correcting, not a wrong
+   * end state.
+   */
+  persistedPreview: string | null
   /** True when user cleared the image (so submit sends `imageStorageId: null`). */
   imageCleared: boolean
   /** Raw file waiting to be uploaded on submit. */
@@ -33,6 +54,19 @@ type DialogState = {
   imageError: string | null
   /** Fields locked because batches exist (`hasBatches`). */
   lockedFields: Record<string, boolean>
+  /**
+   * Whether the product has stock records. Lives in state (not derived from
+   * `detail`) so the "fields are locked" banner is correct on the very first
+   * paint instead of popping in once the refresh lands.
+   *
+   * Seeded from the row's denormalized `batchCount`, which is `undefined` on
+   * products created before `backfillProductBatchCounts` — those seed as
+   * unlocked. `getEditDetail` corrects it on hydration (it falls back to
+   * counting `batches.by_product`), and the server enforces the same rule in
+   * `products.mutations.update`, so a stale seed can only produce editable
+   * fields plus a rejected submit, never a bad write.
+   */
+  hasBatches: boolean
   /** Whether user changed anything (enables Save). */
   dirty: boolean
   /** Field-level validation errors. */
@@ -43,10 +77,12 @@ type DialogState = {
 type DialogAction =
   | {
       type: "open"
+      productId: Id<"products">
       formValues: ProductUpdateFormData
       imagePreview: string | null
       hasBatches: boolean
     }
+  | { type: "close" }
   | {
       type: "changeField"
       field: keyof ProductUpdateFormData
@@ -62,18 +98,98 @@ type DialogAction =
 /** Empty dialog state before a product is loaded. */
 const INITIAL_DIALOG_STATE: DialogState = {
   formValues: null,
+  hydratedFor: null,
   imagePreview: null,
+  persistedPreview: null,
   imageCleared: false,
   selectedFile: null,
   imageError: null,
   lockedFields: {},
+  hasBatches: false,
   dirty: false,
   errors: {},
 }
 
 /**
+ * Fields `buildFormValues` reads. Structural rather than a named type so both
+ * the inventory row (`Product`) and the `getEditDetail` return shape satisfy
+ * it without a cast.
+ */
+type EditableProductFields = {
+  name: string
+  category: "sacks" | "twines" | "thread"
+  baseUom: "piece" | "roll" | "meter"
+  conversionFactor?: number
+  lowStockThreshold?: number
+  keywords?: string[]
+  /** Used only for `hasBatches` locking, not by `buildFormValues`. */
+  batchCount?: number
+  /** Used only for the dropzone preview, not by `buildFormValues`. */
+  imageUrl?: string
+}
+
+/**
+ * Single mapper used by BOTH the row seed and the `getEditDetail` refresh.
+ * Sharing it matters: two copies would let the seeded `conversionFactor`
+ * disagree with the refreshed one, and the field would visibly snap on open.
+ */
+function buildFormValues(source: EditableProductFields): ProductUpdateFormData {
+  return {
+    name: source.name,
+    category: source.category,
+    baseUom: source.baseUom,
+    conversionFactor:
+      source.conversionFactor ??
+      DEFAULT_CONVERSION_FACTOR[source.category] ??
+      0,
+    lowStockThreshold: source.lowStockThreshold ?? 0,
+    keywords: source.keywords ?? [],
+  }
+}
+
+/**
+ * Category, UoM and conversion factor are locked once a product has stock
+ * records. Single source so the row seed and the `getEditDetail` refresh can
+ * never disagree about which fields are locked.
+ */
+function lockedFieldsFor(hasBatches: boolean): Record<string, boolean> {
+  return {
+    category: hasBatches,
+    baseUom: hasBatches,
+    conversionFactor: hasBatches,
+  }
+}
+
+/**
+ * Seed the dialog from the inventory row it was opened from.
+ *
+ * The inventory list query already returns every field this form needs
+ * (`convex/products/queries.ts` returns `{ ...product, imageUrl }`, and
+ * `batchCount` is a schema field inside that spread), so the form can paint
+ * synchronously instead of waiting on a query — that is what removes the
+ * first-open spinner.
+ *
+ * `hydratedFor` stays `null` so the first open still runs `getEditDetail`,
+ * which remains the authoritative refresh and keeps the owner auth re-check
+ * plus the legacy `batchCount` fallback. It is simply off the critical path
+ * for first paint.
+ */
+function initialDialogState(product: EditableProductFields): DialogState {
+  const hasBatches = (product.batchCount ?? 0) > 0
+  return {
+    ...INITIAL_DIALOG_STATE,
+    formValues: buildFormValues(product),
+    imagePreview: product.imageUrl ?? null,
+    persistedPreview: product.imageUrl ?? null,
+    hasBatches,
+    lockedFields: lockedFieldsFor(hasBatches),
+  }
+}
+
+/**
  * State machine for the edit dialog.
  * - `open`: hydrates form from `getEditDetail`.
+ * - `close`: marks the snapshot stale without discarding it.
  * - `changeField` / `setLockedFields` / `setErrors`: form edits.
  * - `selectImage`: stages a file and creates a `blob:` preview (revokes
  *   previous `blob:` URL to avoid leaks).
@@ -83,17 +199,37 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
     case "open":
       return {
         formValues: action.formValues,
+        hydratedFor: action.productId,
         imagePreview: action.imagePreview,
+        persistedPreview: action.imagePreview,
         imageCleared: false,
         selectedFile: null,
         imageError: null,
-        lockedFields: {
-          category: action.hasBatches,
-          baseUom: action.hasBatches,
-          conversionFactor: action.hasBatches,
-        },
+        hasBatches: action.hasBatches,
+        lockedFields: lockedFieldsFor(action.hasBatches),
         dirty: false,
         errors: {},
+      }
+    case "close":
+      // End the edit session: clear the pending-edit markers so a reopened
+      // dialog starts clean (Save disabled, no stale validation errors, no
+      // orphaned staged file).
+      //
+      // `formValues` is deliberately kept so the reopened dialog paints
+      // immediately; dropping only `hydratedFor` lets the next open refresh
+      // in the background without an intermediate spinner. `imagePreview`
+      // rolls back to `persistedPreview` rather than being kept as-is:
+      // keeping a staged `blob:` would display an upload that a submit would
+      // no longer send, and keeping a cleared `null` would hide an image the
+      // server still has.
+      return {
+        ...state,
+        hydratedFor: null,
+        imagePreview: state.persistedPreview,
+        dirty: false,
+        errors: {},
+        imageCleared: false,
+        selectedFile: null,
       }
     case "changeField": {
       if (!state.formValues) return state
@@ -145,17 +281,22 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
 
 /**
  * Lifecycle hook for the Edit Product dialog.
- * - Fetches `getEditDetail` when `open` is true.
+ * - Seeds the form synchronously from the inventory `product` row it was
+ *   opened from, so the dialog paints without a loading state.
+ * - Fetches `getEditDetail` when `open` is true, as the authoritative refresh
+ *   (owner auth re-check, legacy `batchCount` fallback, freshness).
+ * - Keeps the last hydrated `formValues` across close/reopen; `hydratedFor`
+ *   tracks staleness and drives that background refresh.
  * - Exposes `formValues`, `imagePreview`, `handleChange`, `handleImageSelect`,
  *   `handleSubmit` (validates → uploads image to Convex storage with `ok` +
  *   `storageId` checks → `update.submit`).
  */
 export function useEditProductForm({
-  productId,
+  product,
   open: openProp,
   onOpenChange,
 }: {
-  productId: Id<"products">
+  product: EditableProductFields & { _id: Id<"products"> }
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
@@ -163,6 +304,7 @@ export function useEditProductForm({
   const [internalOpen, setInternalOpen] = useState(false)
   const open = openProp ?? internalOpen
   const setOpen = onOpenChange ?? setInternalOpen
+  const productId = product._id
   const detail = useQuery(
     api.products.queries.getEditDetail,
     isAuthenticated && open ? { productId } : "skip"
@@ -171,20 +313,21 @@ export function useEditProductForm({
   const generateUploadUrl = useMutation(api.batches.mutations.generateUploadUrl)
   const [dialogState, dispatch] = useReducer(
     dialogReducer,
-    INITIAL_DIALOG_STATE
+    product,
+    initialDialogState
   )
   const {
     formValues,
+    hydratedFor,
     imagePreview,
     imageCleared,
     selectedFile,
     imageError,
     lockedFields,
+    hasBatches,
     dirty,
     errors,
   } = dialogState
-
-  const hasBatches = (detail?.batchCount ?? 0) > 0
 
   // Cleanup: revoke the active blob preview when the hook unmounts or when
   // `imagePreview` changes (covers the "cancel without clear" case).
@@ -196,26 +339,35 @@ export function useEditProductForm({
     }
   }, [dialogState.imagePreview])
 
+  // Hydrate from `getEditDetail` once per product per open session.
+  //
+  // Three guards matter here:
+  // - `hydratedFor === productId` makes this idempotent, so a reactive
+  //   `detail` change (another user, or a `batchCount` denormalization write)
+  //   no longer re-dispatches `open` and wipes in-progress edits.
+  // - `dirty` covers the race where the user starts typing while `detail` is
+  //   still in flight on reopen — their input wins over the refetch.
+  // - `!detail` skips the in-flight state (`undefined`) *and* the confirmed
+  //   missing state (`null`); there is nothing to hydrate in either case.
   useEffect(() => {
-    if (open && detail) {
-      dispatch({
-        type: "open",
-        formValues: {
-          name: detail.name,
-          category: detail.category,
-          baseUom: detail.baseUom,
-          conversionFactor:
-            detail.conversionFactor ??
-            DEFAULT_CONVERSION_FACTOR[detail.category] ??
-            0,
-          lowStockThreshold: detail.lowStockThreshold ?? 0,
-          keywords: detail.keywords ?? [],
-        },
-        imagePreview: detail.imageUrl ?? null,
-        hasBatches,
-      })
+    if (!open) return
+    if (!detail || dirty || hydratedFor === productId) return
+    dispatch({
+      type: "open",
+      productId,
+      formValues: buildFormValues(detail),
+      imagePreview: detail.imageUrl ?? null,
+      hasBatches: (detail.batchCount ?? 0) > 0,
+    })
+  }, [open, detail, dirty, hydratedFor, productId])
+
+  // Mark the snapshot stale on close without tearing it down, so reopening
+  // renders the last known values immediately and refreshes underneath.
+  useEffect(() => {
+    if (!open && hydratedFor !== null) {
+      dispatch({ type: "close" })
     }
-  }, [open, detail, hasBatches])
+  }, [open, hydratedFor])
 
   /**
    * Stage an image for the dialog.
@@ -242,6 +394,9 @@ export function useEditProductForm({
         return
       }
     } else if (imagePreview?.startsWith("blob:")) {
+      // Revoked here and again in the reducer's `selectImage`. Revoking twice is
+      // harmless (`revokeObjectURL` is idempotent) and keeps this function safe
+      // on its own — the hook is the only place that knows a preview is a blob.
       URL.revokeObjectURL(imagePreview)
     }
     dispatch({ type: "selectImage", file })
