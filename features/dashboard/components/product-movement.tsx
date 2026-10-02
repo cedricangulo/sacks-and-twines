@@ -180,19 +180,33 @@ export default function ProductMovement({
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-3 w-full">
           <TabsTrigger value="fast" className="gap-1.5">
-            <TrendUpIcon weight="bold" className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <TrendUpIcon
+              weight="bold"
+              className="size-4 text-emerald-600 dark:text-emerald-400"
+            />
             Fast-Moving
           </TabsTrigger>
           <TabsTrigger value="slow" className="gap-1.5">
-            <TrendDownIcon weight="bold" className="size-4 text-red-600 dark:text-red-400" />
+            <TrendDownIcon
+              weight="bold"
+              className="size-4 text-red-600 dark:text-red-400"
+            />
             Slow-Moving
           </TabsTrigger>
         </TabsList>
         <TabsContent value="fast">
-          {fast.length > 0 ? <MovementTable rows={fast} /> : <MovementTableEmpty />}
+          {fast.length > 0 ? (
+            <MovementTable rows={fast} />
+          ) : (
+            <MovementTableEmpty />
+          )}
         </TabsContent>
         <TabsContent value="slow">
-          {slow.length > 0 ? <MovementTable rows={slow} /> : <MovementTableEmpty />}
+          {slow.length > 0 ? (
+            <MovementTable rows={slow} />
+          ) : (
+            <MovementTableEmpty />
+          )}
         </TabsContent>
       </Tabs>
     </div>

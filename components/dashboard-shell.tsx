@@ -93,7 +93,13 @@ export function DashboardShell({ children, initialRole }: Props) {
             }}
             default="x-fade"
           >
-            <main className="flex-1 overflow-y-auto">{children}</main>
+            {/* `overflow-y-auto` implies `overflow-x: auto`, which put a second
+                horizontal scroller next to the one every table already owns
+                (`components/ui/table.tsx`). `overflow-x-clip` keeps the vertical
+                scroll without letting the shell scroll sideways. */}
+            <main className="flex-1 min-w-0 overflow-y-auto overflow-x-clip">
+              {children}
+            </main>
           </ViewTransition>
         </div>
       </PageHeaderProvider>
@@ -105,7 +111,18 @@ export function DashboardShell({ children, initialRole }: Props) {
       <PageHeaderProvider>
         <SidebarProvider>
           <AppSidebar />
-          <SidebarInset>
+          {/* `min-w-0` is load-bearing. `SidebarInset` is a flex item on the main
+            axis of `sidebar-wrapper`'s row, so `min-width: auto` resolves to its
+            content-based minimum — and an auto-layout table of `whitespace-nowrap`
+            columns has a min-content width equal to the sum of all its columns.
+            Without this the inset grew to the width of the widest table and pushed
+            the overflow out to `<body>`, which is what made the *page* scroll
+            sideways. `overflow-x-clip` on `<main>` below could not prevent it: the
+            inset had already been sized wide, so there was nothing left to clip.
+            Do not "fix" this with `overflow: hidden` on `sidebar-wrapper` — that
+            only clips, leaving `scrollWidth > clientWidth` behind, and the scroll
+            returns as soon as a wide popover renders. */}
+          <SidebarInset className="min-w-0">
             <header
               className="flex h-16 shrink-0 items-center gap-2 overflow-hidden transition-[width,height] ease-linear"
               style={{ viewTransitionName: "site-header" }}
@@ -129,7 +146,15 @@ export function DashboardShell({ children, initialRole }: Props) {
               }}
               default="x-fade"
             >
-              <main suppressHydrationWarning>{children}</main>
+              {/* `overflow-x-clip` (not `hidden`) so the document still scrolls vertically
+                while no page can scroll horizontally — wide tables own their own
+                scroller. See the staff branch above. */}
+              <main
+                className="min-w-0 overflow-x-clip"
+                suppressHydrationWarning
+              >
+                {children}
+              </main>
             </ViewTransition>
           </SidebarInset>
         </SidebarProvider>
