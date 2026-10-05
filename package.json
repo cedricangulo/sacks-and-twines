@@ -10,6 +10,7 @@
     "test": "vitest --run",
     "test:verbose": "vitest --run --reporter verbose",
     "test:watch": "vitest",
+    "test:stress": "vitest --run convex/stress",
     "check": "biome check --write",
     "check:unsafe": "biome check --write --unsafe",
     "format": "biome format --write",

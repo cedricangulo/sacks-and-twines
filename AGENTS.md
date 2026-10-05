@@ -12,7 +12,7 @@ Before any Next.js work, find and read the relevant doc in `node_modules/next/di
 - **Backend:** Convex 1.39 (schema, queries, mutations, actions, auth, HTTP router, migrations)
 - **Auth:** `@convex-dev/auth` with Password provider (Scrypt hashing, JWT custom claims for role)
 - **Styling:** Tailwind CSS v4 (CSS-first config in `globals.css` via `@theme inline {}` — no `tailwind.config.js`)
-- **UI:** shadcn/ui ("radix-luma" style), lucide-react, `@base-ui/react`, `radix-ui`
+- **UI:** shadcn/ui ("radix-luma" style), `@phosphor-icons/react`, `@base-ui/react`, `radix-ui`
 - **Forms/validation:** zod 4, `convex-helpers/server/zod4` for `zCustomMutation`
 - **Rate limiting:** `@convex-dev/rate-limiter` (token bucket, per-user + global)
 - **Migrations:** `@convex-dev/migrations`
@@ -50,7 +50,42 @@ denormalized totals. When deploying new range-read / export code, run the needed
 backfills via the migration runner (`pnpm convex run migrations:run '{"fn":"migrations:<name>"}'`) on
 the target deployment alongside the code deploy: `backfillDispatchCreatedAt`,
 `backfillStockAdjustmentCreatedAt`, `backfillAuditLogCreatedAt`,
-`backfillDispatchTotalQuantities`, `backfillDispatchTotalValues`, `backfillProductBatchCounts`.
+`backfillDispatchTotalQuantities`, `backfillDispatchTotalValues`, `backfillProductBatchCounts`,
+`backfillBatchCreatedAt`, `backfillProductCreatedAt`, `backfillBatchDenorm`,
+`backfillProductLastSupplierId`, `backfillDispatchItemCreatedAt`.
+
+**Backfill ordering is not optional.** A document missing an optional field entirely
+does **not** match the index entry for that field (`undefined !== false`), so cutting
+a read path over to a new index or denormalized field before its backfill has run
+silently drops rows. Required order per deploy:
+
+1. `pnpm convex:deploy` — schema indexes + write path
+2. Run the backfills on the target deployment
+3. Deploy the read path that trusts the new fields/indexes
+
+See `docs/PERFORMANCE-AUDIT.md` (Phase 4) and
+`.agents/skills/convex-performance-audit/references/hot-path-rules.md` for the full
+rule. The write paths for `batches.createdAt`, `products.createdAt`,
+`batches.productName`/`supplierName`/`receivedBy` and `products.lastSupplierId` all
+land in step 1 — reads fall back to the live documents until step 2 completes.
+
+**Audit log actions are a constant, not a query.** The filter dropdown reads
+`AUDIT_LOG_ACTIONS` from `convex/lib/constants.ts`. When adding a new
+`action:` value at an `internal.auditLogs.mutations.log` callsite, add it to that
+list too — `convex/auditLogs/queries.test.ts` asserts the two stay in sync.
+
+# Performance audits
+
+`docs/PERFORMANCE-AUDIT.md` (indexing, unbounded collects, duplicate range reads) and
+`docs/N-1-QUERY-AUDIT.md` (per-row fan-out) document the current read costs of every
+query. Two rules that are easy to get wrong here:
+
+- **Convex has no field projections.** A reactive query re-executes when *any* field
+  of a document it read changes. Trimming the return shape reduces payload but not
+  invalidation — only removing reads or unsubscribing does.
+- **Measure index ranges, not bytes.** `convex-test`'s `transactionLimits` exposes
+  `databaseQueries` (index-range count) alongside `bytesRead`; budget the former to
+  catch reintroduced N+1s.
 
 # Testing
 
@@ -146,7 +181,14 @@ Pure render component — receives `table: ReactTable<T>`, no TanStack config im
 
 ## SkeletonTable
 
-- Props: `headers: string[]`, `actions: "ellipsis" | "text" | "none"`, `rowCount?: number`
+- Props: `columns: SkeletonColumn[]` (`{ label: string; type?: SkeletonCellType }`),
+  `actions: "ellipsis" | "text" | "none"`, `rowCount?: number`
+- `SkeletonCellType` = `"text" | "mono" | "name" | "number" | "currency" | "badge" | "date"`.
+  `number` and `currency` render **right-aligned** — so any table whose numeric
+  columns are left-aligned will show a right/left mismatch between skeleton and
+  loaded states. Use `type: "currency"` for cost columns.
+- Prefer spreading the feature's column constant over hardcoding, e.g.
+  `columns={[{ label: "Product Name", type: "name" }, ...INVENTORY_TABLE_COLUMNS]}`
 - Rows fade progressively: `style={{ opacity: Math.max(1 - i * 0.2, 0.3) }}`
 
 # Architecture
