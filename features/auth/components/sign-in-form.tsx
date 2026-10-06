@@ -53,6 +53,7 @@ export default function SignInForm() {
                 maxLength={8}
                 name="code"
                 pattern={REGEXP_ONLY_DIGITS}
+                pasteTransformer={(pasted) => pasted.replace(/\D/g, "")}
                 aria-invalid={!!error}
                 onComplete={() => {
                   if (!pending) otpFormRef.current?.requestSubmit()
