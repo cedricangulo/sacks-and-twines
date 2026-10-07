@@ -102,11 +102,21 @@ export default defineSchema({
     // in-memory so the page, `isDone` and `continueCursor` describe the filtered
     // set — filtering after pagination strands matches past the cursor.
     //
+    // `by_supplier_status_createdAt` is what makes the *combination* of both
+    // filters correct. Without it, supplier+status could only prefix one
+    // index and the other became a post-pagination `.filter()`, which returned
+    // short pages whose cursors still described the unfiltered set.
+    //
     // There is no `by_userId_createdAt` here. A receiver filter is impossible:
     // stock-in is owner-only (`batches.mutations.stockIn` → `requireOwner`) and
     // `users.mutations.create` hardcodes `role: "staff"`, so a second owner
     // cannot exist and every batch's `userId` is the one seeded owner.
-    .index("by_status_createdAt", ["status", "createdAt"]),
+    .index("by_status_createdAt", ["status", "createdAt"])
+    .index("by_supplier_status_createdAt", [
+      "supplierId",
+      "status",
+      "createdAt",
+    ]),
 
   dispatches: defineTable({
     userId: v.id("users"),

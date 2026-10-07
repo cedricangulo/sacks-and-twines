@@ -97,22 +97,21 @@ export const listForDispatch = query({
  * Cursor-paginated stock-in ("receiving") history within a date range,
  * newest first.
  *
- * Index selection — one filter becomes the index prefix, the other applies to the
- * returned page. Supplier wins when both are set:
- * - `supplierId` → `by_supplier_createdAt`
- * - `status`     → `by_status_createdAt`
- * - none         → `by_createdAt`
+ * Index selection — every filter combination is an index range, so no filter is
+ * ever applied after pagination:
+ * - `supplierId` + `status` → `by_supplier_status_createdAt`
+ * - `supplierId`           → `by_supplier_createdAt`
+ * - `status`               → `by_status_createdAt`
+ * - none                   → `by_createdAt`
  *
- * Putting the leading filter in the index is what makes the page, `isDone` and
- * `continueCursor` describe the *filtered* set. Filtering after pagination
- * strands matches past the cursor — a page can come back empty while rows the
- * user asked for sit one page further on.
+ * This is what makes the page, `isDone` and `continueCursor` describe the
+ * *filtered* set. Filtering after pagination strands matches past the cursor — a
+ * page can come back empty while rows the user asked for sit one page further on.
  *
- * Covering every combination would mean an index per permutation, so the second
- * filter stays in memory. `continueCursor`/`isDone` then describe the index
- * range rather than the filtered page; the client keeps its pagination controls
- * mounted and reports how many rows the residual filter dropped. See
- * `app/(dashboard)/receiving-history/page.tsx`.
+ * Only the supplier+status pair needed its own index; the other three were
+ * already index ranges. Previously supplier won the prefix and status became a
+ * post-pagination `.filter()`, so that one combination returned short pages
+ * whose cursors still described the unfiltered supplier set.
  *
  * There is deliberately no receiver filter. Stock-in is owner-only
  * (`batches.mutations.stockIn` → `requireOwner`) and no mutation can create a
@@ -151,18 +150,24 @@ export const listHistory = query({
     if (!caller || caller.role !== "owner" || caller.status !== "active")
       throw new Error("Only owners can view receiving history")
 
-    // Exactly one filter becomes the index prefix — supplier first, since a named
-    // supplier is the most selective of the two and was the pre-existing
-    // behaviour. The other becomes a residual page filter.
-    const prefix =
-      supplierId !== undefined
-        ? "supplier"
-        : status !== undefined
-          ? "status"
-          : "none"
-
+    // Every filter combination is an index range, so no filter is ever applied
+    // after pagination and the page, `isDone` and `continueCursor` all describe
+    // the same filtered set.
     const result = await (async () => {
-      if (prefix === "supplier") {
+      if (supplierId !== undefined && status !== undefined) {
+        return ctx.db
+          .query("batches")
+          .withIndex("by_supplier_status_createdAt", (q) =>
+            q
+              .eq("supplierId", supplierId as Id<"suppliers">)
+              .eq("status", status)
+              .gte("createdAt", startMs)
+              .lte("createdAt", endMs)
+          )
+          .order("desc")
+          .paginate(paginationOpts)
+      }
+      if (supplierId !== undefined) {
         return ctx.db
           .query("batches")
           .withIndex("by_supplier_createdAt", (q) =>
@@ -174,12 +179,12 @@ export const listHistory = query({
           .order("desc")
           .paginate(paginationOpts)
       }
-      if (prefix === "status") {
+      if (status !== undefined) {
         return ctx.db
           .query("batches")
           .withIndex("by_status_createdAt", (q) =>
             q
-              .eq("status", status as "active" | "depleted" | "voided")
+              .eq("status", status)
               .gte("createdAt", startMs)
               .lte("createdAt", endMs)
           )
@@ -195,12 +200,7 @@ export const listHistory = query({
         .paginate(paginationOpts)
     })()
 
-    let page = result.page
-
-    // Residual filters — everything the index prefix above did not apply.
-    if (prefix !== "status" && status !== undefined) {
-      page = page.filter((b) => b.status === status)
-    }
+    const page = result.page
 
     // Only rows missing the denormalized fields need a live read.
     const needsFallback = page.filter(

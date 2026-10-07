@@ -839,24 +839,55 @@ describe("batch queries", () => {
         expect(filtered.isDone).toBe(true)
       })
 
-      it("reports the filtered set as done rather than hiding later pages", async () => {
-        // The residual path — supplier plus status — cannot use a compound index,
-        // so the status filter runs on the returned page. The client's job is to
-        // keep pagination mounted; this pins the metadata it renders from.
+      it("reports no matches as done when supplier and status disagree", async () => {
+        // Supplier B only has the one `depleted` batch, so an `active` filter
+        // leaves nothing — and says so, rather than looking like more pages.
         const { t, ownerId, supplierB } = await seedHistory()
         authMocks.getAuthUserId.mockResolvedValue(ownerId)
 
-        const residual = await t.query(api.batches.queries.listHistory, {
+        const empty = await t.query(api.batches.queries.listHistory, {
           paginationOpts: { numItems: 5, cursor: null },
           ...RANGE,
           supplierId: supplierB,
           status: "active",
         })
 
-        // Supplier B only has the one `depleted` batch, so an `active` filter
-        // leaves nothing — and says so, rather than looking like more pages.
-        expect(residual.page).toHaveLength(0)
-        expect(residual.isDone).toBe(true)
+        expect(empty.page).toHaveLength(0)
+        expect(empty.isDone).toBe(true)
+      })
+
+      it("applies supplier and status together as one index range", async () => {
+        // `by_supplier_status_createdAt` makes this combination a single range.
+        // Previously supplier took the prefix and status filtered the page
+        // afterwards, so the cursor described the unfiltered supplier set and
+        // matching rows were stranded past it.
+        const { t, ownerId, supplierA, newerId, olderId } = await seedHistory()
+        authMocks.getAuthUserId.mockResolvedValue(ownerId)
+
+        const active = await t.query(api.batches.queries.listHistory, {
+          paginationOpts: { numItems: 1, cursor: null },
+          ...RANGE,
+          supplierId: supplierA,
+          status: "active",
+        })
+
+        // Supplier A has two rows in range — `olderId` and `newerId`, both
+        // `active` — so a one-item page must be full and must not be done.
+        expect(active.page).toHaveLength(1)
+        expect(active.page[0]._id).toBe(newerId)
+        expect(active.isDone).toBe(false)
+
+        // The cursor continues within the filtered set, landing on the other
+        // active row rather than on supplier A's depleted rows.
+        const next = await t.query(api.batches.queries.listHistory, {
+          paginationOpts: { numItems: 1, cursor: active.continueCursor },
+          ...RANGE,
+          supplierId: supplierA,
+          status: "active",
+        })
+
+        expect(next.page.map((b) => b._id)).toEqual([olderId])
+        expect(next.isDone).toBe(true)
       })
     })
 
