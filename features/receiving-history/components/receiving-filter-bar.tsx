@@ -76,6 +76,9 @@ export default function ReceivingFilterBar({
     isAuthenticated ? {} : "skip"
   )
 
+  // `onSearchChange` writes to the URL through nuqs, which debounces the URL
+  // update itself, so the input can stay bound to `search` directly.
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button
@@ -94,7 +97,7 @@ export default function ReceivingFilterBar({
           className="absolute -translate-y-1/2 left-3 top-1/2 size-4 text-muted-foreground"
         />
         <Input
-          placeholder="Search batch, product or supplier..."
+          placeholder="Search this page by batch, product or supplier..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-9"

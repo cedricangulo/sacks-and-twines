@@ -34,6 +34,7 @@ export default function ReceivingHistoryPage() {
   const { user, isLoading: isUserLoading, isAuthenticated } = useCurrentUser()
   const {
     search,
+    setSearch,
     dateRange,
     supplierId,
     status,
@@ -45,7 +46,7 @@ export default function ReceivingHistoryPage() {
   const {
     page,
     rawPageLength,
-    isLoading,
+    isInitialLoading,
     isTransitioning,
     pageNum,
     goNext,
@@ -64,21 +65,22 @@ export default function ReceivingHistoryPage() {
     Record<string, boolean>
   >({})
 
-  const showSkeleton = isUserLoading || isLoading
+  // Only the *first* load blanks the table. Later refetches keep the previous
+  // page on screen, so changing a filter no longer flickers through a skeleton.
+  const showSkeleton = isUserLoading || isInitialLoading
 
-  // A residual filter (status combined with a supplier) is applied after
-  // pagination, so a page can come back empty while matching rows sit further
-  // along the cursor. The pagination controls therefore stay mounted outside the
-  // empty states below.
+  // Search is client-side over the loaded page, so a page can filter down to
+  // nothing while matches sit on the next one. Pagination therefore stays
+  // mounted outside the empty states below.
   const showPagination = !showSkeleton && user?.role === "owner"
-  const hiddenByResidualFilter =
+  const hiddenBySearch =
     !showSkeleton && page.length < rawPageLength && rawPageLength > 0
 
   return (
     <div className="min-w-0 flex-1 space-y-4">
       <ReceivingFilterBar
         search={search}
-        onSearchChange={(value) => setFilters({ search: value })}
+        onSearchChange={setSearch}
         dateRange={dateRange}
         supplierId={supplierId}
         status={status}
@@ -116,7 +118,7 @@ export default function ReceivingHistoryPage() {
             <EmptyTitle>No stock-ins found</EmptyTitle>
             <EmptyDescription>
               {rawPageLength > 0
-                ? "No rows on this page match the current filters. Use Next to look further back."
+                ? "No rows on this page match your search. Use Next to look further back."
                 : "Try adjusting the date range or clearing your filters."}
             </EmptyDescription>
           </EmptyHeader>
@@ -135,7 +137,7 @@ export default function ReceivingHistoryPage() {
         </Empty>
       )}
 
-      {showPagination && hiddenByResidualFilter ? (
+      {showPagination && hiddenBySearch ? (
         <p className="type-body-small text-muted-foreground">
           {page.length} of {rawPageLength} stock-ins on this page match the
           current filters.

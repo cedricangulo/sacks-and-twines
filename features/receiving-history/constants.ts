@@ -1,25 +1,52 @@
-// Filter options for batch (stock-in) status.
-export const RECEIVING_STATUS_OPTIONS = [
+// The status literals are declared once here and everything else derives from
+// them — the options list, the nuqs parser in `use-receiving-filters.ts`, and the
+// query args type in `use-receiving-history.ts`. These must stay in sync with
+// the `batches.status` union in `convex/schema.ts`.
+//
+// `"all"` is a UI-only sentinel: it is never sent to the server, it resolves to
+// an omitted `status` arg so the query falls back to the date-range index.
+export const RECEIVING_STATUS_VALUES = [
+  "all",
+  "active",
+  "depleted",
+  "voided",
+] as const
+
+export type ReceivingStatus = (typeof RECEIVING_STATUS_VALUES)[number]
+
+export const RECEIVING_STATUS_OPTIONS: ReadonlyArray<{
+  value: ReceivingStatus
+  label: string
+}> = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
   { value: "depleted", label: "Depleted" },
   { value: "voided", label: "Voided" },
-] as const
-
-export type ReceivingStatus = (typeof RECEIVING_STATUS_OPTIONS)[number]["value"]
+]
 
 // Quick date ranges for the receiving history query. Deliberately excludes
 // "All Time" — an unbounded range over `batches` is a full index scan, and the
 // seed already produces a lot of history. See docs/PERFORMANCE-AUDIT.md P11.
-export const RECEIVING_DATE_RANGES = [
+export const RECEIVING_DATE_RANGE_VALUES = [
+  "today",
+  "this-week",
+  "this-month",
+  "last-month",
+  "last-90-days",
+] as const
+
+export type ReceivingDateRange = (typeof RECEIVING_DATE_RANGE_VALUES)[number]
+
+export const RECEIVING_DATE_RANGES: ReadonlyArray<{
+  value: ReceivingDateRange
+  label: string
+}> = [
   { value: "today", label: "Today" },
   { value: "this-week", label: "This Week" },
   { value: "this-month", label: "This Month" },
   { value: "last-month", label: "Last Month" },
   { value: "last-90-days", label: "Last 90 Days" },
-] as const
-
-export type ReceivingDateRange = (typeof RECEIVING_DATE_RANGES)[number]["value"]
+]
 
 export const DEFAULT_DATE_RANGE: ReceivingDateRange = "last-90-days"
 
@@ -42,9 +69,11 @@ export const RECEIVING_ITEMS_PER_PAGE = 30
 // The `type` values drive both the Columns dropdown and the loading skeleton,
 // so they must stay in sync with the cell renderers in
 // `components/table/receiving-table-container.tsx` — a numeric column left as
-// `"text"` shows a left-aligned skeleton against a right-aligned value.
+// `"text"` shows a left-aligned skeleton against a right-aligned value, and
+// `"name"` adds a thumbnail and expand chevron this table's product cell does
+// not render.
 export const RECEIVING_TABLE_COLUMNS = [
-  { id: "productName", label: "Product", type: "name" },
+  { id: "productName", label: "Product", type: "text" },
   { id: "quantityReceived", label: "Qty Received", type: "number" },
   { id: "totalProcurementCost", label: "Total Cost", type: "currency" },
   { id: "createdAt", label: "Received At", type: "date" },

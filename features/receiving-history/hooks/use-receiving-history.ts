@@ -5,14 +5,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { computeQuickRange } from "@/features/reports/constants"
-import { RECEIVING_ITEMS_PER_PAGE } from "../constants"
+import { RECEIVING_ITEMS_PER_PAGE, type ReceivingStatus } from "../constants"
 import type { ReceivingBatch } from "../validation"
 
 // Arguments for the receiving history query.
 export interface UseReceivingHistoryArgs {
   dateRange: Parameters<typeof computeQuickRange>[0]
   supplierId: string
-  status: "all" | "active" | "depleted" | "voided"
+  status: ReceivingStatus
   search: string
   skip?: boolean
 }
@@ -33,6 +33,10 @@ const EMPTY_PAGE: ReceivingBatch[] = []
  * change to the query arguments resets pagination to page 1 via the
  * `filtersKey` effect. The server returns rows for the date range; `search` is
  * applied client-side across the loaded pages.
+ *
+ * Two loading flags, because they answer different questions:
+ * - `isInitialLoading` — nothing has ever loaded, render the skeleton.
+ * - `isLoading` — a refetch is in flight, keep the current rows visible.
  */
 export function useReceivingHistory({
   dateRange,
@@ -46,6 +50,16 @@ export function useReceivingHistory({
   const [pageNum, setPageNum] = useState(1)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
+  // Distinguishes "we have never had data" from "we are refetching".
+  //
+  // `convex-helpers/react/cache` returns `undefined` for the whole window
+  // between an args change and the new result arriving — it has no
+  // keepPreviousData. Treating that as "loading" made every filter change
+  // collapse the table to a skeleton and pop it back, which read as a flicker.
+  // Rendering from `isInitialLoading` instead keeps the stale page on screen
+  // until real data replaces it.
+  const hasLoadedOnceRef = useRef(false)
+
   const { startMs, endMs } = useMemo(
     () => computeQuickRange(dateRange),
     [dateRange]
@@ -57,18 +71,22 @@ export function useReceivingHistory({
       : undefined
   const resolvedStatus = status === "all" ? undefined : status
 
-  // Stable key for every query input. Including `search` means typing resets to
-  // page 1 rather than filtering an arbitrary page deep in the cursor stack.
+  // Stable key for every *server* query input.
+  //
+  // `search` is deliberately absent: it is not part of `queryArgs` below, so
+  // including it here only forced a cursor reset and a pointless refetch on
+  // every keystroke. The trade is that searching while paged deep filters the
+  // page you are on rather than jumping back to page 1 — the filter bar copy
+  // says "Search this page" to match.
   const filtersKey = useMemo(
     () =>
       JSON.stringify({
         dateRange,
         supplierId: resolvedSupplierId ?? "",
         status: resolvedStatus ?? "",
-        search,
         skip,
       }),
-    [dateRange, resolvedSupplierId, resolvedStatus, search, skip]
+    [dateRange, resolvedSupplierId, resolvedStatus, skip]
   )
 
   const prevFiltersKeyRef = useRef(filtersKey)
@@ -115,10 +133,25 @@ export function useReceivingHistory({
       }
     | undefined
 
+  // Retain the last resolved result so a refetch does not blank the table.
+  //
+  // Written during render (not in an effect) so the very first render after a
+  // resolved result already sees it. Reading it back only when `result` is
+  // `undefined` means stale rows are never shown *instead of* fresh ones —
+  // they are just not thrown away during the gap.
+  const lastResultRef = useRef(result)
+  if (result !== undefined) {
+    lastResultRef.current = result
+  }
+  const shownResult = result ?? lastResultRef.current
+
   // Clear the transitioning flag once Convex returns the next page.
   useEffect(() => {
-    if (result !== undefined && isTransitioning) {
-      setIsTransitioning(false)
+    if (result !== undefined) {
+      hasLoadedOnceRef.current = true
+      if (isTransitioning) {
+        setIsTransitioning(false)
+      }
     }
   }, [result, isTransitioning])
 
@@ -140,10 +173,12 @@ export function useReceivingHistory({
     setIsTransitioning(true)
   }, [history, isTransitioning])
 
+  // Gated on `result`, not `shownResult`: while a refetch is in flight we must not
+  // offer a Next/Prev bound to the previous page's cursor.
   const hasNext = !isTransitioning && result !== undefined && !result.isDone
   const hasPrev = !isTransitioning && history.length > 0
 
-  const page = result?.page ?? EMPTY_PAGE
+  const page = shownResult?.page ?? EMPTY_PAGE
 
   // Client-side search within the loaded pages. Same scope as dispatch history:
   // it filters what is on screen, it is not a server-side text search.
@@ -163,6 +198,9 @@ export function useReceivingHistory({
     page: filtered,
     rawPageLength: page.length,
     isLoading: result === undefined,
+    // Stays true only until the first successful fetch, so refetches never blank
+    // the table. `skip` counts as "not loaded" — there is nothing to show yet.
+    isInitialLoading: result === undefined && !hasLoadedOnceRef.current,
     isTransitioning,
     pageNum,
     goNext,
