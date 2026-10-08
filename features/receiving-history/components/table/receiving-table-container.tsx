@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/formatters"
 import type { ReceivingBatch } from "../../validation"
 import ReceivingBatchDetailsDialog from "../dialogs/receiving-batch-details-dialog"
-import ReceivingActionsMenu from "./receiving-actions-menu"
+import ReceivingDetailsButton from "./receiving-details-button"
 import ReceivingTable from "./receiving-table"
 
 const columnHelper = createColumnHelper<ReceivingBatch>()
@@ -54,7 +54,7 @@ export default function ReceivingTableContainer({
 
   // Only the six columns you scan a stock-in log by live in the table. SKU,
   // supplier, quantity remaining, unit cost and receiver are reachable one
-  // click away via the row actions menu, which keeps the table at ~864px —
+  // click away via the row's details button, which keeps the table at ~864px —
   // narrow enough to fit without a horizontal scrollbar at any viewport, since
   // every cell below truncates rather than expanding its column.
   const columns = useMemo(
@@ -130,7 +130,7 @@ export default function ReceivingTableContainer({
         id: "actions",
         header: "",
         cell: ({ row }) => (
-          <ReceivingActionsMenu
+          <ReceivingDetailsButton
             batch={row.original}
             onViewDetails={handleViewDetails}
           />
