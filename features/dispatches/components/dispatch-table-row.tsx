@@ -4,16 +4,23 @@ import { CaretDownIcon } from "@phosphor-icons/react"
 import { flexRender, type Row } from "@tanstack/react-table"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
-import type { Dispatch } from "../../validation"
 
-interface Props {
-  row: Row<Dispatch>
+// Minimal shape every expandable dispatch row satisfies. Generic over the row
+// type so the reports table can reuse this without importing its own type.
+type ExpandableRow = { _id: string }
+
+interface Props<TData extends ExpandableRow> {
+  row: Row<TData>
   isExpanded: boolean
   onToggle: () => void
 }
 
 // Single dispatch row with click-to-expand toggle and inline actions.
-export default function DispatchTableRow({ row, isExpanded, onToggle }: Props) {
+export default function DispatchTableRow<TData extends ExpandableRow>({
+  row,
+  isExpanded,
+  onToggle,
+}: Props<TData>) {
   return (
     <TableRow
       key={row.id}

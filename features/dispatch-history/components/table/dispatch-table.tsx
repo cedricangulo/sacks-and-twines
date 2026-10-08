@@ -20,11 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import DispatchItemsTable from "@/features/dispatches/components/dispatch-items-table"
+import DispatchTableRow from "@/features/dispatches/components/dispatch-table-row"
 import { headClassName, sortButtonAlignClass } from "@/lib/table-alignment"
 import { cn } from "@/lib/utils"
 import type { Dispatch as DispatchType } from "../../validation"
-import DispatchItemsRow from "./dispatch-items-row"
-import DispatchTableRow from "./dispatch-table-row"
 
 interface DispatchTableProps {
   table: ReactTable<DispatchType>
@@ -42,7 +42,7 @@ export default function DispatchTable({
   onItemsColumnVisibilityChange,
 }: DispatchTableProps) {
   const rows = table.getRowModel().rows
-  const totalColumns = table.getAllLeafColumns().length
+  const totalColumns = table.getVisibleLeafColumns().length
 
   return (
     <div className="space-y-4">
@@ -70,13 +70,13 @@ export default function DispatchTable({
                         header.getContext()
                       )}
                       {header.column.getIsSorted() === "asc" ? (
-                        <ArrowDownIcon
+                        <ArrowUpIcon
                           size={14}
                           weight="fill"
                           aria-hidden="true"
                         />
                       ) : header.column.getIsSorted() === "desc" ? (
-                        <ArrowUpIcon
+                        <ArrowDownIcon
                           size={14}
                           weight="fill"
                           aria-hidden="true"
@@ -122,7 +122,7 @@ export default function DispatchTable({
                       className="px-12 bg-muted/50"
                     >
                       <div className="overflow-hidden overflow-y-auto transition-[max-height] duration-200 max-h-70">
-                        <DispatchItemsRow
+                        <DispatchItemsTable
                           dispatchId={row.original._id}
                           columnVisibility={itemsColumnVisibility}
                           onColumnVisibilityChange={

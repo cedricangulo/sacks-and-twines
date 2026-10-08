@@ -15,7 +15,12 @@ export const STATUS_OPTIONS = [
 // `totalItems`/`totalQuantity`/`orNumber` are intentionally absent: they are not
 // toggleable (see the column defs) and `orNumber` is an identifier, not a
 // measure, so it stays left-aligned throughout.
+//
+// Every column whose def sets `enableHiding: false` must be absent here, and
+// every remaining column def must appear — an entry with no matching column is
+// a checkbox that toggles nothing.
 export const DISPATCH_TABLE_COLUMNS = [
+  { id: "customerReference", label: "Customer Ref", type: "text" },
   { id: "status", label: "Status", type: "badge" },
   { id: "userName", label: "Dispatched By", type: "text" },
   { id: "itemCount", label: "Total Items", type: "number" },
@@ -25,11 +30,14 @@ export const DISPATCH_TABLE_COLUMNS = [
 export type DispatchColumnId = (typeof DISPATCH_TABLE_COLUMNS)[number]["id"]
 
 // Column definitions for the dispatch-items sub-table.
+// `quantityDeducted` is deliberately absent: it has no column of its own — it
+// renders as secondary text inside the `dispatchQuantity` cell, so it follows
+// that column's visibility.
 export const ITEMS_TABLE_COLUMNS = [
+  { id: "productName", label: "Product Name", type: "text" },
   { id: "batchCode", label: "Batch Code", type: "mono" },
   { id: "productSku", label: "SKU Code", type: "mono" },
   { id: "dispatchQuantity", label: "Qty", type: "number" },
-  { id: "quantityDeducted", label: "Qty Deducted", type: "number" },
   { id: "unitCost", label: "Unit Cost", type: "currency" },
   { id: "lineTotal", label: "Line Total", type: "currency" },
 ] as const

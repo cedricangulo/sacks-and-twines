@@ -28,8 +28,8 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { formatCurrency, formatNumber } from "@/lib/formatters"
 import { headClassName, sortButtonAlignClass } from "@/lib/table-alignment"
 import { cn } from "@/lib/utils"
-import { useDispatchItems } from "../../hooks/use-dispatch-items"
-import type { DispatchItem } from "../../validation"
+import { useDispatchItems } from "../hooks/use-dispatch-items"
+import type { DispatchItem } from "../validation"
 
 const columnHelper = createColumnHelper<DispatchItem>()
 
@@ -44,14 +44,17 @@ const SKELETON_BY_COLUMN_ID: Record<string, SkeletonCellType> = {
 }
 
 // Dispatched-items table for a single dispatch, shown in an expandable row with sorting and column toggling.
-export default function DispatchItemsRow({
+//
+// `columnVisibility` is optional: callers that surface no column-toggling UI
+// (e.g. the reports detail panel) omit it and every column stays visible.
+export default function DispatchItemsTable({
   dispatchId,
   columnVisibility,
   onColumnVisibilityChange,
 }: {
   dispatchId: Id<"dispatches">
-  columnVisibility: VisibilityState
-  onColumnVisibilityChange: Dispatch<SetStateAction<VisibilityState>>
+  columnVisibility?: VisibilityState
+  onColumnVisibilityChange?: Dispatch<SetStateAction<VisibilityState>>
 }) {
   const items = useDispatchItems(dispatchId)
   const [sorting, setSorting] = useState<SortingState>([
@@ -152,6 +155,8 @@ export default function DispatchItemsRow({
   const table = useReactTable({
     data,
     columns,
+    // `columnVisibility` is undefined when the caller toggles nothing, which
+    // leaves visibility uncontrolled (all columns visible).
     state: { sorting, columnVisibility },
     onSortingChange: setSorting,
     onColumnVisibilityChange,
@@ -239,7 +244,7 @@ export default function DispatchItemsRow({
         ) : (
           <TableRow>
             <TableCell
-              colSpan={table.getAllLeafColumns().length}
+              colSpan={table.getVisibleLeafColumns().length}
               className="h-16 text-center text-muted-foreground"
             >
               No items found for this dispatch.
