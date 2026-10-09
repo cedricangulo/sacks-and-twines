@@ -7,6 +7,9 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 
 // A single dispatch entry as returned by the reports query.
+// `userName`, `itemCount`, `totalQuantity` and `totalValue` are denormalized
+// onto the dispatch doc at write time, so the query's `...dispatch` spread
+// carries them without any extra read.
 export interface ReportDispatch {
   _id: Id<"dispatches">
   _creationTime: number
@@ -17,6 +20,7 @@ export interface ReportDispatch {
   status: "completed" | "voided"
   userName?: string
   itemCount?: number
+  totalQuantity?: number
   totalValue: number
 }
 
