@@ -54,12 +54,17 @@ export default function UploadDropzone({
 
   if (preview) {
     return (
-      <div className="relative w-full overflow-hidden border rounded-xl size-40">
+      <div
+        className={cn(
+          "relative overflow-hidden border rounded-xl size-24",
+          className
+        )}
+      >
         <Image
           src={preview}
           alt="Upload preview"
           fill
-          sizes="160px"
+          sizes="96px"
           className="object-cover object-center"
         />
         <Button
@@ -81,7 +86,7 @@ export default function UploadDropzone({
         role="button"
         tabIndex={0}
         className={cn(
-          "flex flex-col items-center justify-center size-40 border border-dashed rounded-xl transition-colors",
+          "flex flex-col items-center justify-center size-24 border border-dashed rounded-xl transition-colors",
           isDragActive
             ? "border-primary bg-primary/5"
             : "border-input hover:bg-accent hover:border-muted-foreground",

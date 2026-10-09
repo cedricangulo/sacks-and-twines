@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -17,7 +18,6 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
-import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import type { Id } from "@/convex/_generated/dataModel"
 import { formatCurrency, formatNumber } from "@/lib/formatters"
@@ -49,102 +49,62 @@ export default function VoidBatchDialog({
       {children ? (
         <DialogTrigger render={() => children as ReactElement} />
       ) : null}
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
+      {/* Header and footer are pinned; only the body scrolls, so the void action
+          stays reachable without scrolling. `scrollable` is deliberately not
+          used, because it would scroll the whole popup, pushing the action
+          below the fold.
+
+          `Dialog` rather than `AlertDialog`: the optional reason makes this a
+          form, so Esc / outside-click dismissal is expected behaviour and
+          nothing is committed until the user presses the action. */}
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 p-0">
+        <DialogHeader className="shrink-0 p-6 pb-4">
           <DialogTitle>Void batch</DialogTitle>
-          <DialogDescription>
-            {detail ? (
-              <>
-                This will void batch <strong>{detail.batchCode}</strong> for{" "}
-                <strong>{detail.productName ?? "this product"}</strong>.
-              </>
-            ) : (
-              "Loading batch details..."
-            )}
-          </DialogDescription>
+          <DialogDescription>This cannot be undone.</DialogDescription>
         </DialogHeader>
 
+        <div aria-hidden className="h-px shrink-0 bg-border" />
+
         {!detail ? (
-          <div className="flex items-center justify-center py-8 text-muted-foreground">
+          <div className="flex flex-1 items-center justify-center py-8 text-muted-foreground">
             <SpinnerGapIcon
               weight="fill"
               size={20}
               className="mr-2 animate-spin"
             />
-            Loading&hellip;
+            Loading…
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Batch details card */}
-            <div className="rounded-2xl border p-4">
-              <h3 className="mb-3 type-body-small font-medium text-foreground">
-                Batch details
-              </h3>
-              <dl className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <dt className="type-body-small text-muted-foreground">
-                    Batch code
-                  </dt>
-                  <dd className="font-mono type-body-small font-medium text-foreground">
-                    {detail.batchCode}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="type-body-small text-muted-foreground">
-                    Product
-                  </dt>
-                  <dd className="max-w-[60%] text-right type-body-small font-medium text-foreground">
-                    {detail.productName ?? "-"}
-                  </dd>
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <dt className="type-body-small text-muted-foreground">
-                    Quantity remaining
-                  </dt>
-                  <dd className="type-body-small font-semibold text-foreground">
-                    {formatNumber(detail.quantityRemaining)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="type-body-small text-muted-foreground">
-                    Procurement cost
-                  </dt>
-                  <dd className="type-body-small font-medium text-foreground">
-                    {formatCurrency(detail.totalProcurementCost)}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-
-            {/* Warning card */}
+          <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5 [scrollbar-width:thin]">
+            {/* Identity and consequences in one card: the dialog exists to
+                confirm the impact, so the impact leads and the identifying
+                details ride on the same line. */}
             <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
-              <div className="mb-3 flex items-center gap-2">
+              <div className="flex items-start gap-2">
                 <WarningIcon
                   weight="fill"
                   size={18}
-                  className="shrink-0 text-destructive"
+                  className="mt-0.5 shrink-0 text-destructive"
                 />
-                <h3 className="type-body-small font-medium text-foreground">
-                  This action will affect:
-                </h3>
-              </div>
-              <ul className="space-y-2 type-body-small">
-                <li className="flex gap-2">
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-destructive" />
-                  <span className="text-foreground">
-                    Product quantity will decrease by{" "}
-                    <span className="font-medium">
-                      {formatNumber(detail.quantityRemaining)}
-                    </span>
+                <p className="type-body-small font-medium text-foreground">
+                  {detail.productName ?? "This product"}
+                  <span className="font-mono font-normal text-muted-foreground">
+                    {" · "}
+                    {detail.batchCode}
                   </span>
-                </li>
+                </p>
+              </div>
+              <ul className="mt-3 space-y-1.5 ps-6 type-body-small">
                 <li className="flex gap-2">
                   <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-destructive" />
                   <span className="text-foreground">
-                    Product asset value will decrease by{" "}
+                    Stock{" "}
                     <span className="font-medium">
-                      {formatCurrency(detail.totalProcurementCost)}
+                      ↓{formatNumber(detail.quantityRemaining)}
+                    </span>
+                    {" · value "}
+                    <span className="font-medium">
+                      ↓{formatCurrency(detail.totalProcurementCost)}
                     </span>
                   </span>
                 </li>
@@ -152,14 +112,13 @@ export default function VoidBatchDialog({
                   <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-destructive" />
                   <span className="text-foreground">
                     {detail.activeAdjustmentCount > 0
-                      ? `${detail.activeAdjustmentCount} pending stock adjustment(s) will be voided automatically`
-                      : "Pending stock adjustments will be voided automatically"}
+                      ? `${detail.activeAdjustmentCount} pending adjustment(s) voided`
+                      : "Pending adjustments voided"}
                   </span>
                 </li>
               </ul>
             </div>
 
-            {/* Reason */}
             <FieldGroup>
               <Field>
                 <div className="flex items-center justify-between">
@@ -184,7 +143,7 @@ export default function VoidBatchDialog({
           </div>
         )}
 
-        <div className="flex justify-end gap-2">
+        <DialogFooter className="shrink-0 gap-2 border-t p-4 px-6">
           <Button
             type="button"
             variant="outline"
@@ -198,9 +157,9 @@ export default function VoidBatchDialog({
             onClick={handleVoid}
             disabled={!detail}
           >
-            Void batch
+            {detail ? `Void ${detail.batchCode}` : "Void batch"}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

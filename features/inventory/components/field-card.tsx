@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import { Id } from "@/convex/_generated/dataModel"
 import { BASE_UOMS, PRODUCT_CATEGORIES } from "@/convex/lib/constants"
 import SupplierCombobox from "@/features/suppliers/components/supplier-combobox"
@@ -137,6 +138,8 @@ const FieldCard = memo(function FieldCard({
         </Field>
       </FieldGroup>
 
+      <Separator />
+
       <FieldGroup className="grid grid-cols-2">
         <RenderInput
           field="category"
@@ -245,6 +248,8 @@ const FieldCard = memo(function FieldCard({
         </RenderInput>
       </FieldGroup>
 
+      <Separator />
+
       <Field data-invalid={!!errors.lowStockThreshold}>
         <RenderInput
           field="lowStockThreshold"
@@ -269,6 +274,8 @@ const FieldCard = memo(function FieldCard({
           />
         </RenderInput>
       </Field>
+
+      <Separator />
 
       <FieldGroup className="grid grid-cols-2">
         <Field data-invalid={!!errors.quantityReceived}>
