@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react"
 import type { Id } from "@/convex/_generated/dataModel"
+import { formatNumber } from "@/lib/formatters"
 import {
   type StockAdjustmentFieldErrors,
   type StockAdjustmentFormData,
@@ -20,6 +21,8 @@ export function useStockAdjustForm({
   batchId,
   productId,
   currentQuantity,
+  batchQuantity,
+  unitLabel,
   allowDecimal,
   open: openProp,
   onOpenChange,
@@ -27,6 +30,8 @@ export function useStockAdjustForm({
   batchId: Id<"batches">
   productId: Id<"products">
   currentQuantity: number
+  batchQuantity: number
+  unitLabel: string
   allowDecimal?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -79,6 +84,19 @@ export function useStockAdjustForm({
 
     if (!result.success) {
       setErrors(result.errors)
+      return
+    }
+
+    // stock_adjustments.mutations.create clamps with Math.max(0, ...) rather
+    // than rejecting, so an over-deduction would be accepted and would write a
+    // delta larger than the batch ever held into the audit log.
+    if (
+      result.data.direction === "deduct" &&
+      result.data.quantity > batchQuantity
+    ) {
+      setErrors({
+        quantity: `Only ${formatNumber(batchQuantity)} ${unitLabel} available in this batch`,
+      })
       return
     }
 

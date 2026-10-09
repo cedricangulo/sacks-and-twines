@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -13,10 +14,16 @@ import {
   Field,
   FieldContent,
   FieldError,
+  FieldGroup,
   FieldLabel,
   FieldTitle,
 } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
@@ -26,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
@@ -55,6 +63,7 @@ export default function AdjustStockDialog({
     isAuthenticated ? { productId } : "skip"
   )
   const allowDecimal = product?.baseUom === "meter"
+  const unit = product?.baseUom ?? "pcs"
 
   const {
     open: dialogOpen,
@@ -73,6 +82,8 @@ export default function AdjustStockDialog({
     batchId,
     productId,
     currentQuantity: product?.currentQuantity ?? 0,
+    batchQuantity,
+    unitLabel: unit,
     allowDecimal,
     open,
     onOpenChange,
@@ -80,47 +91,69 @@ export default function AdjustStockDialog({
 
   const parsedQty = Number.parseFloat(quantity) || 0
 
+  // The preview previously always subtracted, so picking "Add" showed the
+  // batch quantity going down. This mirrors the direction.
+  const newBatchQuantity =
+    direction === "add"
+      ? batchQuantity + parsedQty
+      : Math.max(0, batchQuantity - parsedQty)
+
+  const exceedsBatch =
+    direction === "deduct" && parsedQty > batchQuantity && parsedQty > 0
+
   return (
     <Dialog open={dialogOpen} onOpenChange={setOpen}>
-      <DialogContent>
-        <DialogHeader>
+      {/* Header and footer are pinned; only the field body scrolls, so Confirm
+          stays reachable without scrolling. `scrollable` is deliberately not
+          used, because it would scroll the whole popup. */}
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 p-0">
+        <DialogHeader className="shrink-0 p-6 pb-4">
           <DialogTitle>Adjust stock</DialogTitle>
           <DialogDescription>
-            Record a stock adjustment for this batch.
+            {product ? (
+              <>
+                {product.name} · <span className="font-mono">{batchCode}</span>
+              </>
+            ) : (
+              "Loading…"
+            )}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-2xl border bg-muted/30 p-4 type-body-small space-y-1">
-          <p>
-            <span className="text-muted-foreground">Batch:</span>{" "}
-            <span className="font-mono">{batchCode}</span>
-          </p>
-          <p>
-            <span className="text-muted-foreground">Product:</span>{" "}
-            {product?.name ?? "Loading..."}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Current stock:</span>{" "}
-            <span className="font-medium">
-              {formatNumber(product?.currentQuantity ?? 0)}{" "}
-              {product?.baseUom ?? "pcs"}
-            </span>
-          </p>
-          <p>
-            <span className="text-muted-foreground">Quantity Remaining:</span>{" "}
-            <span className="font-medium">
-              {formatNumber(batchQuantity)} {product?.baseUom ?? "pcs"}
-            </span>
-          </p>
-        </div>
+        <div aria-hidden className="h-px shrink-0 bg-border" />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <>
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <FieldGroup className="min-h-0 flex-1 gap-5 overflow-y-auto px-6 py-5 [scrollbar-width:thin]">
+            {/* "Current stock" (product) and "Quantity remaining" (batch) used
+                to sit in a four-row card with near-identical labels, so the
+                number the adjustment actually applies to was ambiguous. The
+                batch figure leads; the product total is context only. */}
+            {product ? (
+              <div className="rounded-2xl border bg-muted/30 px-4 py-3 type-body-small">
+                <span className="text-muted-foreground">This batch: </span>
+                <span className="font-medium tabular-nums">
+                  {formatNumber(batchQuantity)} {unit}
+                </span>
+                <span className="text-muted-foreground">
+                  {" · product total "}
+                </span>
+                <span className="tabular-nums">
+                  {formatNumber(product.currentQuantity)} {unit}
+                </span>
+              </div>
+            ) : (
+              <Skeleton className="h-11 w-full" />
+            )}
+
             <Field data-invalid={!!errors.direction}>
               <FieldLabel>Direction</FieldLabel>
               <FieldContent>
                 <RadioGroup
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                  className="grid grid-cols-1 gap-4 sm:grid-cols-2"
                   value={direction}
                   onValueChange={(v) => {
                     if (v === "add" || v === "deduct") setDirection(v)
@@ -152,81 +185,118 @@ export default function AdjustStockDialog({
               ) : null}
             </Field>
 
-            <Field data-invalid={!!errors.quantity}>
-              <FieldLabel htmlFor="adjust-quantity">Quantity</FieldLabel>
-              <FieldContent>
-                <Input
-                  id="adjust-quantity"
-                  type="number"
-                  step={allowDecimal ? "any" : "1"}
-                  min={allowDecimal ? "0.01" : "1"}
-                  placeholder="0"
-                  value={quantity}
-                  aria-invalid={!!errors.quantity}
-                  onInput={(e) => setQuantity(e.currentTarget.value)}
-                />
-              </FieldContent>
-              {errors.quantity ? (
-                <FieldError>{errors.quantity}</FieldError>
-              ) : null}
-            </Field>
-          </>
+            {/* Direction picks the reason list, so quantity and reason read as a
+                pair downstream of it rather than three independent peers. */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <Field data-invalid={!!errors.quantity}>
+                <FieldLabel htmlFor="adjust-quantity">Quantity</FieldLabel>
+                <FieldContent>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="adjust-quantity"
+                      type="number"
+                      className="tabular-nums"
+                      step={allowDecimal ? "any" : "1"}
+                      min={allowDecimal ? "0.01" : "1"}
+                      max={direction === "deduct" ? batchQuantity : undefined}
+                      placeholder="0"
+                      value={quantity}
+                      aria-invalid={!!errors.quantity || exceedsBatch}
+                      onInput={(e) => setQuantity(e.currentTarget.value)}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText>{unit}</InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </FieldContent>
+                {exceedsBatch && !errors.quantity ? (
+                  <FieldError>
+                    Only {formatNumber(batchQuantity)} {unit} available in this
+                    batch
+                  </FieldError>
+                ) : errors.quantity ? (
+                  <FieldError>{errors.quantity}</FieldError>
+                ) : null}
+              </Field>
 
-          <Field data-invalid={!!errors.reason}>
-            <FieldLabel htmlFor="adjust-reason">Reason</FieldLabel>
-            <FieldContent>
-              <Select
-                value={reason}
-                onValueChange={(v) => v != null && setReason(v)}
-              >
-                <SelectTrigger
-                  id="adjust-reason"
-                  className="w-full"
-                  aria-invalid={!!errors.reason}
-                >
-                  <SelectValue placeholder="Select a reason..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {REASONS_BY_DIRECTION[direction].map((r) => (
-                      <SelectItem key={r.value} value={r.value}>
-                        <span>{r.label}</span>
-                        {" - "}
-                        <span className="text-muted-foreground type-body-small font-normal">
-                          {r.description}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </FieldContent>
-            {errors.reason ? <FieldError>{errors.reason}</FieldError> : null}
-          </Field>
-
-          {parsedQty > 0 && reason ? (
-            <div>
-              <p className="type-body-small text-muted-foreground">
-                New stock after adjustment:{" "}
-                <span className="font-medium">
-                  {formatNumber(newQuantity)} {product?.baseUom ?? "pcs"}
-                </span>
-              </p>
-              <p className="type-body-small text-muted-foreground">
-                Adjusted quantity:{" "}
-                <span className="font-medium">
-                  {formatNumber(
-                    batchQuantity - parsedQty <= 0
-                      ? 0
-                      : batchQuantity - parsedQty
-                  )}{" "}
-                  {product?.baseUom ?? "pcs"}
-                </span>
-              </p>
+              <Field data-invalid={!!errors.reason}>
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor="adjust-reason">Reason</FieldLabel>
+                  <span className="type-caption text-muted-foreground">
+                    Required
+                  </span>
+                </div>
+                <FieldContent>
+                  <Select
+                    value={reason}
+                    onValueChange={(v) => v != null && setReason(v)}
+                  >
+                    <SelectTrigger
+                      id="adjust-reason"
+                      className="w-full"
+                      aria-invalid={!!errors.reason}
+                    >
+                      <SelectValue placeholder="Select a reason…" />
+                    </SelectTrigger>
+                    <SelectContent className="w-auto max-w-(--available-width) min-w-(--anchor-width)">
+                      <SelectGroup>
+                        {REASONS_BY_DIRECTION[direction].map((r) => (
+                          <SelectItem
+                            key={r.value}
+                            value={r.value}
+                            className="items-start"
+                          >
+                            {/* Stacked, because SelectItem renders its text with
+                                whitespace-nowrap inside an overflow-x-hidden
+                                popup, so a single line gets clipped rather than
+                                wrapped once the trigger is narrow. */}
+                            <span className="flex flex-col gap-0.5">
+                              <span>{r.label}</span>
+                              <span className="font-normal text-muted-foreground type-body-small">
+                                {r.description}
+                              </span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </FieldContent>
+                {errors.reason ? (
+                  <FieldError>{errors.reason}</FieldError>
+                ) : null}
+              </Field>
             </div>
-          ) : null}
 
-          <div className="flex justify-end gap-2">
+            {parsedQty > 0 && reason ? (
+              <div className="space-y-1 rounded-2xl border bg-muted/30 px-4 py-3 type-body-small">
+                <p>
+                  <span className="text-muted-foreground">This batch: </span>
+                  <span className="tabular-nums">
+                    {formatNumber(batchQuantity)}
+                  </span>
+                  {" → "}
+                  <span className="font-medium tabular-nums">
+                    {formatNumber(newBatchQuantity)}
+                  </span>{" "}
+                  {unit}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Product total: </span>
+                  <span className="tabular-nums">
+                    {formatNumber(product?.currentQuantity ?? 0)}
+                  </span>
+                  {" → "}
+                  <span className="font-medium tabular-nums">
+                    {formatNumber(newQuantity)}
+                  </span>{" "}
+                  {unit}
+                </p>
+              </div>
+            ) : null}
+          </FieldGroup>
+
+          <DialogFooter className="shrink-0 gap-2 border-t p-4 px-6">
             <Button
               type="button"
               variant="outline"
@@ -234,10 +304,10 @@ export default function AdjustStockDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!isDirty}>
-              Confirm
+            <Button type="submit" disabled={!isDirty || exceedsBatch}>
+              Adjust stock
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
