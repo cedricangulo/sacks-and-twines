@@ -1,7 +1,8 @@
 "use client"
 
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +26,7 @@ export default function SignInForm() {
   const { step, error, pending, submitCredentials, submitOtp, reset } =
     useSubmitSignIn()
   const otpFormRef = useRef<HTMLFormElement>(null)
+  const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false)
 
   if (typeof step === "object") {
     return (
@@ -126,13 +128,32 @@ export default function SignInForm() {
         <Field data-invalid={!!error}>
           <FieldLabel htmlFor="password">Password</FieldLabel>
           <FieldContent>
-            <Input
-              id="password"
-              name="password"
-              placeholder="Password"
-              type="password"
-              aria-invalid={!!error}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                placeholder="Password"
+                type={isPasswordVisible ? "text" : "password"}
+                aria-invalid={!!error}
+                className="pe-9"
+              />
+              <button
+                aria-controls="password"
+                aria-label={
+                  isPasswordVisible ? "Hide password" : "Show password"
+                }
+                aria-pressed={isPasswordVisible}
+                className="absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md text-muted-foreground/80 outline-none transition-[color,box-shadow] hover:text-foreground focus:z-10 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => setIsPasswordVisible((prev) => !prev)}
+                type="button"
+              >
+                {isPasswordVisible ? (
+                  <EyeSlashIcon aria-hidden="true" size={16} weight="fill" />
+                ) : (
+                  <EyeIcon aria-hidden="true" size={16} weight="fill" />
+                )}
+              </button>
+            </div>
           </FieldContent>
         </Field>
 
