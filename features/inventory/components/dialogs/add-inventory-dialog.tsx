@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import UploadDropzone from "@/components/ui/upload-dropzone"
+import { PRODUCT_NAME_MAX } from "@/lib/form-primitives"
 import { useInventoryDialog } from "../../hooks/use-inventory-dialog"
 import FieldCard from "../field-card"
 
@@ -190,6 +191,7 @@ export default function AddInventoryDialog() {
                           id="name"
                           name="name"
                           key={String(open)}
+                          maxLength={PRODUCT_NAME_MAX}
                           placeholder="Enter a new item name"
                           aria-invalid={!!errors.name}
                           onInput={() => clearFieldError("name")}

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import type { Id } from "@/convex/_generated/dataModel"
+import { type VoidBatchFieldErrors, validateVoidBatch } from "../validation"
 import { useBatchDetail } from "./use-batch-detail"
 import { useVoidBatch } from "./use-void-batch"
 
@@ -20,9 +21,13 @@ export function useVoidBatchDialog({
   const [internalOpen, setInternalOpen] = useState(false)
   const open = openProp ?? internalOpen
   const [reason, setReason] = useState("")
+  const [errors, setErrors] = useState<VoidBatchFieldErrors>({})
 
   const setOpen = (val: boolean) => {
-    if (val) setReason("")
+    if (!val) {
+      setReason("")
+      setErrors({})
+    }
     if (onOpenChange !== undefined) {
       onOpenChange(val)
     } else {
@@ -31,8 +36,16 @@ export function useVoidBatchDialog({
   }
 
   const handleVoid = async () => {
+    // Validate before mutating. The dialog used to close before awaiting the
+    // mutation, so a rejected submit discarded whatever the operator typed.
+    const result = validateVoidBatch({ reason })
+    if (!result.success) {
+      setErrors(result.errors)
+      return
+    }
+    setErrors({})
+    await voidBatch.submit(batchId, result.data.reason)
     setOpen(false)
-    await voidBatch.submit(batchId, reason || undefined)
   }
 
   return {
@@ -41,6 +54,7 @@ export function useVoidBatchDialog({
     setOpen,
     reason,
     setReason,
+    errors,
     handleVoid,
   }
 }

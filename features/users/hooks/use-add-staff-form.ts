@@ -1,6 +1,7 @@
 "use client"
 
 import { SubmitEvent, useState } from "react"
+import { formatZodErrors } from "@/lib/validation"
 import {
   type StaffFieldErrors,
   type StaffFormData,
@@ -40,14 +41,9 @@ export function useAddStaffForm() {
     const result = StaffSchema.safeParse(formValues)
 
     if (!result.success) {
-      const fieldErrors: StaffFieldErrors = {}
-      for (const issue of result.error.issues) {
-        const field = issue.path[0] as keyof StaffFieldErrors
-        if (!fieldErrors[field]) {
-          fieldErrors[field] = issue.message
-        }
-      }
-      setErrors(fieldErrors)
+      // Shared helper rather than a hand-rolled issue loop, so nested paths
+      // map the same way as in the other four feature forms.
+      setErrors(formatZodErrors(result.error) as StaffFieldErrors)
       return
     }
 

@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import type { Id } from "@/convex/_generated/dataModel"
 import SupplierCombobox from "@/features/suppliers/components/supplier-combobox"
+import { MAX_COST, MAX_QUANTITY } from "@/lib/validation"
 import { useEditBatchForm } from "../../hooks/use-edit-batch-form"
 
 // Dialog form for editing a batch's supplier, quantity received, and procurement cost.
@@ -122,6 +123,7 @@ export default function EditBatchDialog({
                       type="number"
                       step="1"
                       min="0.01"
+                      max={MAX_QUANTITY}
                       className="tabular-nums"
                       value={formValues.quantityReceived}
                       disabled={!canEditQuantities}
@@ -158,6 +160,7 @@ export default function EditBatchDialog({
                         type="number"
                         step="1"
                         min="0.01"
+                        max={MAX_COST}
                         className="peer ps-8 tabular-nums"
                         value={formValues.totalProcurementCost}
                         disabled={!canEditQuantities}

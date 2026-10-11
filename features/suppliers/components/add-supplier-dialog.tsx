@@ -19,6 +19,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useAddSupplierForm } from "../hooks/use-add-supplier-form"
+import {
+  ADDRESS_MAX,
+  COMPANY_NAME_MAX,
+  CONTACT_PERSON_MAX,
+} from "../validation"
 
 // Dialog form for creating a new supplier with company name, contact, and address fields.
 export default function AddSupplierDialog() {
@@ -44,6 +49,7 @@ export default function AddSupplierDialog() {
                 <Input
                   id="companyName"
                   name="companyName"
+                  maxLength={COMPANY_NAME_MAX}
                   placeholder="e.g. Acme Corp"
                   value={formValues.companyName}
                   aria-invalid={!!errors.companyName}
@@ -63,6 +69,7 @@ export default function AddSupplierDialog() {
                 <Input
                   id="contactPerson"
                   name="contactPerson"
+                  maxLength={CONTACT_PERSON_MAX}
                   placeholder="e.g. Juan Dela Cruz"
                   value={formValues.contactPerson}
                   aria-invalid={!!errors.contactPerson}
@@ -102,6 +109,7 @@ export default function AddSupplierDialog() {
                   id="address"
                   name="address"
                   rows={3}
+                  maxLength={ADDRESS_MAX}
                   placeholder="e.g. 123 Rizal St., Brgy. San Jose"
                   value={formValues.address}
                   aria-invalid={!!errors.address}

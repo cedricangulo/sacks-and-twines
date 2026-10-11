@@ -20,7 +20,12 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useEditSupplierForm } from "../hooks/use-edit-supplier-form"
-import { type Supplier } from "../validation"
+import {
+  ADDRESS_MAX,
+  COMPANY_NAME_MAX,
+  CONTACT_PERSON_MAX,
+  type Supplier,
+} from "../validation"
 
 // Dialog form for editing an existing supplier's details.
 export default function EditSupplierDialog({
@@ -61,6 +66,7 @@ export default function EditSupplierDialog({
                 <Input
                   id="edit-companyName"
                   name="companyName"
+                  maxLength={COMPANY_NAME_MAX}
                   placeholder="e.g. Acme Corp"
                   value={formValues.companyName}
                   aria-invalid={!!errors.companyName}
@@ -82,6 +88,7 @@ export default function EditSupplierDialog({
                 <Input
                   id="edit-contactPerson"
                   name="contactPerson"
+                  maxLength={CONTACT_PERSON_MAX}
                   placeholder="e.g. Juan Dela Cruz"
                   value={formValues.contactPerson}
                   aria-invalid={!!errors.contactPerson}
@@ -123,6 +130,7 @@ export default function EditSupplierDialog({
                   id="edit-address"
                   name="address"
                   rows={3}
+                  maxLength={ADDRESS_MAX}
                   placeholder="e.g. 123 Rizal St., Brgy. San Jose"
                   value={formValues.address}
                   aria-invalid={!!errors.address}

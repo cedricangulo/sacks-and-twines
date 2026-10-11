@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator"
 import { Id } from "@/convex/_generated/dataModel"
 import { BASE_UOMS, PRODUCT_CATEGORIES } from "@/convex/lib/constants"
 import SupplierCombobox from "@/features/suppliers/components/supplier-combobox"
+import { MAX_COST, MAX_FACTOR, MAX_QUANTITY } from "@/lib/validation"
 import type { StockInFieldErrors } from "../validation"
 
 // Form state passed into the field card.
@@ -221,6 +222,7 @@ const FieldCard = memo(function FieldCard({
             type="number"
             step="1"
             min="0"
+            max={MAX_FACTOR}
             placeholder="Optional"
             disabled={locked["conversionFactor"] ?? false}
             aria-invalid={!!errors.conversionFactor}
@@ -268,6 +270,7 @@ const FieldCard = memo(function FieldCard({
             type="number"
             step="1"
             min="0"
+            max={MAX_QUANTITY}
             placeholder="0"
             disabled={locked["lowStockThreshold"] ?? false}
             aria-invalid={!!errors.lowStockThreshold}
@@ -287,6 +290,7 @@ const FieldCard = memo(function FieldCard({
               type="number"
               step="1"
               min="0.01"
+              max={MAX_QUANTITY}
               placeholder="0"
               aria-invalid={!!errors.quantityReceived}
               onInput={() => clearFieldError("quantityReceived")}
@@ -308,6 +312,7 @@ const FieldCard = memo(function FieldCard({
               type="number"
               step="1"
               min="0.01"
+              max={MAX_COST}
               placeholder="0"
               aria-invalid={!!errors.totalProcurementCost}
               onInput={() => clearFieldError("totalProcurementCost")}

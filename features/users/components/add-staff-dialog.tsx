@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useAddStaffForm } from "../hooks/use-add-staff-form"
+import { EMAIL_MAX, PASSWORD_MAX, STAFF_NAME_MAX } from "../validation"
 
 // Dialog form for creating a new staff user with name, email, and password fields.
 export default function AddStaffDialog() {
@@ -48,6 +49,7 @@ export default function AddStaffDialog() {
                   id="name"
                   name="name"
                   placeholder="Full name"
+                  maxLength={STAFF_NAME_MAX}
                   value={formValues.name}
                   onInput={(e) => handleChange("name", e.currentTarget.value)}
                   aria-invalid={!!errors.name}
@@ -64,6 +66,7 @@ export default function AddStaffDialog() {
                   name="email"
                   placeholder="Email address"
                   type="email"
+                  maxLength={EMAIL_MAX}
                   value={formValues.email}
                   onInput={(e) => handleChange("email", e.currentTarget.value)}
                   aria-invalid={!!errors.email}
@@ -80,6 +83,9 @@ export default function AddStaffDialog() {
                   name="password"
                   placeholder="Min. 8 characters"
                   type="password"
+                  minLength={8}
+                  maxLength={PASSWORD_MAX}
+                  autoComplete="new-password"
                   value={formValues.password}
                   onInput={(e) =>
                     handleChange("password", e.currentTarget.value)

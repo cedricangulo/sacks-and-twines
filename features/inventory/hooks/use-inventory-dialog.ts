@@ -228,7 +228,12 @@ export function useInventoryDialog() {
 
       const formData = new FormData(form)
 
-      const formName = String(formData.get("name") ?? "")
+      // Trimmed so the schema sees the normalized value. Note it is deliberately
+      // NOT coerced with `|| undefined`: a whitespace-only name becomes "",
+      // which fails `productNameField` with "Name is required". Coercing to
+      // undefined instead would drop the required field from the payload and
+      // let the submit through.
+      const formName = String(formData.get("name") ?? "").trim()
 
       const keywords =
         mode === "new"
@@ -241,7 +246,7 @@ export function useInventoryDialog() {
       const payload = {
         mode,
         productId: mode === "existing" ? selectedProductId : undefined,
-        name: mode === "new" ? formName || undefined : undefined,
+        name: mode === "new" ? formName : undefined,
         category:
           mode === "new" || (mode === "existing" && !locked.category)
             ? (fields.category as "sacks" | "twines" | "thread") || undefined

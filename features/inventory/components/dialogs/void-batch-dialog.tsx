@@ -2,6 +2,7 @@
 
 import { SpinnerGapIcon, WarningIcon } from "@phosphor-icons/react"
 import type { ReactElement, ReactNode } from "react"
+import { FieldCounter } from "@/components/field-counter"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -15,6 +16,7 @@ import {
 import {
   Field,
   FieldContent,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
@@ -22,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea"
 import type { Id } from "@/convex/_generated/dataModel"
 import { formatCurrency, formatNumber } from "@/lib/formatters"
 import { useVoidBatchDialog } from "../../hooks/use-void-batch-dialog"
+import { VOID_REASON_MAX } from "../../validation"
 
 // Dialog with batch details preview and reason input for voiding a batch.
 export default function VoidBatchDialog({
@@ -41,6 +44,7 @@ export default function VoidBatchDialog({
     setOpen,
     reason,
     setReason,
+    errors,
     handleVoid,
   } = useVoidBatchDialog({ batchId, open, onOpenChange })
 
@@ -120,24 +124,31 @@ export default function VoidBatchDialog({
             </div>
 
             <FieldGroup>
-              <Field>
+              <Field data-invalid={!!errors.reason}>
                 <div className="flex items-center justify-between">
                   <FieldLabel htmlFor="void-reason">
                     Reason for voiding
                   </FieldLabel>
-                  <span className="type-caption text-muted-foreground">
-                    Optional
+                  <span className="flex items-center gap-2">
+                    <span className="type-caption text-muted-foreground">
+                      Optional
+                    </span>
+                    <FieldCounter value={reason} max={VOID_REASON_MAX} />
                   </span>
                 </div>
                 <FieldContent>
                   <Textarea
                     id="void-reason"
                     rows={3}
+                    maxLength={VOID_REASON_MAX}
                     placeholder="e.g., Damaged goods, wrong delivery"
                     value={reason}
-                    onChange={(e) => setReason(e.currentTarget.value)}
+                    onChange={(e) => {
+                      setReason(e.currentTarget.value)
+                    }}
                   />
                 </FieldContent>
+                <FieldError>{errors.reason}</FieldError>
               </Field>
             </FieldGroup>
           </div>
