@@ -3,15 +3,42 @@ import type { Id } from "@/convex/_generated/dataModel"
 import {
   contactNumberSchema,
   formatZodErrors,
+  NAME_ALLOWED,
   normalizedString,
+  safeText,
 } from "@/lib/validation"
 
-// Zod schema arguments for supplier form validation.
+export const COMPANY_NAME_MAX = 255
+export const CONTACT_PERSON_MAX = 255
+export const ADDRESS_MAX = 500
+
+/**
+ * Zod schema arguments for supplier form validation.
+ *
+ * Already the strongest form in the app — it was the one reusing the server's
+ * normalizer. Upgraded from `normalizedString` to `safeText` so disallowed
+ * characters are reported to the user instead of being silently removed.
+ * `contactNumber` is unchanged: `contactNumberSchema` already transforms to
+ * digits and validates the PH mobile/landline format, which is the correct
+ * shape for a field with one known format.
+ */
 export const createSupplierArgs = {
-  companyName: normalizedString(2, 255, "Enter a valid company name."),
-  contactPerson: normalizedString(2, 255, "Enter a valid contact person name."),
+  companyName: safeText(
+    2,
+    COMPANY_NAME_MAX,
+    NAME_ALLOWED,
+    "Enter a valid company name — letters, numbers, spaces and . - _ & ( ) / ' , only"
+  ),
+  contactPerson: safeText(
+    2,
+    CONTACT_PERSON_MAX,
+    NAME_ALLOWED,
+    "Enter a valid contact person name — letters, numbers, spaces and . - _ & ( ) / ' , only"
+  ),
   contactNumber: contactNumberSchema,
-  address: normalizedString(10, 500, "Enter a valid address."),
+  // An address is free text, so it is normalized and capped without an
+  // allowlist that would reject ordinary street and unit punctuation.
+  address: normalizedString(10, ADDRESS_MAX, "Enter a valid address."),
 }
 
 // Zod schema for supplier form data.

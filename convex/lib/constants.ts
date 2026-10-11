@@ -18,6 +18,11 @@ export const DISPATCH_UOM_BY_CATEGORY: Record<
 } as const
 
 // ─── Business Rules (confirmed) ─────────────────────────────────────────────
+// Max length for a dispatch customer reference. Shared by the client form
+// (`features/dispatches/validation.ts`) and the server args
+// (`convex/dispatches/validators.ts`) so both reject the same length.
+export const CUSTOMER_REFERENCE_MAX = 50
+
 export const ROLES = ["owner", "staff"] as const
 export const STATUSES = ["active", "archived", "depleted", "voided"] as const
 

@@ -1,11 +1,18 @@
 import { z } from "zod"
-import { formatZodErrors } from "@/lib/validation"
+import { positiveQuantity } from "@/lib/form-primitives"
+import {
+  formatZodErrors,
+  MAX_QUANTITY,
+  NUMERIC_MESSAGES,
+} from "@/lib/validation"
 
 // Zod schema for stock adjustment form data: direction (add/deduct), quantity (> 0), and reason enum.
 // Fractional quantities are only allowed for meter-based products (twines).
+// `.finite()` is defence in depth — zod 4's number type already rejects
+// non-finite values. `Number.parseFloat("1e999")` yields Infinity.
 const StockAdjustmentSchema = z.object({
   direction: z.union([z.literal("add"), z.literal("deduct")]),
-  quantity: z.number().min(0.01, "Quantity must be greater than zero"),
+  quantity: positiveQuantity,
   reason: z.union([
     z.literal("damaged"),
     z.literal("lost"),
@@ -15,7 +22,15 @@ const StockAdjustmentSchema = z.object({
 })
 
 const WholeUnitStockAdjustmentSchema = StockAdjustmentSchema.extend({
-  quantity: z.number().int().min(1, "Quantity must be a whole number"),
+  // Rebuilt rather than extended from `positiveQuantity`: its `.min(0.01)`
+  // rejects zero before `.int()` runs, which would show the generic positive
+  // error instead of the whole-number message users need here.
+  quantity: z
+    .number({ error: NUMERIC_MESSAGES.invalidNumber })
+    .finite(NUMERIC_MESSAGES.numberTooLarge)
+    .int(NUMERIC_MESSAGES.wholeNumber)
+    .min(1, NUMERIC_MESSAGES.wholeNumber)
+    .max(MAX_QUANTITY, NUMERIC_MESSAGES.quantityTooLarge),
 })
 
 export type StockAdjustmentFormData = z.infer<typeof StockAdjustmentSchema>

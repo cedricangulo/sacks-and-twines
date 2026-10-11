@@ -1,15 +1,22 @@
 import { zid } from "convex-helpers/server/zod4"
 import { z } from "zod"
-import { contactNumberSchema, normalizedString } from "../validators/helpers"
+import {
+  contactNumberSchema,
+  NAME_ALLOWED,
+  normalizedString,
+  safeText,
+} from "../validators/helpers"
 
 const auditMeta = {
   userAgent: z.optional(z.string()),
 }
 
 // Arguments for creating a new supplier.
+// `address` stays on `normalizedString`: it is free text, and an allowlist
+// would reject ordinary street and unit punctuation.
 export const createSupplierArgs = {
-  companyName: normalizedString(2, 255),
-  contactPerson: normalizedString(2, 255),
+  companyName: safeText(2, 255, NAME_ALLOWED),
+  contactPerson: safeText(2, 255, NAME_ALLOWED),
   contactNumber: contactNumberSchema,
   address: normalizedString(10, 500),
   ...auditMeta,

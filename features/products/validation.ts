@@ -1,5 +1,11 @@
 import { z } from "zod"
 import type { Id } from "@/convex/_generated/dataModel"
+import {
+  keywordsField,
+  nonNegativeAmount,
+  nonNegativeFactor,
+  productNameField,
+} from "@/lib/form-primitives"
 import { formatZodErrors } from "@/lib/validation"
 
 // A batch available for dispatch with remaining quantity and cost info.
@@ -32,17 +38,22 @@ export interface DispatchReadyProduct {
 }
 
 // Zod schema for product update form data.
+// `name` was previously a bare `z.string().min(1)`, which accepted a
+// whitespace-only value and any markup; it now shares the server's normalizer
+// and rejects disallowed characters rather than stripping them.
 const ProductUpdateSchema = z.object({
-  name: z.string().min(1, "Name is required").max(255),
+  name: productNameField(),
   category: z.union([
     z.literal("sacks"),
     z.literal("twines"),
     z.literal("thread"),
   ]),
   baseUom: z.union([z.literal("piece"), z.literal("roll"), z.literal("meter")]),
-  conversionFactor: z.optional(z.number().min(0)),
-  lowStockThreshold: z.optional(z.number().min(0)),
-  keywords: z.optional(z.array(z.string())),
+  // `.finite()` is defence in depth — zod 4's number type already rejects
+  // non-finite values.
+  conversionFactor: z.optional(nonNegativeFactor),
+  lowStockThreshold: z.optional(nonNegativeAmount),
+  keywords: keywordsField,
 })
 
 export type ProductUpdateFormData = z.infer<typeof ProductUpdateSchema>
