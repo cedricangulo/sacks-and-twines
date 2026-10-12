@@ -4,12 +4,10 @@ import { ArchiveIcon, XCircleIcon } from "@phosphor-icons/react"
 import { useQuery } from "convex-helpers/react/cache"
 import { useMemo, useState } from "react"
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
+  FilteredEmptyState,
+  FilteredTablePage,
+} from "@/components/filtered-table-page"
+import { resolveFilteredTableState } from "@/components/filtered-table-state"
 import SkeletonTable from "@/components/ui/skeleton-table"
 import { api } from "@/convex/_generated/api"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
@@ -28,6 +26,7 @@ export default function InventoryPage() {
     setSearch,
     status,
     category,
+    uom,
     stock,
     setFilters,
     hasActiveFilters,
@@ -44,8 +43,8 @@ export default function InventoryPage() {
   // Remaining filters apply client-side. `filtered === undefined` while the
   // query is unresolved, which is the page's loading signal.
   const filtered = useMemo(
-    () => filterProducts(products, { search, category, stock }),
-    [products, search, category, stock]
+    () => filterProducts(products, { search, category, uom, stock }),
+    [products, search, category, uom, stock]
   )
 
   const [inventoryVisibility, setInventoryVisibility] = useState<
@@ -55,31 +54,34 @@ export default function InventoryPage() {
     Record<string, boolean>
   >({})
 
+  const state = resolveFilteredTableState({
+    isLoading: isUserLoading || filtered === undefined,
+    canAccess: user?.role === "owner",
+    hasRows: (filtered?.length ?? 0) > 0,
+  })
+
   return (
-    <div className="flex-1 space-y-4 pb-6">
-      <InventoryFilterBar
-        search={search}
-        onSearchChange={setSearch}
-        status={status}
-        category={category}
-        stock={stock}
-        onFilterChange={(updates) =>
-          setFilters(
-            updates as Partial<{
-              status: "all" | "active" | "archived"
-              category: "all" | "sacks" | "twines"
-              stock: "all" | "in_stock" | "low_stock" | "out_of_stock"
-            }>
-          )
-        }
-        hasActiveFilters={hasActiveFilters}
-        onClear={clearFilters}
-        inventoryVisibility={inventoryVisibility}
-        onInventoryVisibilityChange={setInventoryVisibility}
-        batchVisibility={batchVisibility}
-        onBatchVisibilityChange={setBatchVisibility}
-      />
-      {isUserLoading || filtered === undefined ? (
+    <FilteredTablePage
+      className="flex-1 space-y-4 pb-6"
+      filterBar={
+        <InventoryFilterBar
+          search={search}
+          onSearchChange={setSearch}
+          status={status}
+          category={category}
+          uom={uom}
+          stock={stock}
+          onFilterChange={(updates) => setFilters(updates)}
+          hasActiveFilters={hasActiveFilters}
+          onClear={clearFilters}
+          inventoryVisibility={inventoryVisibility}
+          onInventoryVisibilityChange={setInventoryVisibility}
+          batchVisibility={batchVisibility}
+          onBatchVisibilityChange={setBatchVisibility}
+        />
+      }
+      state={state}
+      skeleton={
         <SkeletonTable
           columns={[
             { label: "Product Name", type: "name" },
@@ -88,41 +90,27 @@ export default function InventoryPage() {
           actions="ellipsis"
           rowCount={11}
         />
-      ) : user?.role !== "owner" ? (
-        <p className="type-body-small text-muted-foreground">
-          You don&apos;t have permission to access this page.
-        </p>
-      ) : filtered.length > 0 ? (
+      }
+      table={
         <InventoryTableContainer
-          products={filtered}
+          products={filtered ?? []}
           columnVisibility={inventoryVisibility}
           onColumnVisibilityChange={setInventoryVisibility}
           batchColumnVisibility={batchVisibility}
           onBatchColumnVisibilityChange={setBatchVisibility}
         />
-      ) : (
-        <Empty className="animate-fade-in">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              {search || hasActiveFilters ? (
-                <XCircleIcon weight="bold" size={16} />
-              ) : (
-                <ArchiveIcon weight="fill" size={16} />
-              )}
-            </EmptyMedia>
-            <EmptyTitle>
-              {search || hasActiveFilters
-                ? "No products match your filters"
-                : "No products yet"}
-            </EmptyTitle>
-            <EmptyDescription>
-              {search || hasActiveFilters
-                ? "Try adjusting your search or filters."
-                : "Add your first inventory to get started."}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      )}
-    </div>
+      }
+      empty={
+        <FilteredEmptyState
+          isFiltered={Boolean(search || hasActiveFilters)}
+          filteredIcon={<XCircleIcon weight="bold" size={16} />}
+          emptyIcon={<ArchiveIcon weight="fill" size={16} />}
+          filteredTitle="No products match your filters"
+          emptyTitle="No products yet"
+          filteredDescription="Try adjusting your search or filters."
+          emptyDescription="Add your first inventory to get started."
+        />
+      }
+    />
   )
 }

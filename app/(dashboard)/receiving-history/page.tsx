@@ -3,12 +3,10 @@
 import { PackageIcon, XCircleIcon } from "@phosphor-icons/react"
 import { useState } from "react"
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
+  FilteredEmptyState,
+  FilteredTablePage,
+} from "@/components/filtered-table-page"
+import { resolveFilteredTableState } from "@/components/filtered-table-state"
 import SkeletonTable, {
   type SkeletonColumn,
 } from "@/components/ui/skeleton-table"
@@ -29,6 +27,52 @@ const SKELETON_COLUMNS: SkeletonColumn[] = [
   { label: "Batch Code", type: "mono" },
   ...RECEIVING_TABLE_COLUMNS,
 ]
+
+// Pagination stays mounted while a search filters the loaded page, so the
+// footer is its own component rather than more branches in the page.
+function ReceivingPageFooter({
+  showPagination,
+  hiddenBySearch,
+  pageCount,
+  rawPageLength,
+  pageNum,
+  hasNext,
+  hasPrev,
+  onNext,
+  onPrev,
+  isLoading,
+}: {
+  showPagination: boolean
+  hiddenBySearch: boolean
+  pageCount: number
+  rawPageLength: number
+  pageNum: number
+  hasNext: boolean
+  hasPrev: boolean
+  onNext: () => void
+  onPrev: () => void
+  isLoading: boolean
+}) {
+  if (!showPagination) return null
+  return (
+    <>
+      {hiddenBySearch ? (
+        <p className="type-body-small text-muted-foreground">
+          {pageCount} of {rawPageLength} stock-ins on this page match the
+          current filters.
+        </p>
+      ) : null}
+      <ReceivingPagination
+        pageNum={pageNum}
+        hasNext={hasNext}
+        hasPrev={hasPrev}
+        onNext={onNext}
+        onPrev={onPrev}
+        isLoading={isLoading}
+      />
+    </>
+  )
+}
 
 export default function ReceivingHistoryPage() {
   const { user, isLoading: isUserLoading, isAuthenticated } = useCurrentUser()
@@ -76,22 +120,31 @@ export default function ReceivingHistoryPage() {
   const hiddenBySearch =
     !showSkeleton && page.length < rawPageLength && rawPageLength > 0
 
-  return (
-    <div className="min-w-0 flex-1 space-y-4">
-      <ReceivingFilterBar
-        search={search}
-        onSearchChange={setSearch}
-        dateRange={dateRange}
-        supplierId={supplierId}
-        status={status}
-        onFilterChange={(updates) => setFilters(updates)}
-        hasActiveFilters={hasActiveFilters}
-        onClear={clearFilters}
-        columnVisibility={columnVisibility}
-        onColumnVisibilityChange={setColumnVisibility}
-      />
+  const state = resolveFilteredTableState({
+    isLoading: showSkeleton,
+    canAccess: user?.role === "owner",
+    hasRows: page.length > 0,
+  })
 
-      {showSkeleton ? (
+  return (
+    <FilteredTablePage
+      className="min-w-0 flex-1 space-y-4"
+      filterBar={
+        <ReceivingFilterBar
+          search={search}
+          onSearchChange={setSearch}
+          dateRange={dateRange}
+          supplierId={supplierId}
+          status={status}
+          onFilterChange={(updates) => setFilters(updates)}
+          hasActiveFilters={hasActiveFilters}
+          onClear={clearFilters}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+        />
+      }
+      state={state}
+      skeleton={
         <SkeletonTable
           columns={SKELETON_COLUMNS}
           actions="ellipsis"
@@ -99,53 +152,35 @@ export default function ReceivingHistoryPage() {
             RECEIVING_ITEMS_PER_PAGE > 10 ? 11 : RECEIVING_ITEMS_PER_PAGE
           }
         />
-      ) : user?.role !== "owner" ? (
-        <p className="type-body-small text-muted-foreground">
-          You don&apos;t have permission to access this page.
-        </p>
-      ) : page.length > 0 ? (
+      }
+      table={
         <ReceivingTableContainer
           batches={page}
           columnVisibility={columnVisibility}
           onColumnVisibilityChange={setColumnVisibility}
         />
-      ) : hasActiveFilters || search ? (
-        <Empty className="animate-fade-in">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <XCircleIcon size={16} weight="fill" />
-            </EmptyMedia>
-            <EmptyTitle>No stock-ins found</EmptyTitle>
-            <EmptyDescription>
-              {rawPageLength > 0
-                ? "No rows on this page match your search. Use Next to look further back."
-                : "Try adjusting the date range or clearing your filters."}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : (
-        <Empty className="animate-fade-in">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <PackageIcon size={16} weight="fill" />
-            </EmptyMedia>
-            <EmptyTitle>No stock-ins yet</EmptyTitle>
-            <EmptyDescription>
-              Received inventory will appear here once you add it.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      )}
-
-      {showPagination && hiddenBySearch ? (
-        <p className="type-body-small text-muted-foreground">
-          {page.length} of {rawPageLength} stock-ins on this page match the
-          current filters.
-        </p>
-      ) : null}
-
-      {showPagination ? (
-        <ReceivingPagination
+      }
+      empty={
+        <FilteredEmptyState
+          isFiltered={Boolean(hasActiveFilters || search)}
+          filteredIcon={<XCircleIcon size={16} weight="fill" />}
+          emptyIcon={<PackageIcon size={16} weight="fill" />}
+          filteredTitle="No stock-ins found"
+          emptyTitle="No stock-ins yet"
+          filteredDescription={
+            rawPageLength > 0
+              ? "No rows on this page match your search. Use Next to look further back."
+              : "Try adjusting the date range or clearing your filters."
+          }
+          emptyDescription="Received inventory will appear here once you add it."
+        />
+      }
+      footer={
+        <ReceivingPageFooter
+          showPagination={showPagination}
+          hiddenBySearch={hiddenBySearch}
+          pageCount={page.length}
+          rawPageLength={rawPageLength}
           pageNum={pageNum}
           hasNext={hasNext}
           hasPrev={hasPrev}
@@ -153,7 +188,7 @@ export default function ReceivingHistoryPage() {
           onPrev={goPrev}
           isLoading={isTransitioning}
         />
-      ) : null}
-    </div>
+      }
+    />
   )
 }

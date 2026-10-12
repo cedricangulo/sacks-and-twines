@@ -6,6 +6,7 @@ import {
   useQueryState,
   useQueryStates,
 } from "nuqs"
+import { normalizeSearchTerm } from "@/lib/search"
 import {
   DEFAULT_DATE_RANGE,
   RECEIVING_DATE_RANGE_VALUES,
@@ -54,7 +55,7 @@ export function useReceivingFilters() {
   // a history-only write. Neither is worth paying: `search` is not part of the
   // Convex query args, so typing neither refetches nor resets pagination — it
   // costs one history write plus a filter over the loaded page.
-  const [search, setSearch] = useQueryState(
+  const [rawSearch, setSearch] = useQueryState(
     "search",
     parseAsString.withDefault("").withOptions({ history: "replace" })
   )
@@ -62,6 +63,9 @@ export function useReceivingFilters() {
   const [filters, setFilters] = useQueryStates(receivingParsers, {
     history: "replace",
   })
+
+  // Normalized once here so the input and the results describe the same term.
+  const search = normalizeSearchTerm(rawSearch)
 
   const hasActiveFilters =
     search !== "" ||

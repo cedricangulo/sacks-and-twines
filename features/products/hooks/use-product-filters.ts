@@ -7,16 +7,20 @@ import {
   useQueryStates,
 } from "nuqs"
 import { useMemo } from "react"
+import { PRODUCT_CATEGORY_VALUES } from "@/features/inventory/constants"
 import type { DispatchReadyProduct } from "@/features/products/validation"
+import { matchesSearch, normalizeSearchTerm } from "@/lib/search"
 import { getStockLevel } from "@/lib/stock-level"
 
 const DEFAULT_STOCK = "in_stock"
 
 // URL query-state parsers for product catalog filters.
+//
+// Shares `PRODUCT_CATEGORY_VALUES` with the inventory page rather than
+// re-declaring the literals. See the note on that constant for what the drift
+// cost before.
 const categoryParsers = {
-  category: parseAsStringEnum(["all", "sacks", "twines"] as const).withDefault(
-    "all"
-  ),
+  category: parseAsStringEnum([...PRODUCT_CATEGORY_VALUES]).withDefault("all"),
   stock: parseAsStringEnum([
     "all",
     "in_stock",
@@ -35,7 +39,7 @@ const categoryParsers = {
 export function useProductFilters(
   products: DispatchReadyProduct[] | undefined
 ) {
-  const [search, setSearch] = useQueryState(
+  const [rawSearch, setSearch] = useQueryState(
     "search",
     parseAsString.withDefault("").withOptions({
       history: "replace",
@@ -45,6 +49,10 @@ export function useProductFilters(
   const [filters, setFilters] = useQueryStates(categoryParsers, {
     history: "replace",
   })
+
+  // Normalized once here rather than inside the predicate, so the input and the
+  // results can never disagree about which term is being matched.
+  const search = normalizeSearchTerm(rawSearch)
 
   const hasActiveFilters =
     search !== "" ||
@@ -59,12 +67,13 @@ export function useProductFilters(
 
     // Search filter
     if (search) {
-      const q = search.toLowerCase()
       result = result.filter(
         (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.skuCode.toLowerCase().includes(q) ||
-          p.keywords?.some((k) => k.toLowerCase().includes(q)) === true
+          matchesSearch(p.name, search) ||
+          matchesSearch(p.skuCode, search) ||
+          p.keywords?.some((k) => matchesSearch(k, search)) === true ||
+          matchesSearch(p.category, search) ||
+          matchesSearch(p.baseUom, search)
       )
     }
 

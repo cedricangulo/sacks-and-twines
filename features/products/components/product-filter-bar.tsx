@@ -8,20 +8,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { CATEGORY_OPTIONS, SORT_OPTIONS, STOCK_OPTIONS } from "./../constants"
+import type { ProductCategory } from "@/features/inventory/constants"
+import {
+  CATEGORY_OPTIONS,
+  type ProductSort,
+  SORT_OPTIONS,
+  STOCK_OPTIONS,
+} from "./../constants"
 
 // Props for the product filter bar.
 interface Props {
   search: string
   onSearchChange: (value: string) => void
-  category: "all" | "sacks" | "twines"
+  category: ProductCategory
   stock: "all" | "in_stock" | "low_stock" | "out_of_stock"
-  sort: "name_asc" | "name_desc" | "stock_desc" | "stock_asc"
+  sort: ProductSort
   onFilterChange: (
     filters: Partial<{
-      category: "all" | "sacks" | "twines"
+      category: ProductCategory
       stock: "all" | "in_stock" | "low_stock" | "out_of_stock"
-      sort: "name_asc" | "name_desc" | "stock_desc" | "stock_asc"
+      sort: ProductSort
     }>
   ) => void
   hasActiveFilters: boolean

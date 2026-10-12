@@ -1,27 +1,19 @@
 "use client"
 
-import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon } from "@phosphor-icons/react"
+import { ArchiveIcon } from "@phosphor-icons/react"
 import type { VisibilityState } from "@tanstack/react-table"
-import { flexRender, type Table as ReactTable } from "@tanstack/react-table"
+import { type Table as ReactTable } from "@tanstack/react-table"
 import type { Dispatch, SetStateAction } from "react"
 import { Fragment } from "react"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
+import { SortableTableHead } from "@/components/sortable-table-head"
+import TableEmptyState from "@/components/table-empty-state"
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { headClassName, sortButtonAlignClass } from "@/lib/table-alignment"
-import { cn } from "@/lib/utils"
 import type { Product } from "../../validation"
 import BatchDetailsRow from "./batch-details-row"
 import InventoryTableRow from "./inventory-table-row"
@@ -50,58 +42,18 @@ export default function InventoryTable({
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow className="border-border/50" key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
-              <TableHead
-                key={header.id}
-                className={headClassName(header.column.columnDef.meta)}
-              >
-                {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                  <button
-                    data-cuelume-toggle="toggle"
-                    type="button"
-                    className={cn(
-                      "inline-flex items-center gap-1",
-                      sortButtonAlignClass(header.column.columnDef.meta)
-                    )}
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
-                    )}
-                    {header.column.getIsSorted() === "asc" ? (
-                      <ArrowUpIcon size={14} weight="fill" aria-hidden="true" />
-                    ) : header.column.getIsSorted() === "desc" ? (
-                      <ArrowDownIcon
-                        size={14}
-                        weight="fill"
-                        aria-hidden="true"
-                      />
-                    ) : null}
-                  </button>
-                ) : (
-                  flexRender(
-                    header.column.columnDef.header,
-                    header.getContext()
-                  )
-                )}
-              </TableHead>
+              <SortableTableHead key={header.id} header={header} />
             ))}
           </TableRow>
         ))}
       </TableHeader>
       <TableBody className="animate-fade-in">
         {rows.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <ArchiveIcon size={16} weight="fill" />
-              </EmptyMedia>
-              <EmptyTitle>No products yet</EmptyTitle>
-              <EmptyDescription>
-                Add your first inventory to get started.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <TableEmptyState
+            icon={<ArchiveIcon size={16} weight="fill" />}
+            title="No products yet"
+            description="Add your first inventory to get started."
+          />
         ) : (
           rows.map((row) => (
             <Fragment key={row.id}>

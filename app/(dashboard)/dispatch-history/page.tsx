@@ -4,18 +4,30 @@ import { PackageIcon, XCircleIcon } from "@phosphor-icons/react"
 import { parseAsString, useQueryState } from "nuqs"
 import { useState } from "react"
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
+  FilteredEmptyState,
+  FilteredTablePage,
+} from "@/components/filtered-table-page"
+import { resolveFilteredTableState } from "@/components/filtered-table-state"
 import SkeletonTable from "@/components/ui/skeleton-table"
 import DispatchFilterBar from "@/features/dispatch-history/components/dispatch-filter-bar"
 import DispatchTableContainer from "@/features/dispatch-history/components/table/dispatch-table-container"
 import { DISPATCH_SKELETON_COLUMNS } from "@/features/dispatch-history/constants"
 import { useDispatchHistoryFilters } from "@/features/dispatch-history/hooks/use-dispatch-history-filters"
 import { useDispatches } from "@/features/dispatch-history/hooks/use-dispatches"
+
+// Applies the filter-bar update to the matching state owner. Kept outside the
+// page component so the page's control flow stays flat.
+function applyDispatchFilterChange(
+  filters: Partial<{
+    status: "all" | "completed" | "voided"
+    createdByUserId: string
+  }>,
+  setFilters: (filters: { status?: "all" | "completed" | "voided" }) => void,
+  setCreatedByUserId: (value: string) => void
+) {
+  if (filters.status) setFilters({ status: filters.status })
+  if (filters.createdByUserId) setCreatedByUserId(filters.createdByUserId)
+}
 
 export default function DispatchHistoryPage() {
   const [createdByUserId, setCreatedByUserId] = useQueryState(
@@ -45,29 +57,35 @@ export default function DispatchHistoryPage() {
   >({})
 
   const displayData = filtered ?? []
+  const state = resolveFilteredTableState({
+    isLoading,
+    hasRows: displayData.length > 0,
+  })
 
   return (
-    <div className="flex-1 space-y-4">
-      <DispatchFilterBar
-        search={search}
-        onSearchChange={setSearch}
-        status={status}
-        createdByUserId={createdByUserId}
-        onFilterChange={(filters) => {
-          if (filters.status) setFilters({ status: filters.status })
-          if (filters.createdByUserId)
-            setCreatedByUserId(filters.createdByUserId)
-        }}
-        hasActiveFilters={hasActiveFilters}
-        onClear={clearFilters}
-        dispatchVisibility={dispatchVisibility}
-        onDispatchVisibilityChange={setDispatchVisibility}
-        itemsVisibility={itemsVisibility}
-        onItemsVisibilityChange={setItemsVisibility}
-      />
-      {isLoading ? (
+    <FilteredTablePage
+      filterBar={
+        <DispatchFilterBar
+          search={search}
+          onSearchChange={setSearch}
+          status={status}
+          createdByUserId={createdByUserId}
+          onFilterChange={(filters) =>
+            applyDispatchFilterChange(filters, setFilters, setCreatedByUserId)
+          }
+          hasActiveFilters={hasActiveFilters}
+          onClear={clearFilters}
+          dispatchVisibility={dispatchVisibility}
+          onDispatchVisibilityChange={setDispatchVisibility}
+          itemsVisibility={itemsVisibility}
+          onItemsVisibilityChange={setItemsVisibility}
+        />
+      }
+      state={state}
+      skeleton={
         <SkeletonTable columns={DISPATCH_SKELETON_COLUMNS} actions="none" />
-      ) : displayData.length > 0 ? (
+      }
+      table={
         <DispatchTableContainer
           dispatches={displayData}
           columnVisibility={dispatchVisibility}
@@ -75,29 +93,18 @@ export default function DispatchHistoryPage() {
           itemsColumnVisibility={itemsVisibility}
           onItemsColumnVisibilityChange={setItemsVisibility}
         />
-      ) : (
-        <Empty className="animate-fade-in">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              {search || hasActiveFilters ? (
-                <XCircleIcon weight="bold" />
-              ) : (
-                <PackageIcon weight="fill" />
-              )}
-            </EmptyMedia>
-            <EmptyTitle>
-              {search || hasActiveFilters
-                ? "No dispatches match your filters"
-                : "No dispatch history yet"}
-            </EmptyTitle>
-            <EmptyDescription>
-              {search || hasActiveFilters
-                ? "Try adjusting your search or filters."
-                : "Dispatched orders will appear here."}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      )}
-    </div>
+      }
+      empty={
+        <FilteredEmptyState
+          isFiltered={Boolean(search || hasActiveFilters)}
+          filteredIcon={<XCircleIcon weight="bold" />}
+          emptyIcon={<PackageIcon weight="fill" />}
+          filteredTitle="No dispatches match your filters"
+          emptyTitle="No dispatch history yet"
+          filteredDescription="Try adjusting your search or filters."
+          emptyDescription="Dispatched orders will appear here."
+        />
+      }
+    />
   )
 }

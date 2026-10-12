@@ -8,6 +8,8 @@ import {
 } from "nuqs"
 import { useMemo } from "react"
 import type { StaffUser } from "@/features/users/components/staff-table"
+import { formatDateTime } from "@/lib/formatters"
+import { matchesSearch, normalizeSearchTerm } from "@/lib/search"
 
 // URL query-state parsers for staff filters.
 const staffParsers = {
@@ -20,7 +22,7 @@ const staffParsers = {
 
 // Search and status filter state synced to URL query params with client-side filtering of the staff list.
 export function useStaffFilters(staff: StaffUser[] | undefined) {
-  const [search, setSearch] = useQueryState(
+  const [rawSearch, setSearch] = useQueryState(
     "search",
     parseAsString.withDefault("").withOptions({
       history: "replace",
@@ -31,6 +33,9 @@ export function useStaffFilters(staff: StaffUser[] | undefined) {
     history: "replace",
   })
 
+  // Normalized once here so the input and the results describe the same term.
+  const search = normalizeSearchTerm(rawSearch)
+
   const hasActiveFilters = search !== "" || filters.status !== "all"
 
   const filtered = useMemo(() => {
@@ -38,12 +43,15 @@ export function useStaffFilters(staff: StaffUser[] | undefined) {
 
     let result = staff
 
+    // Name, email, status and the Created date are all rendered, so all four are
+    // searchable. The date matches its formatted form.
     if (search) {
-      const q = search.toLowerCase()
       result = result.filter(
         (s) =>
-          (s.name ?? "").toLowerCase().includes(q) ||
-          s.email.toLowerCase().includes(q)
+          matchesSearch(s.name, search) ||
+          matchesSearch(s.email, search) ||
+          matchesSearch(s.status, search) ||
+          matchesSearch(formatDateTime(s._creationTime), search)
       )
     }
 

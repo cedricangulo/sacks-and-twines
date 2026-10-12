@@ -1,15 +1,7 @@
-import { ColumnsIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react"
+import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react"
 import type { Dispatch, SetStateAction } from "react"
+import ColumnVisibilityMenu from "@/components/column-visibility-menu"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  // DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -22,8 +14,11 @@ import {
   BATCH_TABLE_COLUMNS,
   CATEGORY_OPTIONS,
   INVENTORY_TABLE_COLUMNS,
+  type ProductCategory,
+  type ProductUom,
   STATUS_OPTIONS,
   STOCK_OPTIONS,
+  UOM_OPTIONS,
 } from "../constants"
 
 // Props for the inventory filter bar.
@@ -31,12 +26,14 @@ interface Props {
   search: string
   onSearchChange: (value: string) => void
   status: "all" | "active" | "archived"
-  category: "all" | "sacks" | "twines"
+  category: ProductCategory
+  uom: ProductUom
   stock: "all" | "in_stock" | "low_stock" | "out_of_stock"
   onFilterChange: (
     filters: Partial<{
       status: "all" | "active" | "archived"
-      category: "all" | "sacks" | "twines"
+      category: ProductCategory
+      uom: ProductUom
       stock: "all" | "in_stock" | "low_stock" | "out_of_stock"
     }>
   ) => void
@@ -54,6 +51,7 @@ export default function InventoryFilterBar({
   onSearchChange,
   status,
   category,
+  uom,
   stock,
   onFilterChange,
   hasActiveFilters,
@@ -103,9 +101,7 @@ export default function InventoryFilterBar({
       <Select
         value={category}
         onValueChange={(v) =>
-          onFilterChange({
-            category: v as "all" | "sacks" | "twines",
-          })
+          onFilterChange({ category: v as ProductCategory })
         }
       >
         <SelectTrigger className="w-37">
@@ -116,6 +112,24 @@ export default function InventoryFilterBar({
         </SelectTrigger>
         <SelectContent>
           {CATEGORY_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={uom}
+        onValueChange={(v) => onFilterChange({ uom: v as ProductUom })}
+      >
+        <SelectTrigger className="w-33">
+          <SelectValue>
+            {UOM_OPTIONS.find((o) => o.value === uom)?.label ?? uom}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {UOM_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
               {opt.label}
             </SelectItem>
@@ -145,54 +159,22 @@ export default function InventoryFilterBar({
         </SelectContent>
       </Select>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="secondary" />}>
-          <ColumnsIcon weight="fill" className="text-muted-foreground" />
-          Columns
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="grid grid-cols-2 gap-4 min-w-100"
-        >
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>Inventory Table</DropdownMenuLabel>
-            {INVENTORY_TABLE_COLUMNS.map((col) => (
-              <DropdownMenuCheckboxItem
-                key={col.id}
-                checked={inventoryVisibility[col.id] ?? true}
-                closeOnClick={false}
-                onCheckedChange={(checked) =>
-                  onInventoryVisibilityChange((prev) => ({
-                    ...prev,
-                    [col.id]: checked === undefined ? true : checked,
-                  }))
-                }
-              >
-                {col.label}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuGroup>
-          {/* <DropdownMenuSeparator /> */}
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>Batch Table</DropdownMenuLabel>
-            {BATCH_TABLE_COLUMNS.map((col) => (
-              <DropdownMenuCheckboxItem
-                key={col.id}
-                checked={batchVisibility[col.id] ?? true}
-                closeOnClick={false}
-                onCheckedChange={(checked) =>
-                  onBatchVisibilityChange((prev) => ({
-                    ...prev,
-                    [col.id]: checked === undefined ? true : checked,
-                  }))
-                }
-              >
-                {col.label}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ColumnVisibilityMenu
+        groups={[
+          {
+            label: "Inventory Table",
+            columns: INVENTORY_TABLE_COLUMNS,
+            visibility: inventoryVisibility,
+            onVisibilityChange: onInventoryVisibilityChange,
+          },
+          {
+            label: "Batch Table",
+            columns: BATCH_TABLE_COLUMNS,
+            visibility: batchVisibility,
+            onVisibilityChange: onBatchVisibilityChange,
+          },
+        ]}
+      />
 
       {hasActiveFilters ? (
         <Button type="button" variant="ghost" onClick={onClear}>

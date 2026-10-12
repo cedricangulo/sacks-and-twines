@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { computeQuickRange } from "@/features/reports/constants"
+import { formatCurrency, formatDateTime } from "@/lib/formatters"
+import { matchesNumber, matchesSearch } from "@/lib/search"
 import { RECEIVING_ITEMS_PER_PAGE, type ReceivingStatus } from "../constants"
 import type { ReceivingBatch } from "../validation"
 
@@ -89,24 +91,19 @@ export function useReceivingHistory({
     [dateRange, resolvedSupplierId, resolvedStatus, skip]
   )
 
-  const prevFiltersKeyRef = useRef(filtersKey)
-  // Pagination must restart at page 1 when the query changes — intentional state
-  // sync on input change; remounting via `key={filtersKey}` would drop the
-  // transition state and scroll position.
-  //
-  // Flagged by `react-doctor/no-adjust-state-on-prop-change` (as is the
-  // reference implementation at `use-audit-logs.ts:74-78`). Not suppressing
-  // without cause: the derived-state alternative would need the cursor stack
-  // keyed to the filter set, which is the state this effect already owns.
-  useEffect(() => {
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey
-      setCursor(null)
-      setHistory([])
-      setPageNum(1)
-      setIsTransitioning(false)
-    }
-  }, [filtersKey])
+  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey)
+  // Pagination must restart at page 1 when the query changes. This uses React's
+  // render-phase state adjustment pattern: the reset commits with the same
+  // render that sees the new filters, so stale rows are never painted. A
+  // `key={filtersKey}` remount would also drop transition state and scroll
+  // position.
+  if (filtersKey !== prevFiltersKey) {
+    setPrevFiltersKey(filtersKey)
+    setCursor(null)
+    setHistory([])
+    setPageNum(1)
+    setIsTransitioning(false)
+  }
 
   const queryArgs = useMemo(
     () =>
@@ -135,25 +132,28 @@ export function useReceivingHistory({
 
   // Retain the last resolved result so a refetch does not blank the table.
   //
-  // Written during render (not in an effect) so the very first render after a
-  // resolved result already sees it. Reading it back only when `result` is
+  // This also uses render-phase adjustment: when a fresh result arrives, the
+  // retained value updates before commit, so the first render after resolution
+  // already sees it. Reading the retained value only when `result` is
   // `undefined` means stale rows are never shown *instead of* fresh ones —
-  // they are just not thrown away during the gap.
-  const lastResultRef = useRef(result)
-  if (result !== undefined) {
-    lastResultRef.current = result
+  // they are just not thrown away during the gap. Unlike a ref written during
+  // render, an abandoned render cannot leak this update into committed UI.
+  const [lastResolvedResult, setLastResolvedResult] = useState(result)
+  if (result !== undefined && result !== lastResolvedResult) {
+    setLastResolvedResult(result)
+    if (isTransitioning) {
+      setIsTransitioning(false)
+    }
   }
-  const shownResult = result ?? lastResultRef.current
+  const shownResult = result ?? lastResolvedResult
 
-  // Clear the transitioning flag once Convex returns the next page.
+  // `hasLoadedOnce` only tracks whether anything has ever resolved; it does not
+  // affect pagination state, so it stays in an effect.
   useEffect(() => {
     if (result !== undefined) {
       hasLoadedOnceRef.current = true
-      if (isTransitioning) {
-        setIsTransitioning(false)
-      }
     }
-  }, [result, isTransitioning])
+  }, [result])
 
   const goNext = useCallback(() => {
     if (!result || result.isDone || isTransitioning) return
@@ -182,15 +182,25 @@ export function useReceivingHistory({
 
   // Client-side search within the loaded pages. Same scope as dispatch history:
   // it filters what is on screen, it is not a server-side text search.
+  // Every rendered column is searchable, plus the batch code, quantities, costs,
+  // status and the received-at date that the details dialog shows.
   const filtered = useMemo(() => {
     if (!search) return page
-    const q = search.toLowerCase()
     return page.filter(
       (b) =>
-        b.batchCode.toLowerCase().includes(q) ||
-        b.productName.toLowerCase().includes(q) ||
-        b.supplierName.toLowerCase().includes(q) ||
-        b.receivedBy.toLowerCase().includes(q)
+        matchesSearch(b.batchCode, search) ||
+        matchesSearch(b.productName, search) ||
+        matchesSearch(b.productSku, search) ||
+        matchesSearch(b.supplierName, search) ||
+        matchesSearch(b.receivedBy, search) ||
+        matchesSearch(b.status, search) ||
+        matchesNumber(b.quantityReceived, search) ||
+        matchesNumber(b.quantityRemaining, search) ||
+        matchesNumber(b.unitCost, search) ||
+        matchesSearch(formatCurrency(b.unitCost), search) ||
+        matchesNumber(b.totalProcurementCost, search) ||
+        matchesSearch(formatCurrency(b.totalProcurementCost), search) ||
+        matchesSearch(formatDateTime(b.createdAt ?? b._creationTime), search)
     )
   }, [page, search])
 

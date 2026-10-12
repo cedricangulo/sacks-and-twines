@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { matchesSearch, normalizeSearchTerm } from "@/lib/search"
 import { cn } from "@/lib/utils"
 import type { Product } from "../../inventory/validation"
 
@@ -32,18 +33,16 @@ export default function ProductCombobox({
     [products, value]
   )
 
-  const filtered = useMemo(
-    () =>
-      products.filter((p) => {
-        const q = query.toLowerCase()
-        return (
-          p.name.toLowerCase().includes(q) ||
-          p.skuCode.toLowerCase().includes(q) ||
-          p.keywords?.some((k) => k.toLowerCase().includes(q)) === true
-        )
-      }),
-    [products, query]
-  )
+  const filtered = useMemo(() => {
+    const term = normalizeSearchTerm(query)
+    if (!term) return products
+    return products.filter(
+      (p) =>
+        matchesSearch(p.name, term) ||
+        matchesSearch(p.skuCode, term) ||
+        p.keywords?.some((k) => matchesSearch(k, term)) === true
+    )
+  }, [products, query])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

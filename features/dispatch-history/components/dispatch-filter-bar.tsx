@@ -2,22 +2,14 @@
 
 import {
   ArrowLeftIcon,
-  ColumnsIcon,
   MagnifyingGlassIcon,
   XIcon,
 } from "@phosphor-icons/react"
 import { useQuery } from "convex-helpers/react/cache"
 import Link from "next/link"
 import type { Dispatch, SetStateAction } from "react"
+import ColumnVisibilityMenu from "@/components/column-visibility-menu"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -144,53 +136,22 @@ export default function DispatchFilterBar({
         </SelectContent>
       </Select>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="secondary" />}>
-          <ColumnsIcon weight="fill" className="text-muted-foreground" />
-          Columns
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="grid grid-cols-2 gap-4 min-w-100"
-        >
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>Dispatch Table</DropdownMenuLabel>
-            {DISPATCH_TABLE_COLUMNS.map((col) => (
-              <DropdownMenuCheckboxItem
-                key={col.id}
-                checked={dispatchVisibility[col.id] ?? true}
-                closeOnClick={false}
-                onCheckedChange={(checked) =>
-                  onDispatchVisibilityChange((prev) => ({
-                    ...prev,
-                    [col.id]: checked === undefined ? true : checked,
-                  }))
-                }
-              >
-                {col.label}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuGroup>
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>Items Table</DropdownMenuLabel>
-            {ITEMS_TABLE_COLUMNS.map((col) => (
-              <DropdownMenuCheckboxItem
-                key={col.id}
-                checked={itemsVisibility[col.id] ?? true}
-                closeOnClick={false}
-                onCheckedChange={(checked) =>
-                  onItemsVisibilityChange((prev) => ({
-                    ...prev,
-                    [col.id]: checked === undefined ? true : checked,
-                  }))
-                }
-              >
-                {col.label}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ColumnVisibilityMenu
+        groups={[
+          {
+            label: "Dispatch Table",
+            columns: DISPATCH_TABLE_COLUMNS,
+            visibility: dispatchVisibility,
+            onVisibilityChange: onDispatchVisibilityChange,
+          },
+          {
+            label: "Items Table",
+            columns: ITEMS_TABLE_COLUMNS,
+            visibility: itemsVisibility,
+            onVisibilityChange: onItemsVisibilityChange,
+          },
+        ]}
+      />
 
       {hasActiveFilters ? (
         <Button type="button" variant="ghost" onClick={onClear}>

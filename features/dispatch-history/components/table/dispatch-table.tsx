@@ -1,29 +1,21 @@
 "use client"
 
-import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon } from "@phosphor-icons/react"
+import { ArchiveIcon } from "@phosphor-icons/react"
 import type { VisibilityState } from "@tanstack/react-table"
-import { flexRender, type Table as ReactTable } from "@tanstack/react-table"
+import { type Table as ReactTable } from "@tanstack/react-table"
 import type { Dispatch, SetStateAction } from "react"
 import { Fragment } from "react"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
+import { SortableTableHead } from "@/components/sortable-table-head"
+import TableEmptyState from "@/components/table-empty-state"
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
 import DispatchItemsTable from "@/features/dispatches/components/dispatch-items-table"
 import DispatchTableRow from "@/features/dispatches/components/dispatch-table-row"
-import { headClassName, sortButtonAlignClass } from "@/lib/table-alignment"
-import { cn } from "@/lib/utils"
 import type { Dispatch as DispatchType } from "../../validation"
 
 interface DispatchTableProps {
@@ -51,62 +43,18 @@ export default function DispatchTable({
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  className={headClassName(header.column.columnDef.meta)}
-                >
-                  {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                    <button
-                      data-cuelume-toggle="toggle"
-                      type="button"
-                      className={cn(
-                        "inline-flex items-center gap-1",
-                        sortButtonAlignClass(header.column.columnDef.meta)
-                      )}
-                      onClick={header.column.getToggleSortingHandler()}
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                      {header.column.getIsSorted() === "asc" ? (
-                        <ArrowUpIcon
-                          size={14}
-                          weight="fill"
-                          aria-hidden="true"
-                        />
-                      ) : header.column.getIsSorted() === "desc" ? (
-                        <ArrowDownIcon
-                          size={14}
-                          weight="fill"
-                          aria-hidden="true"
-                        />
-                      ) : null}
-                    </button>
-                  ) : (
-                    flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
-                    )
-                  )}
-                </TableHead>
+                <SortableTableHead key={header.id} header={header} />
               ))}
             </TableRow>
           ))}
         </TableHeader>
         <TableBody className="animate-fade-in">
           {rows.length === 0 ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <ArchiveIcon size={16} weight="fill" />
-                </EmptyMedia>
-                <EmptyTitle>No dispatch history yet</EmptyTitle>
-                <EmptyDescription>
-                  Dispatched orders will appear here.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <TableEmptyState
+              icon={<ArchiveIcon size={16} weight="fill" />}
+              title="No dispatch history yet"
+              description="Dispatched orders will appear here."
+            />
           ) : (
             rows.map((row) => (
               <Fragment key={row.id}>
@@ -124,6 +72,7 @@ export default function DispatchTable({
                       <div className="overflow-hidden overflow-y-auto transition-[max-height] duration-200 max-h-70">
                         <DispatchItemsTable
                           dispatchId={row.original._id}
+                          searchParamKey="dispatchItemSearch"
                           columnVisibility={itemsColumnVisibility}
                           onColumnVisibilityChange={
                             onItemsColumnVisibilityChange

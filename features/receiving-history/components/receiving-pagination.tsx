@@ -1,12 +1,6 @@
 "use client"
 
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import CursorPagination from "@/components/cursor-pagination"
 
 interface ReceivingPaginationProps {
   pageNum: number
@@ -18,49 +12,6 @@ interface ReceivingPaginationProps {
 }
 
 // Previous/next cursor pagination for the receiving history list.
-export default function ReceivingPagination({
-  pageNum,
-  hasNext,
-  hasPrev,
-  onNext,
-  onPrev,
-  isLoading,
-}: ReceivingPaginationProps) {
-  return (
-    <Pagination>
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            onClick={hasPrev && !isLoading ? onPrev : undefined}
-            href={undefined}
-            text="Previous"
-            className={
-              !hasPrev || isLoading
-                ? "pointer-events-none opacity-50"
-                : "cursor-pointer"
-            }
-          />
-        </PaginationItem>
-
-        <PaginationItem>
-          <span className="flex h-9 items-center px-4 type-body-small tabular-nums text-muted-foreground">
-            Page {pageNum}
-          </span>
-        </PaginationItem>
-
-        <PaginationItem>
-          <PaginationNext
-            onClick={hasNext && !isLoading ? onNext : undefined}
-            href={undefined}
-            text="Next"
-            className={
-              !hasNext || isLoading
-                ? "pointer-events-none opacity-50"
-                : "cursor-pointer"
-            }
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  )
+export default function ReceivingPagination(props: ReceivingPaginationProps) {
+  return <CursorPagination {...props} />
 }

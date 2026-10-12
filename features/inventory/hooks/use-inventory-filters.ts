@@ -6,18 +6,27 @@ import {
   useQueryState,
   useQueryStates,
 } from "nuqs"
+import {
+  PRODUCT_CATEGORY_VALUES,
+  PRODUCT_UOM_VALUES,
+} from "@/features/inventory/constants"
 import type { Product } from "@/features/inventory/validation"
-import { formatCurrency } from "@/lib/formatters"
+import { formatCurrency, formatDateTime } from "@/lib/formatters"
+import { matchesNumber, matchesSearch, normalizeSearchTerm } from "@/lib/search"
 import { getStockLevel } from "@/lib/stock-level"
 
 // URL query-state parsers for inventory filters.
+//
+// `parseAsStringEnum` takes a mutable array, so the `as const` tuples are
+// spread. Spreading (rather than re-typing the literals) is what keeps the
+// parser from drifting from `PRODUCT_CATEGORY_VALUES` again — see the note on
+// that constant.
 const inventoryParsers = {
   status: parseAsStringEnum(["all", "active", "archived"] as const).withDefault(
     "active"
   ),
-  category: parseAsStringEnum(["all", "sacks", "twines"] as const).withDefault(
-    "all"
-  ),
+  category: parseAsStringEnum([...PRODUCT_CATEGORY_VALUES]).withDefault("all"),
+  uom: parseAsStringEnum([...PRODUCT_UOM_VALUES]).withDefault("all"),
   stock: parseAsStringEnum([
     "all",
     "in_stock",
@@ -32,6 +41,7 @@ const DEFAULT_STATUS = "active"
 export interface InventoryClientFilters {
   search: string
   category: string
+  uom: string
   stock: "all" | "in_stock" | "low_stock" | "out_of_stock"
 }
 
@@ -45,7 +55,7 @@ export interface InventoryClientFilters {
  * `filterProducts` below once the query resolves.
  */
 export function useInventoryFilters() {
-  const [search, setSearch] = useQueryState(
+  const [rawSearch, setSearch] = useQueryState(
     "search",
     parseAsString.withDefault("").withOptions({
       history: "replace",
@@ -56,15 +66,26 @@ export function useInventoryFilters() {
     history: "replace",
   })
 
+  // The raw URL value is normalized once, here, rather than inside the search
+  // predicate. The input renders this value, so the box and the results are
+  // always describing the same term — see `normalizeSearchTerm`.
+  const search = normalizeSearchTerm(rawSearch)
+
   const hasActiveFilters =
     search !== "" ||
     filters.status !== DEFAULT_STATUS ||
     filters.category !== "all" ||
+    filters.uom !== "all" ||
     filters.stock !== "all"
 
   const clearFilters = () => {
     setSearch("")
-    setFilters({ status: DEFAULT_STATUS, category: "all", stock: "all" })
+    setFilters({
+      status: DEFAULT_STATUS,
+      category: "all",
+      uom: "all",
+      stock: "all",
+    })
   }
 
   return {
@@ -72,6 +93,7 @@ export function useInventoryFilters() {
     setSearch,
     status: filters.status,
     category: filters.category,
+    uom: filters.uom,
     stock: filters.stock,
     setFilters,
     hasActiveFilters,
@@ -88,28 +110,41 @@ export function useInventoryFilters() {
  */
 export function filterProducts(
   products: Product[] | undefined,
-  { search, category, stock }: InventoryClientFilters
+  { search, category, uom, stock }: InventoryClientFilters
 ): Product[] | undefined {
   if (!products) return undefined
 
   let result = products
 
   if (search) {
-    const q = search.toLowerCase()
+    // Every rendered column is searchable: name, SKU, keywords, category, unit,
+    // quantity, asset value, created date and status. Numbers and currency are
+    // matched against their *formatted* form, so what the user reads in the
+    // cell is what they can type. The trade is that a term like "1" matches any
+    // value containing a 1 — deliberate, since matching a bare `₱1,200.00`
+    // requires matching "1200" and the formatted string is the only honest way
+    // to bridge the two.
     result = result.filter(
       (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.skuCode.toLowerCase().includes(q) ||
-        p.keywords?.some((k) => k.toLowerCase().includes(q)) === true ||
-        p.category.toLowerCase().includes(q) ||
-        p.baseUom.toLowerCase().includes(q) ||
-        p.currentQuantity.toString().toLowerCase().includes(q) ||
-        formatCurrency(p.totalAssetValue).toString().toLowerCase().includes(q)
+        matchesSearch(p.name, search) ||
+        matchesSearch(p.skuCode, search) ||
+        p.keywords?.some((k) => matchesSearch(k, search)) === true ||
+        matchesSearch(p.category, search) ||
+        matchesSearch(p.baseUom, search) ||
+        matchesNumber(p.currentQuantity, search) ||
+        matchesNumber(p.totalAssetValue, search) ||
+        matchesSearch(formatCurrency(p.totalAssetValue), search) ||
+        matchesSearch(formatDateTime(p.createdAt ?? p._creationTime), search) ||
+        matchesSearch(p.status, search)
     )
   }
 
   if (category !== "all") {
     result = result.filter((p) => p.category === category)
+  }
+
+  if (uom !== "all") {
+    result = result.filter((p) => p.baseUom === uom)
   }
 
   if (stock !== "all") {

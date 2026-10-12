@@ -8,6 +8,7 @@ import {
 } from "nuqs"
 import { useMemo } from "react"
 import type { Supplier } from "@/features/suppliers/validation"
+import { matchesSearch, normalizeSearchTerm } from "@/lib/search"
 
 // URL query-state parsers for supplier filters.
 const supplierParsers = {
@@ -18,7 +19,7 @@ const supplierParsers = {
 
 // Search and status filter state synced to URL query params with client-side filtering of the supplier list.
 export function useSupplierFilters(suppliers: Supplier[] | undefined) {
-  const [search, setSearch] = useQueryState(
+  const [rawSearch, setSearch] = useQueryState(
     "search",
     parseAsString.withDefault("").withOptions({
       history: "replace",
@@ -29,6 +30,9 @@ export function useSupplierFilters(suppliers: Supplier[] | undefined) {
     history: "replace",
   })
 
+  // Normalized once here so the input and the results describe the same term.
+  const search = normalizeSearchTerm(rawSearch)
+
   const hasActiveFilters = search !== "" || filters.status !== "all"
 
   const filtered = useMemo(() => {
@@ -36,14 +40,19 @@ export function useSupplierFilters(suppliers: Supplier[] | undefined) {
 
     let result = suppliers
 
+    // Every rendered column is searchable, plus the derived Status badge so
+    // "archived" and "active" both find rows.
     if (search) {
-      const q = search.toLowerCase()
       result = result.filter(
         (s) =>
-          s.companyName.toLowerCase().includes(q) ||
-          (s.contactPerson ?? "").toLowerCase().includes(q) ||
-          (s.contactNumber ?? "").toLowerCase().includes(q) ||
-          (s.address ?? "").toLowerCase().includes(q)
+          matchesSearch(s.companyName, search) ||
+          matchesSearch(s.contactPerson, search) ||
+          matchesSearch(s.contactNumber, search) ||
+          matchesSearch(s.address, search) ||
+          matchesSearch(
+            s.archivedAt === undefined ? "active" : "archived",
+            search
+          )
       )
     }
 

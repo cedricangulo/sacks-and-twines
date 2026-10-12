@@ -4,12 +4,10 @@ import { UsersIcon, XCircleIcon } from "@phosphor-icons/react"
 import { useQuery } from "convex-helpers/react/cache"
 import { useState } from "react"
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
+  FilteredEmptyState,
+  FilteredTablePage,
+} from "@/components/filtered-table-page"
+import { resolveFilteredTableState } from "@/components/filtered-table-state"
 import SkeletonTable from "@/components/ui/skeleton-table"
 import { api } from "@/convex/_generated/api"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
@@ -35,62 +33,57 @@ export default function UsersPage() {
     Record<string, boolean>
   >({})
 
+  const state = resolveFilteredTableState({
+    isLoading: isUserLoading || filtered === undefined,
+    canAccess: user?.role === "owner",
+    hasRows: (filtered?.length ?? 0) > 0,
+  })
+
   return (
-    <div className="flex-1 space-y-4">
-      <StaffFilterBar
-        search={search}
-        onSearchChange={setSearch}
-        status={status}
-        onFilterChange={(updates) =>
-          setFilters(
-            updates as Partial<{
-              status: "all" | "active" | "deactivated"
-            }>
-          )
-        }
-        hasActiveFilters={hasActiveFilters}
-        onClear={clearFilters}
-        columnVisibility={columnVisibility}
-        onColumnVisibilityChange={setColumnVisibility}
-      />
-      {isUserLoading || filtered === undefined ? (
+    <FilteredTablePage
+      filterBar={
+        <StaffFilterBar
+          search={search}
+          onSearchChange={setSearch}
+          status={status}
+          onFilterChange={(updates) =>
+            setFilters(
+              updates as Partial<{
+                status: "all" | "active" | "deactivated"
+              }>
+            )
+          }
+          hasActiveFilters={hasActiveFilters}
+          onClear={clearFilters}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+        />
+      }
+      state={state}
+      skeleton={
         <SkeletonTable
           columns={[{ label: "Name", type: "text" }, ...STAFF_TABLE_COLUMNS]}
           actions="text"
         />
-      ) : user?.role !== "owner" ? (
-        <p className="type-body-small text-muted-foreground">
-          You don&apos;t have permission to access this page.
-        </p>
-      ) : filtered.length > 0 ? (
+      }
+      table={
         <StaffTableContainer
-          staff={filtered}
+          staff={filtered ?? []}
           columnVisibility={columnVisibility}
           onColumnVisibilityChange={setColumnVisibility}
         />
-      ) : (
-        <Empty className="animate-fade-in">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              {search || hasActiveFilters ? (
-                <XCircleIcon weight="bold" size={16} />
-              ) : (
-                <UsersIcon weight="fill" size={16} />
-              )}
-            </EmptyMedia>
-            <EmptyTitle>
-              {search || hasActiveFilters
-                ? "No staff match your filters"
-                : "No staff yet"}
-            </EmptyTitle>
-            <EmptyDescription>
-              {search || hasActiveFilters
-                ? "Try adjusting your search or filters."
-                : "Create your first staff account to get started."}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      )}
-    </div>
+      }
+      empty={
+        <FilteredEmptyState
+          isFiltered={Boolean(search || hasActiveFilters)}
+          filteredIcon={<XCircleIcon weight="bold" size={16} />}
+          emptyIcon={<UsersIcon weight="fill" size={16} />}
+          filteredTitle="No staff match your filters"
+          emptyTitle="No staff yet"
+          filteredDescription="Try adjusting your search or filters."
+          emptyDescription="Create your first staff account to get started."
+        />
+      }
+    />
   )
 }

@@ -2,13 +2,7 @@
 
 import { ArrowDownIcon, ArrowUpIcon, UsersIcon } from "@phosphor-icons/react"
 import { flexRender, type Table as ReactTable } from "@tanstack/react-table"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
+import TableEmptyState from "@/components/table-empty-state"
 import {
   Table,
   TableBody,
@@ -85,17 +79,11 @@ export default function StaffTable({ table }: StaffTableProps) {
       </TableHeader>
       <TableBody className="animate-fade-in">
         {rows.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <UsersIcon size={16} weight="fill" />
-              </EmptyMedia>
-              <EmptyTitle>No staff yet</EmptyTitle>
-              <EmptyDescription>
-                Create your first staff account to get started.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <TableEmptyState
+            icon={<UsersIcon size={16} weight="fill" />}
+            title="No staff yet"
+            description="Create your first staff account to get started."
+          />
         ) : (
           rows.map((row) => (
             <TableRow key={row.id}>

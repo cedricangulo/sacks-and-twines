@@ -4,6 +4,8 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   DotsThreeVerticalIcon,
+  MagnifyingGlassIcon,
+  XIcon,
 } from "@phosphor-icons/react"
 import type { VisibilityState } from "@tanstack/react-table"
 import {
@@ -14,9 +16,12 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
+import { parseAsString, useQueryState } from "nuqs"
 import type { Dispatch, ReactNode, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   SkeletonCell,
   type SkeletonCellType,
@@ -31,6 +36,7 @@ import {
 } from "@/components/ui/table"
 import type { Id } from "@/convex/_generated/dataModel"
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/formatters"
+import { matchesNumber, matchesSearch, normalizeSearchTerm } from "@/lib/search"
 import { headClassName, sortButtonAlignClass } from "@/lib/table-alignment"
 import { cn } from "@/lib/utils"
 import { useBatches } from "../../hooks/use-batches"
@@ -65,7 +71,38 @@ export default function BatchDetailsRow({
     { id: "createdAt", desc: true },
   ])
 
-  const data = useMemo(() => batches ?? [], [batches])
+  // Search is URL-synced like every other filter in the app, so a batch search
+  // survives a refresh and can be shared as a link.
+  //
+  // Scoped to the expanded product's batches, not global: finding a batch code
+  // means expanding the product that owns it. A global batch-code search would
+  // need a server-side scan over `batches`, which no index can serve — and
+  // filtering after pagination is exactly the bug `listHistory` avoids with its
+  // compound indexes.
+  const [rawSearch, setSearch] = useQueryState(
+    "batchSearch",
+    parseAsString.withDefault("").withOptions({ history: "replace" })
+  )
+  const search = normalizeSearchTerm(rawSearch)
+
+  // Every rendered column is searchable, so batch code, quantities, costs,
+  // status and the created date can all be found from the keyboard.
+  const data = useMemo(() => {
+    if (!batches) return []
+    if (!search) return batches
+    return batches.filter(
+      (b) =>
+        matchesSearch(b.batchCode, search) ||
+        matchesSearch(b.status, search) ||
+        matchesNumber(b.quantityReceived, search) ||
+        matchesNumber(b.quantityRemaining, search) ||
+        matchesNumber(b.unitCost, search) ||
+        matchesSearch(formatCurrency(b.unitCost), search) ||
+        matchesNumber(b.totalProcurementCost, search) ||
+        matchesSearch(formatCurrency(b.totalProcurementCost), search) ||
+        matchesSearch(formatDateTime(b.createdAt ?? b._creationTime), search)
+    )
+  }, [batches, search])
 
   const columns = useMemo(
     () => [
@@ -178,96 +215,138 @@ export default function BatchDetailsRow({
   const rows = table.getRowModel().rows
 
   return (
-    <Table>
-      <TableHeader className="border-b border-border/50">
-        {table.getHeaderGroups().map((headerGroup) => (
-          <TableRow key={headerGroup.id}>
-            {headerGroup.headers.map((header) => (
-              <TableHead
-                key={header.id}
-                className={headClassName(header.column.columnDef.meta)}
-              >
-                {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                  <button
-                    data-cuelume-toggle="toggle"
-                    type="button"
-                    className={cn(
-                      "inline-flex items-center gap-1",
-                      sortButtonAlignClass(header.column.columnDef.meta)
-                    )}
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    {flexRender(
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <div className="relative max-w-64 grow">
+          <MagnifyingGlassIcon
+            weight="bold"
+            className="absolute -translate-y-1/2 left-3 top-1/2 size-4 text-muted-foreground"
+          />
+          <Input
+            aria-label="Search this product's batches"
+            placeholder="Search batches..."
+            value={rawSearch}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-8 pl-9"
+          />
+        </div>
+        {search ? (
+          <Button
+            aria-label="Clear batch search"
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setSearch("")}
+          >
+            <XIcon weight="bold" />
+            Clear
+          </Button>
+        ) : null}
+      </div>
+
+      <Table>
+        <TableHeader className="border-b border-border/50">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <TableHead
+                  key={header.id}
+                  className={headClassName(header.column.columnDef.meta)}
+                >
+                  {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                    <button
+                      data-cuelume-toggle="toggle"
+                      type="button"
+                      className={cn(
+                        "inline-flex items-center gap-1",
+                        sortButtonAlignClass(header.column.columnDef.meta)
+                      )}
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                      {header.column.getIsSorted() === "asc" ? (
+                        <ArrowUpIcon
+                          size={14}
+                          weight="fill"
+                          aria-hidden="true"
+                        />
+                      ) : header.column.getIsSorted() === "desc" ? (
+                        <ArrowDownIcon
+                          size={14}
+                          weight="fill"
+                          aria-hidden="true"
+                        />
+                      ) : null}
+                    </button>
+                  ) : (
+                    flexRender(
                       header.column.columnDef.header,
                       header.getContext()
-                    )}
-                    {header.column.getIsSorted() === "asc" ? (
-                      <ArrowUpIcon size={14} weight="fill" aria-hidden="true" />
-                    ) : header.column.getIsSorted() === "desc" ? (
-                      <ArrowDownIcon
-                        size={14}
-                        weight="fill"
-                        aria-hidden="true"
-                      />
-                    ) : null}
-                  </button>
-                ) : (
-                  flexRender(
-                    header.column.columnDef.header,
-                    header.getContext()
-                  )
-                )}
-              </TableHead>
-            ))}
-          </TableRow>
-        ))}
-      </TableHeader>
-      <TableBody>
-        {batches === undefined ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <TableRow className="border-border/50" key={i}>
-              {table.getAllLeafColumns().reduce<ReactNode[]>((acc, col) => {
-                if (!col.getIsVisible()) return acc
-                acc.push(
-                  <TableCell key={col.id}>
-                    {col.id === "actions" ? (
-                      <DotsThreeVerticalIcon
-                        size={16}
-                        weight="bold"
-                        className="text-muted-foreground"
-                      />
-                    ) : (
-                      <SkeletonCell
-                        type={SKELETON_BY_COLUMN_ID[col.id] ?? "text"}
-                      />
-                    )}
-                  </TableCell>
-                )
-                return acc
-              }, [])}
-            </TableRow>
-          ))
-        ) : rows.length ? (
-          rows.map((row) => (
-            <TableRow className="border-border/50 animate-fade-in" key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
+                    )
+                  )}
+                </TableHead>
               ))}
             </TableRow>
-          ))
-        ) : (
-          <TableRow>
-            <TableCell
-              colSpan={table.getAllLeafColumns().length}
-              className="h-16 text-center text-muted-foreground"
-            >
-              No batches found for this product.
-            </TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {batches === undefined ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <TableRow className="border-border/50" key={i}>
+                {table.getAllLeafColumns().reduce<ReactNode[]>((acc, col) => {
+                  if (!col.getIsVisible()) return acc
+                  acc.push(
+                    <TableCell key={col.id}>
+                      {col.id === "actions" ? (
+                        <DotsThreeVerticalIcon
+                          size={16}
+                          weight="bold"
+                          className="text-muted-foreground"
+                        />
+                      ) : (
+                        <SkeletonCell
+                          type={SKELETON_BY_COLUMN_ID[col.id] ?? "text"}
+                        />
+                      )}
+                    </TableCell>
+                  )
+                  return acc
+                }, [])}
+              </TableRow>
+            ))
+          ) : rows.length ? (
+            rows.map((row) => (
+              <TableRow
+                className="border-border/50 animate-fade-in"
+                key={row.id}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={table.getAllLeafColumns().length}
+                className="h-16 text-center text-muted-foreground"
+              >
+                {search ? (
+                  <span>No batches match “{search}”.</span>
+                ) : (
+                  "No batches found for this product."
+                )}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 }

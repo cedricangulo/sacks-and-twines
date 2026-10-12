@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import type { DispatchReadyProduct } from "@/features/products/validation"
 import { formatNumber } from "@/lib/formatters"
 import { getInitials } from "@/lib/utils"
+import { MAX_QUANTITY } from "@/lib/validation"
 import { useProductCard } from "../hooks/use-product-card"
 
 interface Props {
@@ -70,7 +71,13 @@ export default function ProductCard({ product }: Props) {
           {product.name}
         </CardTitle>
         <CardDescription>
-          {/* <h5 className="type-sm">{product.skuCode}</h5> */}
+          {/* SKU was hidden behind a comment even though it is the identifier
+              operators search this catalog by — `use-product-filters` matches on
+              `skuCode`, so a term that found a product would show no trace of
+              why. */}
+          <p className="font-mono text-muted-foreground type-body-small">
+            {product.skuCode}
+          </p>
           <p className="type-body-default text-foreground">
             {formatNumber(product.currentQuantity)}{" "}
             <span>
@@ -100,7 +107,7 @@ export default function ProductCard({ product }: Props) {
             className="text-center bg-background type-body-default tabular-nums"
             value={inputValue}
             min={0}
-            max={product.currentQuantity}
+            max={Math.min(product.currentQuantity, MAX_QUANTITY)}
             step={1}
             onChange={(e) => setInputValue(e.target.value)}
             onBlur={() => commitInput(inputValue)}

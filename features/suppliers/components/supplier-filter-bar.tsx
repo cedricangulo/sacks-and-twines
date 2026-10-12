@@ -1,14 +1,7 @@
-import { ColumnsIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react"
+import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react"
 import type { Dispatch, SetStateAction } from "react"
+import ColumnVisibilityMenu from "@/components/column-visibility-menu"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -83,32 +76,16 @@ export default function SupplierFilterBar({
         </SelectContent>
       </Select>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="secondary" />}>
-          <ColumnsIcon weight="fill" className="text-muted-foreground" />
-          Columns
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>Appearance</DropdownMenuLabel>
-            {SUPPLIER_TABLE_COLUMNS.map((col) => (
-              <DropdownMenuCheckboxItem
-                key={col.id}
-                checked={columnVisibility[col.id] ?? true}
-                closeOnClick={false}
-                onCheckedChange={(checked) =>
-                  onColumnVisibilityChange((prev) => ({
-                    ...prev,
-                    [col.id]: checked === undefined ? true : checked,
-                  }))
-                }
-              >
-                {col.label}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ColumnVisibilityMenu
+        groups={[
+          {
+            label: "Appearance",
+            columns: SUPPLIER_TABLE_COLUMNS,
+            visibility: columnVisibility,
+            onVisibilityChange: onColumnVisibilityChange,
+          },
+        ]}
+      />
 
       {hasActiveFilters ? (
         <Button type="button" variant="ghost" onClick={onClear}>

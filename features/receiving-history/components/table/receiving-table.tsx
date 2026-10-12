@@ -1,24 +1,16 @@
 "use client"
 
-import { ArrowDownIcon, ArrowUpIcon, PackageIcon } from "@phosphor-icons/react"
+import { PackageIcon } from "@phosphor-icons/react"
 import { flexRender, type Table as ReactTable } from "@tanstack/react-table"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
+import { SortableTableHead } from "@/components/sortable-table-head"
+import TableEmptyState from "@/components/table-empty-state"
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { headClassName, sortButtonAlignClass } from "@/lib/table-alignment"
-import { cn } from "@/lib/utils"
 import type { ReceivingBatch } from "../../validation"
 
 interface ReceivingTableProps {
@@ -35,59 +27,18 @@ export default function ReceivingTable({ table }: ReceivingTableProps) {
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow className="border-border/50" key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
-              <TableHead
-                key={header.id}
-                className={headClassName(header.column.columnDef.meta)}
-                colSpan={header.colSpan}
-              >
-                {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                  <button
-                    data-cuelume-toggle="toggle"
-                    type="button"
-                    className={cn(
-                      "inline-flex items-center gap-1",
-                      sortButtonAlignClass(header.column.columnDef.meta)
-                    )}
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
-                    )}
-                    {header.column.getIsSorted() === "asc" ? (
-                      <ArrowUpIcon size={14} weight="fill" aria-hidden="true" />
-                    ) : header.column.getIsSorted() === "desc" ? (
-                      <ArrowDownIcon
-                        size={14}
-                        weight="fill"
-                        aria-hidden="true"
-                      />
-                    ) : null}
-                  </button>
-                ) : (
-                  flexRender(
-                    header.column.columnDef.header,
-                    header.getContext()
-                  )
-                )}
-              </TableHead>
+              <SortableTableHead key={header.id} header={header} />
             ))}
           </TableRow>
         ))}
       </TableHeader>
       <TableBody className="animate-fade-in">
         {rows.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <PackageIcon size={16} weight="fill" />
-              </EmptyMedia>
-              <EmptyTitle>No stock-ins found</EmptyTitle>
-              <EmptyDescription>
-                Try adjusting the date range or clearing your filters.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <TableEmptyState
+            icon={<PackageIcon size={16} weight="fill" />}
+            title="No stock-ins found"
+            description="Try adjusting the date range or clearing your filters."
+          />
         ) : (
           rows.map((row) => (
             <TableRow key={row.id} className="border-border/50">

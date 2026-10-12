@@ -1,16 +1,48 @@
+// The category and unit literals are declared once here and everything derives
+// from them — the dropdown options, the nuqs parsers in `use-inventory-filters`
+// and `use-product-filters`, and the product filter args.
+//
+// These must stay in sync with the `products.category` / `products.baseUom`
+// unions in `convex/schema.ts`. They previously drifted: both dropdowns offered
+// "thread" while both nuqs parsers enumerated only `all | sacks | twines`, so
+// selecting Thread wrote `?category=thread`, failed validation, and silently
+// fell back to "all".
+export const PRODUCT_CATEGORY_VALUES = [
+  "all",
+  "sacks",
+  "twines",
+  "thread",
+] as const
+
+export type ProductCategory = (typeof PRODUCT_CATEGORY_VALUES)[number]
+
+export const CATEGORY_OPTIONS: ReadonlyArray<{
+  value: ProductCategory
+  label: string
+}> = [
+  { value: "all", label: "All" },
+  { value: "sacks", label: "Sacks" },
+  { value: "twines", label: "Twines" },
+  { value: "thread", label: "Thread" },
+]
+
+export const PRODUCT_UOM_VALUES = ["all", "piece", "roll", "meter"] as const
+
+export type ProductUom = (typeof PRODUCT_UOM_VALUES)[number]
+
+export const UOM_OPTIONS: ReadonlyArray<{ value: ProductUom; label: string }> =
+  [
+    { value: "all", label: "All Units" },
+    { value: "piece", label: "Piece" },
+    { value: "roll", label: "Roll" },
+    { value: "meter", label: "Meter" },
+  ]
+
 // Filter options for product status.
 export const STATUS_OPTIONS = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
   { value: "archived", label: "Archived" },
-] as const
-
-// Filter options for product category.
-export const CATEGORY_OPTIONS = [
-  { value: "all", label: "All" },
-  { value: "sacks", label: "Sacks" },
-  { value: "twines", label: "Twines" },
-  { value: "thread", label: "Thread" },
 ] as const
 
 // Filter options for stock health status.
