@@ -1,5 +1,6 @@
 import { convexTest } from "convex-test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { MAX_SEARCH_LENGTH } from "../../lib/search"
 import { api } from "../_generated/api"
 import { AUDIT_LOG_ACTIONS } from "../lib/constants"
 import schema from "../schema"
@@ -414,6 +415,218 @@ describe("audit log queries", () => {
     const result = await t.query(api.auditLogs.queries.list, {
       paginationOpts: defaultPagination,
       search: "product",
+    })
+
+    expect(result.page).toHaveLength(1)
+    expect(result.page[0].action).toBe("product_create")
+  })
+
+  it("filters by search matching the actor's name", async () => {
+    // `userName` is joined from `users`, not stored on `auditLogs`. It used to
+    // be joined *after* the search predicate ran, so searching an actor name
+    // matched nothing while the Actor column was rendered right beside it —
+    // the client filtered on `userName`, the server ignored it.
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    const staffId = await createUser(t, {
+      email: "staff@test.com",
+      name: "Rosario Diaz",
+      role: "staff",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createAuditLog(t, {
+      userId: staffId,
+      action: "product_create",
+      description: "Created a new product",
+    })
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "stock_in",
+      description: "Stocked inventory",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      search: "rosario",
+    })
+
+    expect(result.page).toHaveLength(1)
+    expect(result.page[0].userName).toBe("Rosario Diaz")
+  })
+
+  it("searches the actor name on rows beyond the first page", async () => {
+    // Guards the pagination correctness of the join. Reading names only for the
+    // first page would drop matches further down the cursor — reintroducing the
+    // post-pagination filtering this query avoids elsewhere.
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    const staffId = await createUser(t, {
+      email: "staff@test.com",
+      name: "Rosario Diaz",
+      role: "staff",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    // Ten owner rows newer than the single staff row, so the staff row only
+    // appears after the first page is exhausted.
+    for (let i = 0; i < 10; i++) {
+      await createAuditLog(t, {
+        userId: ownerId,
+        action: "product_create",
+        description: `Created product ${i}`,
+      })
+    }
+    await createAuditLog(t, {
+      userId: staffId,
+      action: "batch_void",
+      description: "Voided a batch",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: { numItems: 5, cursor: null },
+      search: "rosario",
+    })
+
+    expect(result.page).toHaveLength(1)
+    expect(result.page[0].userName).toBe("Rosario Diaz")
+  })
+
+  it("finds logs by a deactivated actor's name", async () => {
+    // Historical rows must stay searchable after the actor leaves. The name
+    // join used to cover only active users, so this exact row was dropped from
+    // actor-name search and rendered with a blank actor.
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    const formerStaffId = await createUser(t, {
+      email: "former-staff@test.com",
+      name: "Rosario Diaz",
+      role: "staff",
+      status: "deactivated",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createAuditLog(t, {
+      userId: formerStaffId,
+      action: "stock_in",
+      description: "Stocked bags",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      search: "rosario",
+    })
+
+    expect(result.page).toHaveLength(1)
+    expect(result.page[0].userName).toBe("Rosario Diaz")
+  })
+
+  it("keeps a deactivated actor's name without a search term", async () => {
+    // The searched and unsearched paths must agree: the row is joined from the
+    // live user record in both cases, not only when a search map exists.
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    const formerStaffId = await createUser(t, {
+      email: "former-staff@test.com",
+      name: "Rosario Diaz",
+      role: "staff",
+      status: "deactivated",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createAuditLog(t, {
+      userId: formerStaffId,
+      action: "stock_in",
+      description: "Stocked bags",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+    })
+
+    expect(result.page).toHaveLength(1)
+    expect(result.page[0].userName).toBe("Rosario Diaz")
+  })
+
+  it("returns Unauthorized for an unauthenticated caller with an invalid search term", async () => {
+    // Authentication is intentionally checked before search validation, so this
+    // must not leak which part of the input was invalid.
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+    await expect(
+      t.query(api.auditLogs.queries.list, {
+        paginationOpts: defaultPagination,
+        search: "a".repeat(MAX_SEARCH_LENGTH + 1),
+      })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("rejects a search term longer than the client-side cap", async () => {
+    // The client caps at MAX_SEARCH_LENGTH, but the client is not a boundary —
+    // this function can be called directly.
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await expect(
+      t.query(api.auditLogs.queries.list, {
+        paginationOpts: defaultPagination,
+        search: "a".repeat(MAX_SEARCH_LENGTH + 1),
+      })
+    ).rejects.toThrowError(
+      `Search is too long. Please use ${MAX_SEARCH_LENGTH} characters or fewer.`
+    )
+  })
+
+  it("judges search length after trimming whitespace", async () => {
+    // A pasted term with long leading whitespace is judged by what it actually
+    // searches for, not the raw pasted length.
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    await createAuditLog(t, {
+      userId: ownerId,
+      action: "product_create",
+      description: "Created a new product",
+    })
+
+    const result = await t.query(api.auditLogs.queries.list, {
+      paginationOpts: defaultPagination,
+      search: `${" ".repeat(MAX_SEARCH_LENGTH + 10)}product`,
     })
 
     expect(result.page).toHaveLength(1)
@@ -1129,6 +1342,66 @@ describe("audit log queries", () => {
       await expect(
         t.query(api.auditLogs.queries.exportCsv, {})
       ).rejects.toThrowError("Unauthorized")
+    })
+
+    it("returns Unauthorized for an unauthenticated caller with an invalid search term", async () => {
+      const t = makeTest()
+      authMocks.getAuthUserId.mockResolvedValueOnce(null)
+
+      await expect(
+        t.query(api.auditLogs.queries.exportCsv, {
+          search: "a".repeat(MAX_SEARCH_LENGTH + 1),
+        })
+      ).rejects.toThrowError("Unauthorized")
+    })
+
+    it("rejects a CSV export search longer than the server cap", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      await expect(
+        t.query(api.auditLogs.queries.exportCsv, {
+          search: "a".repeat(MAX_SEARCH_LENGTH + 1),
+        })
+      ).rejects.toThrowError(
+        `Search is too long. Please use ${MAX_SEARCH_LENGTH} characters or fewer.`
+      )
+    })
+
+    it("finds a deactivated actor's log in a CSV export search", async () => {
+      const t = makeTest()
+      const ownerId = await createUser(t, {
+        email: "owner@test.com",
+        name: "Owner",
+        role: "owner",
+        status: "active",
+      })
+      const formerStaffId = await createUser(t, {
+        email: "former-staff@test.com",
+        name: "Rosario Diaz",
+        role: "staff",
+        status: "deactivated",
+      })
+      authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+      await createAuditLog(t, {
+        userId: formerStaffId,
+        action: "stock_in",
+        description: "Stocked bags",
+      })
+
+      const result = await t.query(api.auditLogs.queries.exportCsv, {
+        search: "rosario",
+      })
+
+      expect(result).toContain("Rosario Diaz")
+      expect(result).toContain("stock_in")
     })
 
     it("returns CSV string with BOM for owners", async () => {

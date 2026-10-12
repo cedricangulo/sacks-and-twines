@@ -180,3 +180,17 @@ export async function globalLimit(
 ) {
   await rateLimiter.limit(ctx, name, { throws: true })
 }
+
+  // ── Reads: deliberately none ─────────────────────────────────
+  // Audit-log search is the only place a user-controlled free-text string
+  // reaches a query, so metering it looks worthwhile. It cannot be metered
+  // here: `rateLimiter.limit` consumes a token and therefore needs a mutation
+  // ctx (`runMutation`), while `rateLimiter.check` runs `checkRateLimit` as a
+  // component *query*, which reads bucket state without consuming it — so
+  // calling `check` on every page load would report `ok: true` forever and
+  // enforce nothing.
+  //
+  // What actually bounds this path is the 128-character cap validated in
+  // `auditLogs.queries.list` plus Convex's own per-transaction limits. Adding a
+  // consuming read limit would require turning the search into a mutation,
+  // which would cost reactivity and pagination for a staff-only page.

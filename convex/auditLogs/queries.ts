@@ -2,6 +2,8 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { paginationOptsValidator } from "convex/server"
 import { v } from "convex/values"
 import { filter } from "convex-helpers/server/filter"
+import { z } from "zod"
+import { MAX_SEARCH_LENGTH } from "../../lib/search"
 import type { Doc, Id } from "../_generated/dataModel"
 import type { QueryCtx } from "../_generated/server"
 import { query } from "../_generated/server"
@@ -15,6 +17,51 @@ import { escapeCsv } from "../lib/csv_escape"
  * docs/PERFORMANCE-AUDIT.md P13.
  */
 export const EXPORT_LIMIT = 2000
+
+const SEARCH_TOO_LONG_MESSAGE = `Search is too long. Please use ${MAX_SEARCH_LENGTH} characters or fewer.`
+
+/**
+ * Validates and normalizes an audit-log search term for direct query callers.
+ *
+ * The client already trims and caps `search` with `normalizeSearchTerm`, but a
+ * query can be called directly. Trimming happens before the length check so a
+ * term with pasted leading whitespace is judged by what it actually searches
+ * for. A `safeParse` is used so an overlong term produces this friendly error
+ * rather than an unhandled `ZodError`.
+ */
+function parseAuditSearch(rawSearch?: string): string | undefined {
+  if (rawSearch === undefined) return undefined
+  const result = z
+    .string()
+    .trim()
+    .max(MAX_SEARCH_LENGTH, SEARCH_TOO_LONG_MESSAGE)
+    .safeParse(rawSearch)
+  if (!result.success) throw new Error(SEARCH_TOO_LONG_MESSAGE)
+  return result.data
+}
+
+/**
+ * Collects every user for audit-log display-name joins.
+ *
+ * Historical rows must keep their actor names even after that account is
+ * deactivated. Filtering to active users would silently drop those matches from
+ * actor-name search and show them as blank. The `users` table is a small staff
+ * list that the app already reads whole for the actor dropdown, so a full
+ * collect is acceptable; callers only invoke this when searching.
+ */
+async function collectUserDirectory(ctx: QueryCtx) {
+  const users = await ctx.db.query("users").collect()
+  return new Map(
+    users.map((user) => [
+      user._id,
+      {
+        name: user.name ?? null,
+        email: user.email,
+        role: user.role ?? null,
+      },
+    ])
+  )
+}
 
 /**
  * Paginated audit log listing with optional filters (search, action, user, date range).
@@ -37,13 +84,26 @@ export const list = query({
   },
   handler: async (
     ctx,
-    { paginationOpts, search, action, userId, dateFrom, dateTo }
+    { paginationOpts, search: rawSearch, action, userId, dateFrom, dateTo }
   ) => {
+    // `search` is bounded here rather than only in the client, because the
+    // client cap is a courtesy and not a boundary — anything can call this
+    // function directly. A free-text term is the one user-controlled string that
+    // reaches a query, so it is the one worth bounding at the server.
+    //
+    // Parsed with zod rather than through a `zCustomQuery` wrapper (as
+    // `convex/server.ts` does for mutations): the wrapper's generic inference
+    // widens the other five typed args to `unknown`, which costs more than this
+    // single field is worth.
     const callerId = await getAuthUserId(ctx)
     if (callerId === null) throw new Error("Unauthorized")
 
     const caller = await ctx.db.get(callerId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
+
+    // Authentication comes first so an unauthenticated caller always sees
+    // `Unauthorized`, even with an invalid search term.
+    const search = parseAuditSearch(rawSearch)
 
     let base
 
@@ -90,39 +150,67 @@ export const list = query({
       base = base.filter((q) => q.lte(q.field("createdAt"), dateTo))
     }
 
+    // Only when searching: a complete id → name map, so `userName` can take part
+    // in the predicate below.
+    //
+    // `userName` is not stored on `auditLogs` — it is joined from `users` after
+    // the fact. It used to be joined *after* this filter ran, so searching an
+    // actor name matched nothing while the Actor column sat right there in the
+    // table. Joining first is what makes that column searchable.
+    //
+    // This must cover every user a matching row could reference, not just the
+    // users on the first page — a partial map would silently drop rows whose
+    // actor was fetched later, and would re-introduce the post-pagination
+    // filtering this query is careful to avoid. Skipped entirely when no search
+    // term is present.
+    const userDirectory = search ? await collectUserDirectory(ctx) : new Map()
+
+    const nameOf = (log: Doc<"auditLogs">) =>
+      log.userId === undefined
+        ? null
+        : (userDirectory.get(log.userId)?.name ?? null)
+
     if (search) {
       const q = search.toLowerCase()
       base = filter(
         base,
         (log) =>
           log.action.toLowerCase().includes(q) ||
-          log.description.toLowerCase().includes(q)
+          log.description.toLowerCase().includes(q) ||
+          (nameOf(log)?.toLowerCase().includes(q) ?? false)
       )
     }
 
     const result = await base.order("desc").paginate(paginationOpts)
 
     // Dedupe before reading — the page holds up to `numItems` rows but the users
-    // table has only a handful of active users, so a per-row `db.get` would
-    // re-read the same few documents up to 30 times.
-    const pageUserIds = new Set(
-      result.page
-        .map((log) => log.userId)
-        .filter((id): id is Id<"users"> => id !== undefined)
-    )
-    const userNames = new Map<Id<"users">, string | null>()
-    await Promise.all(
-      [...pageUserIds].map(async (id) => {
-        userNames.set(id, (await ctx.db.get(id))?.name ?? null)
-      })
-    )
+    // table has only a handful of users, so a per-row `db.get` would re-read
+    // the same few documents up to 30 times.
+    if (!search) {
+      const pageUserIds = new Set(
+        result.page
+          .map((log) => log.userId)
+          .filter((id): id is Id<"users"> => id !== undefined)
+      )
+      await Promise.all(
+        [...pageUserIds].map(async (id) => {
+          const user = await ctx.db.get(id)
+          if (user) {
+            userDirectory.set(id, {
+              name: user.name ?? null,
+              email: user.email,
+              role: user.role ?? null,
+            })
+          }
+        })
+      )
+    }
 
     return {
       ...result,
       page: result.page.map((log) => ({
         ...log,
-        userName:
-          log.userId === undefined ? null : (userNames.get(log.userId) ?? null),
+        userName: nameOf(log),
       })),
     }
   },
@@ -274,12 +362,17 @@ async function fetchExportLogs(
     dateTo?: number
   }
 ) {
-  const { search, action, userId, dateFrom, dateTo } = args
+  const { search: rawSearch, action, userId, dateFrom, dateTo } = args
   const callerId = await getAuthUserId(ctx)
   if (callerId === null) throw new Error("Unauthorized")
 
   const caller = await ctx.db.get(callerId)
   if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
+
+  // Same boundary as `list`: the client caps search, but direct query callers
+  // do not. Authentication also comes first, so this never leaks a validation
+  // error to an unauthenticated caller.
+  const search = parseAuditSearch(rawSearch)
 
   let base
 
@@ -321,13 +414,22 @@ async function fetchExportLogs(
     base = base.filter((q) => q.lte(q.field("createdAt"), dateTo))
   }
 
+  // Match `list`: actor names are searchable, including deactivated users whose
+  // historical rows must remain discoverable in an export.
+  const userDirectory = search ? await collectUserDirectory(ctx) : new Map()
+  const nameOf = (log: Doc<"auditLogs">) =>
+    log.userId === undefined
+      ? null
+      : (userDirectory.get(log.userId)?.name ?? null)
+
   if (search) {
     const q = search.toLowerCase()
     base = filter(
       base,
       (log) =>
         log.action.toLowerCase().includes(q) ||
-        log.description.toLowerCase().includes(q)
+        log.description.toLowerCase().includes(q) ||
+        (nameOf(log)?.toLowerCase().includes(q) ?? false)
     )
   }
 
@@ -344,22 +446,29 @@ async function fetchExportLogs(
       .map((log) => log.userId)
       .filter((id): id is Id<"users"> => id !== undefined)
   )
-  const userMap = new Map<
-    string,
-    { name: string | null; email: string; role: string | null }
-  >()
-  await Promise.all(
-    [...userIdSet].map(async (id) => {
-      const user = await ctx.db.get(id)
-      if (user) {
-        userMap.set(id, {
-          name: user.name ?? null,
-          email: user.email,
-          role: user.role ?? null,
-        })
-      }
-    })
-  )
+  // A searched export already collected every user for actor-name matching, so
+  // reuse that directory rather than re-reading the same rows. Otherwise read
+  // only the distinct actors on these records.
+  const userMap = search
+    ? userDirectory
+    : new Map<
+        string,
+        { name: string | null; email: string; role: string | null }
+      >()
+  if (!search) {
+    await Promise.all(
+      [...userIdSet].map(async (id) => {
+        const user = await ctx.db.get(id)
+        if (user) {
+          userMap.set(id, {
+            name: user.name ?? null,
+            email: user.email,
+            role: user.role ?? null,
+          })
+        }
+      })
+    )
+  }
 
   return {
     records: logs.map((log) => {
