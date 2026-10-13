@@ -1,9 +1,11 @@
 "use client"
 
 import { XIcon } from "@phosphor-icons/react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Image from "next/image"
+import { FieldCounter } from "@/components/field-counter"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Field, FieldError } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
@@ -11,9 +13,24 @@ import { formatNumber } from "@/lib/formatters"
 import { getInitials } from "@/lib/utils"
 import { useDispatchQueueContext } from "../hooks/dispatch-queue-context"
 import { useDispatchSubmit } from "../hooks/use-dispatch-submit"
+import type { DispatchSubmitFieldErrors } from "../validation"
+import { CUSTOMER_REFERENCE_MAX } from "../validation"
 
 interface Props {
   onSuccess?: () => void
+}
+
+// First submit error for the queue row at `index`, if any. Error keys are
+// full paths (`items.0.quantity`), so the row looks up its own fields.
+function queueRowError(
+  errors: DispatchSubmitFieldErrors,
+  index: number
+): string | undefined {
+  const prefix = `items.${index}.`
+  for (const key of Object.keys(errors)) {
+    if (key.startsWith(prefix)) return errors[key]
+  }
+  return undefined
 }
 
 // Desktop sidebar showing selected dispatch items, customer reference input, and a submit button.
@@ -23,6 +40,7 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
     customerReference,
     setCustomerReference,
     isSubmitting,
+    errors,
     handleSubmit,
   } = useDispatchSubmit(onSuccess)
 
@@ -42,19 +60,31 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
           </p>
         ) : (
           <ul className="p-4 space-y-2">
-            {items.map((item) => (
+            {items.map((item, index) => (
               <li
                 key={item.productId}
-                className="flex items-center gap-2 pr-2 overflow-hidden border bg-card rounded-xl"
+                className="flex items-center gap-2 pr-2 overflow-hidden border bg-card rounded-2xl"
               >
-                <Avatar className="border-r rounded-none size-15">
-                  <AvatarImage src={item.imageUrl ?? ""} />
-                  <AvatarFallback>{getInitials(item.name)}</AvatarFallback>
-                </Avatar>
+                {item.imageUrl ? (
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="object-cover size-15"
+                    width={60}
+                    height={60}
+                  />
+                ) : (
+                  <div
+                    aria-hidden
+                    className="flex items-center justify-center text-muted-foreground size-15 bg-muted type-body-small font-medium"
+                  >
+                    {getInitials(item.name)}
+                  </div>
+                )}
 
-                <div className="flex flex-col flex-1 min-w-0">
+                <div className="flex flex-col flex-1 min-w-0 py-2">
                   <h4
-                    className="line-clamp-1 font-semibold type-body-default"
+                    className="font-semibold line-clamp-1 type-body-default"
                     title={item.name}
                   >
                     {item.name}
@@ -63,6 +93,11 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
                     {formatNumber(item.quantity)} {item.dispatchUom}
                     {item.quantity !== 1 ? "s" : ""}
                   </p>
+                  {queueRowError(errors, index) ? (
+                    <p className="type-body-small text-destructive">
+                      {queueRowError(errors, index)}
+                    </p>
+                  ) : null}
                 </div>
 
                 <Button
@@ -81,14 +116,25 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
       </div>
 
       <div className="flex flex-col gap-2 p-4 border-t">
-        <Label htmlFor="customerReference">Customer Reference</Label>
-        <Input
-          id="customerReference"
-          placeholder="Name or plate number"
-          value={customerReference}
-          onChange={(e) => setCustomerReference(e.target.value)}
-          disabled={isSubmitting}
-        />
+        <Field data-invalid={!!errors.customerReference}>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="customerReference">Customer Reference</Label>
+            <FieldCounter
+              value={customerReference}
+              max={CUSTOMER_REFERENCE_MAX}
+            />
+          </div>
+          <Input
+            id="customerReference"
+            maxLength={CUSTOMER_REFERENCE_MAX}
+            placeholder="Name or plate number"
+            value={customerReference}
+            onChange={(e) => setCustomerReference(e.target.value)}
+            disabled={isSubmitting}
+            aria-invalid={!!errors.customerReference}
+          />
+          <FieldError>{errors.customerReference}</FieldError>
+        </Field>
         <Button
           type="button"
           onClick={handleSubmit}

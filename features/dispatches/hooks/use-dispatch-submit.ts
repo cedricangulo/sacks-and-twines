@@ -7,6 +7,10 @@ import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { handleConvexError } from "@/lib/error-handler"
+import {
+  type DispatchSubmitFieldErrors,
+  validateDispatchSubmit,
+} from "../validation"
 import { useDispatchQueueContext } from "./dispatch-queue-context"
 
 // Submits the dispatch queue to Convex with sileo toast feedback and customer reference.
@@ -16,9 +20,42 @@ export function useDispatchSubmit(onSuccess?: () => void) {
   const submitDispatch = useMutation(api.dispatches.mutations.submit)
   const [customerReference, setCustomerReference] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errors, setErrors] = useState<DispatchSubmitFieldErrors>({})
 
   const handleSubmit = async () => {
     if (itemCount === 0) return
+
+    // Validate before mutating so an over-long or malformed reference surfaces
+    // on the field instead of failing server-side with the queue still full.
+    const payload = {
+      customerReference,
+      items: items.map((item) => ({
+        productId: item.productId as Id<"products">,
+        quantity: item.quantity,
+        dispatchUom: item.dispatchUom,
+      })),
+    }
+    const result = validateDispatchSubmit(payload)
+    if (!result.success) {
+      setErrors(result.errors)
+      // Item-level errors (`items.0.quantity`) have no field of their own, so
+      // without a toast a failing Dispatch click looks like nothing happened.
+      // The reference error already renders inline on its field.
+      const itemErrorCount = Object.keys(result.errors).filter((key) =>
+        key.startsWith("items.")
+      ).length
+      if (itemErrorCount > 0) {
+        sileo.error({
+          title: "Check the dispatch queue",
+          description:
+            itemErrorCount === 1
+              ? "One item has an error and needs attention."
+              : `${itemErrorCount} items have errors and need attention.`,
+        })
+      }
+      return
+    }
+    setErrors({})
 
     setIsSubmitting(true)
     play("loading")
@@ -26,12 +63,8 @@ export function useDispatchSubmit(onSuccess?: () => void) {
     await sileo
       .promise(
         submitDispatch({
-          customerReference: customerReference || undefined,
-          items: items.map((item) => ({
-            productId: item.productId as Id<"products">,
-            quantity: item.quantity,
-            dispatchUom: item.dispatchUom,
-          })),
+          customerReference: result.data.customerReference,
+          items: result.data.items,
           userAgent: navigator.userAgent,
         }),
         {
@@ -53,13 +86,21 @@ export function useDispatchSubmit(onSuccess?: () => void) {
       })
   }
 
+  // Removing an item shifts every `items.N.*` error key after it, so queued
+  // errors are cleared rather than left misattributed to the wrong row.
+  const handleRemove = (productId: string) => {
+    removeFromQueue(productId)
+    setErrors({})
+  }
+
   return {
     items,
     itemCount,
     customerReference,
     setCustomerReference,
     isSubmitting,
+    errors,
     handleSubmit,
-    removeFromQueue,
+    removeFromQueue: handleRemove,
   }
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowDownIcon, ArrowUpIcon } from "@phosphor-icons/react"
+import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react"
 import type { VisibilityState } from "@tanstack/react-table"
 import {
   createColumnHelper,
@@ -10,8 +10,12 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
+import { parseAsString, useQueryState } from "nuqs"
 import type { Dispatch, ReactNode, SetStateAction } from "react"
 import { useMemo, useState } from "react"
+import { SortableTableHead } from "@/components/sortable-table-head"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   SkeletonCell,
   type SkeletonCellType,
@@ -20,14 +24,12 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
 import type { Id } from "@/convex/_generated/dataModel"
 import { formatCurrency, formatNumber } from "@/lib/formatters"
-import { headClassName, sortButtonAlignClass } from "@/lib/table-alignment"
-import { cn } from "@/lib/utils"
+import { matchesNumber, matchesSearch, normalizeSearchTerm } from "@/lib/search"
 import { useDispatchItems } from "../hooks/use-dispatch-items"
 import type { DispatchItem } from "../validation"
 
@@ -49,10 +51,19 @@ const SKELETON_BY_COLUMN_ID: Record<string, SkeletonCellType> = {
 // (e.g. the reports detail panel) omit it and every column stays visible.
 export default function DispatchItemsTable({
   dispatchId,
+  searchParamKey,
   columnVisibility,
   onColumnVisibilityChange,
 }: {
   dispatchId: Id<"dispatches">
+  /**
+   * URL query key for this table's search box.
+   *
+   * A prop rather than a fixed key because this table is rendered on two pages
+   * (dispatch history and the reports detail panel). A shared key would let a
+   * search typed on one page silently filter the other.
+   */
+  searchParamKey: string
   columnVisibility?: VisibilityState
   onColumnVisibilityChange?: Dispatch<SetStateAction<VisibilityState>>
 }) {
@@ -61,7 +72,29 @@ export default function DispatchItemsTable({
     { id: "productName", desc: false },
   ])
 
-  const data = useMemo(() => items ?? [], [items])
+  const [rawSearch, setSearch] = useQueryState(
+    searchParamKey,
+    parseAsString.withDefault("").withOptions({ history: "replace" })
+  )
+  const search = normalizeSearchTerm(rawSearch)
+
+  // Scoped to this dispatch's items, matching how the batch sub-table searches
+  // within one product's batches.
+  const data = useMemo(() => {
+    if (!items) return []
+    if (!search) return items
+    return items.filter(
+      (i) =>
+        matchesSearch(i.productName, search) ||
+        matchesSearch(i.productSku, search) ||
+        matchesSearch(i.batchCode, search) ||
+        matchesNumber(i.dispatchQuantity, search) ||
+        matchesNumber(i.unitCost, search) ||
+        matchesSearch(formatCurrency(i.unitCost), search) ||
+        matchesNumber(i.lineTotal, search) ||
+        matchesSearch(formatCurrency(i.lineTotal), search)
+    )
+  }, [items, search])
 
   const columns = useMemo(
     () => [
@@ -170,88 +203,89 @@ export default function DispatchItemsTable({
   const rows = table.getRowModel().rows
 
   return (
-    <Table>
-      <TableHeader className="border-b">
-        {table.getHeaderGroups().map((headerGroup) => (
-          <TableRow className="border-border/50" key={headerGroup.id}>
-            {headerGroup.headers.map((header) => (
-              <TableHead
-                key={header.id}
-                className={headClassName(header.column.columnDef.meta)}
-              >
-                {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                  <button
-                    data-cuelume-toggle="toggle"
-                    type="button"
-                    className={cn(
-                      "inline-flex items-center gap-1",
-                      sortButtonAlignClass(header.column.columnDef.meta)
-                    )}
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
-                    )}
-                    {header.column.getIsSorted() === "asc" ? (
-                      <ArrowUpIcon size={14} weight="fill" aria-hidden="true" />
-                    ) : header.column.getIsSorted() === "desc" ? (
-                      <ArrowDownIcon
-                        size={14}
-                        weight="fill"
-                        aria-hidden="true"
-                      />
-                    ) : null}
-                  </button>
-                ) : (
-                  flexRender(
-                    header.column.columnDef.header,
-                    header.getContext()
-                  )
-                )}
-              </TableHead>
-            ))}
-          </TableRow>
-        ))}
-      </TableHeader>
-      <TableBody className="animate-fade-in">
-        {items === undefined ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <TableRow key={i}>
-              {table.getAllLeafColumns().reduce<ReactNode[]>((acc, col) => {
-                if (!col.getIsVisible()) return acc
-                acc.push(
-                  <TableCell key={col.id}>
-                    <SkeletonCell
-                      type={SKELETON_BY_COLUMN_ID[col.id] ?? "text"}
-                    />
-                  </TableCell>
-                )
-                return acc
-              }, [])}
-            </TableRow>
-          ))
-        ) : rows.length ? (
-          rows.map((row) => (
-            <TableRow className="animate-fade-in" key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <div className="relative max-w-64 grow">
+          <MagnifyingGlassIcon
+            weight="bold"
+            className="absolute -translate-y-1/2 left-3 top-1/2 size-4 text-muted-foreground"
+          />
+          <Input
+            aria-label="Search this dispatch's items"
+            placeholder="Search items..."
+            value={rawSearch}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-8 pl-9"
+          />
+        </div>
+        {search ? (
+          <Button
+            aria-label="Clear item search"
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setSearch("")}
+          >
+            <XIcon weight="bold" />
+            Clear
+          </Button>
+        ) : null}
+      </div>
+
+      <Table>
+        <TableHeader className="border-b">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow className="border-border/50" key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <SortableTableHead key={header.id} header={header} />
               ))}
             </TableRow>
-          ))
-        ) : (
-          <TableRow>
-            <TableCell
-              colSpan={table.getVisibleLeafColumns().length}
-              className="h-16 text-center text-muted-foreground"
-            >
-              No items found for this dispatch.
-            </TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+          ))}
+        </TableHeader>
+        <TableBody className="animate-fade-in">
+          {items === undefined ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <TableRow key={i}>
+                {table.getAllLeafColumns().reduce<ReactNode[]>((acc, col) => {
+                  if (!col.getIsVisible()) return acc
+                  acc.push(
+                    <TableCell key={col.id}>
+                      <SkeletonCell
+                        type={SKELETON_BY_COLUMN_ID[col.id] ?? "text"}
+                      />
+                    </TableCell>
+                  )
+                  return acc
+                }, [])}
+              </TableRow>
+            ))
+          ) : rows.length ? (
+            rows.map((row) => (
+              <TableRow className="animate-fade-in" key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={table.getVisibleLeafColumns().length}
+                className="h-16 text-center text-muted-foreground"
+              >
+                {search ? (
+                  <span>No items match “{search}”.</span>
+                ) : (
+                  "No items found for this dispatch."
+                )}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
