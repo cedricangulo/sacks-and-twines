@@ -74,6 +74,79 @@ const passwordProvider = ConvexCredentials({
       throw new Error(ERROR_MESSAGES.INVALID_CREDENTIALS)
     }
 
+    // ── Passwordless OTP resend ───────────────────────────────
+    // Issues a fresh code to the account's own inbox. Returns null (code
+    // sent, no session) — never authenticates. There is no server-side
+    // proof that step 1 (password) just passed; in practice the OTP screen
+    // is only reachable after it, step 1 is itself rate-limited, and this
+    // endpoint only sends mail without creating a session. Unknown and
+    // deactivated emails get the same null response so attackers cannot
+    // enumerate accounts. Server rate limits are the real abuse gate:
+    // removing the client's disabled button must not bypass them.
+    if (flow === "resendOtp") {
+      try {
+        await rateLimiter.limit(ctx, "resendOtp", {
+          key: email,
+          throws: true,
+        })
+      } catch {
+        throw new Error(ERROR_MESSAGES.RESEND_LIMITED)
+      }
+
+      // Metadata read is best-effort and isolated: a missing request IP
+      // must not swallow the IP bucket's own throw below.
+      let ip: string | undefined = undefined
+      try {
+        const withMeta = ctx as unknown as {
+          meta?: { getRequestMetadata?: () => Promise<unknown> }
+        }
+        const meta = (await withMeta.meta?.getRequestMetadata?.()) as
+          | { ip?: string | null; forwardedFor?: string | null }
+          | undefined
+        ip = meta?.ip ?? meta?.forwardedFor ?? undefined
+      } catch {
+        // IP metadata unavailable in some runtimes — email bucket still guards.
+      }
+
+      if (ip) {
+        try {
+          await rateLimiter.limit(ctx, "resendOtpIp", {
+            key: ip,
+            throws: true,
+          })
+        } catch {
+          throw new Error(ERROR_MESSAGES.RESEND_LIMITED)
+        }
+      }
+
+      let accountId: GenericId<"authAccounts"> | null = null
+      let userStatus: string | undefined = undefined
+
+      try {
+        const result = await retrieveAccount(ctx, {
+          provider: "password",
+          account: { id: email },
+        })
+        accountId = result.account._id
+        userStatus = result.user.status as string | undefined
+      } catch {
+        // Unknown email — fall through to the silent no-op below.
+      }
+
+      // Unknown and deactivated emails share one silent response: no code
+      // is sent and null is returned, so neither can be distinguished by
+      // probing this endpoint.
+      if (accountId === null || userStatus === "deactivated") {
+        return null
+      }
+
+      await signInViaProvider(ctx, ResendOTP, {
+        accountId,
+        params: credentials,
+      })
+      return null
+    }
+
     // ── Step 2: email + code verification ───────────────────────
     // Consume rate-limit token per attempt; reset on success
     try {

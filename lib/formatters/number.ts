@@ -34,3 +34,9 @@ export function formatCompact(value: number) {
   if (value === 0) return "0"
   return COMPACT_FMT.format(value)
 }
+
+export function formatCountdown(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${String(seconds).padStart(2, "0")}`
+}

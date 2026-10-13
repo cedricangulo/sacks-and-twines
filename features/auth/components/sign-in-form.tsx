@@ -21,10 +21,24 @@ import {
 } from "@/components/ui/input-otp"
 import { Spinner } from "@/components/ui/spinner"
 import { useSubmitSignIn } from "@/features/auth/hooks/submit"
+import { formatCountdown } from "@/lib/formatters/number"
+import { EMAIL_MAX, OTP_LENGTH, PASSWORD_MAX } from "../validation"
 
 export default function SignInForm() {
-  const { step, error, pending, submitCredentials, submitOtp, reset } =
-    useSubmitSignIn()
+  const {
+    step,
+    error,
+    pending,
+    submitCredentials,
+    submitOtp,
+    reset,
+    resendOtp,
+    resendPending,
+    resendStatus,
+    secondsLeft,
+    canResend,
+    otpKey,
+  } = useSubmitSignIn()
   const otpFormRef = useRef<HTMLFormElement>(null)
   const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false)
 
@@ -43,7 +57,7 @@ export default function SignInForm() {
             <h2 className="font-semibold type-h3">Enter verification code</h2>
             <p className="text-sm text-muted-foreground">
               We sent a code to your email. If your account is managed by an
-              administrator, check with them for the code.
+              owner, check with them for the code.
             </p>
           </div>
 
@@ -51,8 +65,9 @@ export default function SignInForm() {
             <FieldLabel>Code</FieldLabel>
             <FieldContent>
               <InputOTP
+                key={otpKey}
                 autoFocus
-                maxLength={8}
+                maxLength={OTP_LENGTH}
                 name="code"
                 pattern={REGEXP_ONLY_DIGITS}
                 pasteTransformer={(pasted) => pasted.replace(/\D/g, "")}
@@ -88,6 +103,38 @@ export default function SignInForm() {
             Verify and sign in
           </Button>
 
+          <div className="flex flex-col items-center gap-1">
+            <Button
+              type="button"
+              variant="link"
+              onClick={resendOtp}
+              disabled={!canResend}
+              aria-describedby="otp-expiry-note"
+            >
+              {resendPending ? <Spinner data-icon="inline-start" /> : null}
+              {secondsLeft > 0 ? (
+                <span className="tabular-nums">
+                  Resend code in {formatCountdown(secondsLeft)}
+                </span>
+              ) : (
+                "Resend code"
+              )}
+            </Button>
+            {resendStatus ? (
+              <p
+                role="status"
+                aria-live="polite"
+                className={
+                  resendStatus.kind === "ok"
+                    ? "type-caption text-muted-foreground"
+                    : "type-caption text-destructive"
+                }
+              >
+                {resendStatus.text}
+              </p>
+            ) : null}
+          </div>
+
           <Button
             type="button"
             variant="ghost"
@@ -120,6 +167,7 @@ export default function SignInForm() {
               name="email"
               placeholder="Email"
               type="text"
+              maxLength={EMAIL_MAX}
               aria-invalid={!!error}
             />
           </FieldContent>
@@ -134,6 +182,7 @@ export default function SignInForm() {
                 name="password"
                 placeholder="Password"
                 type={isPasswordVisible ? "text" : "password"}
+                maxLength={PASSWORD_MAX}
                 aria-invalid={!!error}
                 className="pe-9"
               />

@@ -4,6 +4,7 @@
 export const ERROR_MESSAGES = {
   INVALID_CREDENTIALS: "Invalid email or password",
   RATE_LIMITED: "Too many sign-in attempts. Please try again later.",
+  RESEND_LIMITED: "Too many resend attempts. Please try again later.",
   REQUIRED: "Email and password are required",
   INVALID_CODE: "Invalid or expired code",
   ACCOUNT_DEACTIVATED: "Your account has been deactivated",
@@ -14,6 +15,7 @@ export const ERROR_MESSAGES = {
  *
  * - `signIn` flow requires email + password.
  * - `email-verification` flow requires email + code.
+ * - `resendOtp` flow requires email only (passwordless re-issue).
  *
  * @param params - Object containing `flow`, `email`, `password`, and `code`.
  * @throws If the flow is unsupported or required fields are missing.
@@ -33,6 +35,13 @@ export function verifyCredentials(params: {
 
   if (params.flow === "email-verification") {
     if (!params.email || !params.code) {
+      throw new Error(ERROR_MESSAGES.REQUIRED)
+    }
+    return
+  }
+
+  if (params.flow === "resendOtp") {
+    if (!params.email) {
       throw new Error(ERROR_MESSAGES.REQUIRED)
     }
     return

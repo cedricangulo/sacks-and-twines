@@ -3,20 +3,19 @@
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useMutation } from "convex/react"
 import { useRouter } from "next/navigation"
-import { SubmitEvent, useState } from "react"
-import { z } from "zod"
+import { SubmitEvent, useEffect, useState } from "react"
 import { api } from "@/convex/_generated/api"
-
-const SignInSchema = z.object({
-  email: z.email(),
-  password: z.string().min(1),
-})
-
-const OtpSchema = z.object({
-  code: z.string().min(8),
-})
+import { ERROR_MESSAGES } from "@/convex/auth/verify"
+import { OtpSchema, SignInSchema } from "../validation"
 
 type Step = "credentials" | { email: string }
+
+export const RESEND_COOLDOWN_MS = 60_000
+
+export type ResendStatus =
+  | { kind: "ok"; text: string }
+  | { kind: "error"; text: string }
+  | null
 
 function useSubmitSignIn() {
   const { signIn } = useAuthActions()
@@ -25,6 +24,29 @@ function useSubmitSignIn() {
   const [step, setStep] = useState<Step>("credentials")
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [resendPending, setResendPending] = useState(false)
+  const [resendStatus, setResendStatus] = useState<ResendStatus>(null)
+  const [otpKey, setOtpKey] = useState(0)
+  // Timestamp (ms) when resending becomes allowed. Wall-clock based so
+  // background-tab timer throttling can't distort the countdown.
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(
+    null
+  )
+  const [now, setNow] = useState(() => Date.now())
+
+  const isOtpStep = typeof step === "object"
+
+  useEffect(() => {
+    if (!isOtpStep) return
+    const id = window.setInterval(() => setNow(Date.now()), 500)
+    return () => window.clearInterval(id)
+  }, [isOtpStep])
+
+  const secondsLeft =
+    isOtpStep && resendAvailableAt !== null
+      ? Math.max(0, Math.ceil((resendAvailableAt - now) / 1000))
+      : 0
+  const canResend = isOtpStep && !resendPending && !pending && secondsLeft <= 0
 
   const handleError = (err: unknown, email: string, fallback: string) => {
     logAttempt({
@@ -88,6 +110,9 @@ function useSubmitSignIn() {
     try {
       await signIn("password", formData)
       setStep({ email: parsed.data.email })
+      setResendStatus(null)
+      setResendAvailableAt(Date.now() + RESEND_COOLDOWN_MS)
+      setNow(Date.now())
     } catch (err) {
       handleError(
         err,
@@ -96,6 +121,49 @@ function useSubmitSignIn() {
       )
     } finally {
       setPending(false)
+    }
+  }
+
+  const resendOtp = async () => {
+    if (typeof step !== "object" || !canResend) return
+    const email = step.email
+    setResendPending(true)
+    setResendStatus(null)
+    try {
+      const formData = new FormData()
+      formData.set("flow", "resendOtp")
+      formData.set("email", email)
+      await signIn("password", formData)
+      // Same generic message for existing and unknown emails so the
+      // response cannot be used to enumerate accounts.
+      setResendStatus({ kind: "ok", text: "New code sent. Check your email." })
+      setOtpKey((k) => k + 1)
+      setResendAvailableAt(Date.now() + RESEND_COOLDOWN_MS)
+      setNow(Date.now())
+    } catch (err) {
+      const message = err instanceof Error ? err.message : ""
+      if (message.includes(ERROR_MESSAGES.RESEND_LIMITED)) {
+        setResendStatus({
+          kind: "error",
+          text: ERROR_MESSAGES.RESEND_LIMITED,
+        })
+      } else if (message.includes(ERROR_MESSAGES.ACCOUNT_DEACTIVATED)) {
+        setResendStatus({
+          kind: "error",
+          text: "Your account has been deactivated. Please contact the administrator.",
+        })
+      } else {
+        // Log the raw error so misclassified failures (e.g. a backend
+        // running stale code without the resendOtp flow) stay debuggable
+        // instead of surfacing as a misleading rate-limit message.
+        console.error("Resend OTP failed", err)
+        setResendStatus({
+          kind: "error",
+          text: "Couldn't resend the code. Please try again.",
+        })
+      }
+    } finally {
+      setResendPending(false)
     }
   }
 
@@ -134,6 +202,9 @@ function useSubmitSignIn() {
   const reset = () => {
     setStep("credentials")
     setError(null)
+    setResendStatus(null)
+    setResendAvailableAt(null)
+    setResendPending(false)
   }
 
   return {
@@ -143,6 +214,12 @@ function useSubmitSignIn() {
     submitCredentials,
     submitOtp,
     reset,
+    resendOtp,
+    resendPending,
+    resendStatus,
+    secondsLeft,
+    canResend,
+    otpKey,
   }
 }
 

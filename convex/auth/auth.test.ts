@@ -168,6 +168,30 @@ describe("verifyCredentials", () => {
     })
   })
 
+  describe("resendOtp flow", () => {
+    it("passes with email only", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "resendOtp",
+          email: "a@b.com",
+          password: "",
+          code: "",
+        })
+      ).not.toThrow()
+    })
+
+    it("rejects empty email", () => {
+      expect(() =>
+        verifyCredentials({
+          flow: "resendOtp",
+          email: "",
+          password: "",
+          code: "",
+        })
+      ).toThrow(ERROR_MESSAGES.REQUIRED)
+    })
+  })
+
   describe("unsupported flows", () => {
     it("rejects signUp", () => {
       expect(() =>
@@ -533,6 +557,101 @@ describe("signIn action", () => {
       ERROR_MESSAGES.RATE_LIMITED
     )
   })
+
+  it("resendOtp issues a new code without authenticating", SLOW, async () => {
+    const t = makeTest()
+    await seedUserWithPassword(t, "resend@test.com", "my-password")
+
+    await t.action(api.auth.signIn, {
+      provider: "password",
+      params: {
+        flow: "signIn",
+        email: "resend@test.com",
+        password: "my-password",
+      },
+    })
+
+    const resend = await t.action(api.auth.signIn, {
+      provider: "password",
+      params: { flow: "resendOtp", email: "resend@test.com" },
+    })
+
+    expect(resend.tokens).toBeNull()
+
+    // The re-issued code still verifies the user.
+    const code = getLastCode() ?? "12345678"
+    const result = await t.action(api.auth.signIn, {
+      provider: "password",
+      params: { flow: "email-verification", email: "resend@test.com", code },
+    })
+    expect(result).toHaveProperty("tokens")
+    expect(result.tokens).not.toBeNull()
+  })
+
+  it(
+    "resendOtp returns null for unknown emails (no enumeration)",
+    SLOW,
+    async () => {
+      const t = makeTest()
+      await seedUserWithPassword(t, "exists2@test.com", "pw")
+
+      const resend = await t.action(api.auth.signIn, {
+        provider: "password",
+        params: { flow: "resendOtp", email: "nobody-knows@test.com" },
+      })
+
+      expect(resend.tokens).toBeNull()
+    }
+  )
+
+  it("resendOtp is rate limited after 5 resends per email", SLOW, async () => {
+    const t = makeTest()
+    await seedUserWithPassword(t, "resendlimit@test.com", "pw")
+
+    await t.action(api.auth.signIn, {
+      provider: "password",
+      params: {
+        flow: "signIn",
+        email: "resendlimit@test.com",
+        password: "pw",
+      },
+    })
+
+    const resend = () =>
+      t.action(api.auth.signIn, {
+        provider: "password",
+        params: { flow: "resendOtp", email: "resendlimit@test.com" },
+      })
+
+    for (let i = 0; i < 5; i++) {
+      const r = await resend()
+      expect(r.tokens).toBeNull()
+    }
+
+    await expect(resend()).rejects.toThrow(ERROR_MESSAGES.RESEND_LIMITED)
+  })
+
+  it(
+    "resendOtp returns null for deactivated users (no enumeration)",
+    SLOW,
+    async () => {
+      const t = makeTest()
+      const seeded = await seedUserWithPassword(t, "resenddeact@test.com", "pw")
+
+      await t.run(async (ctx) => {
+        await ctx.db.patch(seeded.userId, { status: "deactivated" })
+      })
+
+      // Same silent response as unknown emails: no code sent, no distinct error.
+      const before = getLastCode()
+      const resend = await t.action(api.auth.signIn, {
+        provider: "password",
+        params: { flow: "resendOtp", email: "resenddeact@test.com" },
+      })
+      expect(resend.tokens).toBeNull()
+      expect(getLastCode()).toBe(before)
+    }
+  )
 
   it("blocks deactivated users", SLOW, async () => {
     const t = makeTest()
