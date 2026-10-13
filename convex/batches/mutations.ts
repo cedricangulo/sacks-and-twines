@@ -129,13 +129,13 @@ export const stockIn = zMutation({
       })
     }
 
-    const product = await ctx.db.get(resolvedProductId)
-
-    // Read supplier + caller up front: both are needed for the denormalized
-    // display fields on the batch, and the supplier doc is also required for the
-    // `batchCount` patch below. One read, two consumers.
-    // Convex has no foreign-key constraints, so reading before the insert is safe.
-    const [supplierDoc, callerDoc] = await Promise.all([
+    // Read product + supplier + caller up front: all three are needed for the
+    // denormalized display fields on the batch, and the supplier doc is also
+    // required for the `batchCount` patch below. One concurrent read, three
+    // consumers. Convex has no foreign-key constraints, so reading before the
+    // insert is safe.
+    const [product, supplierDoc, callerDoc] = await Promise.all([
+      ctx.db.get(resolvedProductId),
       ctx.db.get(supplierId),
       ctx.db.get(callerId),
     ])

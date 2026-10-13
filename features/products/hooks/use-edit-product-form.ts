@@ -330,11 +330,14 @@ export function useEditProductForm({
   } = dialogState
 
   // Cleanup: revoke the active blob preview when the hook unmounts or when
-  // `imagePreview` changes (covers the "cancel without clear" case).
+  // `imagePreview` changes (covers the "cancel without clear" case). The
+  // preview is copied to a local first so cleanup revokes exactly the URL this
+  // effect observed, rather than whatever happens to be current later.
   useEffect(() => {
+    const preview = dialogState.imagePreview
     return () => {
-      if (dialogState.imagePreview?.startsWith("blob:")) {
-        URL.revokeObjectURL(dialogState.imagePreview)
+      if (preview?.startsWith("blob:")) {
+        URL.revokeObjectURL(preview)
       }
     }
   }, [dialogState.imagePreview])

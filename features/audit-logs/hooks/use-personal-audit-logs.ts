@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "convex-helpers/react/cache"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import { ITEMS_PER_PAGE } from "../constants"
 import type { AuditLogEntry } from "./use-audit-logs"
@@ -29,13 +29,16 @@ export function usePersonalAuditLogs(skip = false) {
     | { page: AuditLogEntry[]; continueCursor: string; isDone: boolean }
     | undefined
 
-  // Clear transitioning once page loads — mirrors `useAuditLogs`.
-  // react-doctor: clears loading flag (intentional)
-  useEffect(() => {
+  // Clear the transitioning flag as soon as a new page resolves. Comparing the
+  // result identity during render avoids painting one stale frame before an
+  // effect could clear the flag.
+  const [prevResult, setPrevResult] = useState(result)
+  if (result !== prevResult) {
+    setPrevResult(result)
     if (result !== undefined && isTransitioning) {
       setIsTransitioning(false)
     }
-  }, [result, isTransitioning])
+  }
 
   const goNext = useCallback(() => {
     if (!result || result.isDone || isTransitioning) return

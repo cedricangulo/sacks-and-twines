@@ -407,29 +407,47 @@ async function seedDispatches(
     if (spec) specs.push(spec)
   }
 
-  const dispatchIdBySpec = new Map<number, Id<"dispatches">>()
-  for (const [index, spec] of specs.entries()) {
-    const orNumber = await nextOrNumber(ctx, spec.createdDate)
-    const dispatchId = await ctx.db.insert("dispatches", {
-      userId: spec.userId,
-      customerReference: spec.customerReference,
-      orNumber,
-      status: spec.status,
-      userName: userNameMap[spec.userId],
-      itemCount: spec.items.length,
-      totalQuantity: toFloat(
-        spec.items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
-      ),
-      totalValue: toFloat(
-        spec.items.reduce(
-          (sum, item) => sum + item.quantityDeducted * item.unitCost,
-          0
-        )
-      ),
-      createdAt: spec.createdDate,
-    })
-    dispatchIdBySpec.set(index, dispatchId)
+  // Reserve OR numbers sequentially: each candidate must be unique against both
+  // existing dispatches and the other specs in this chunk. The inserts below
+  // are the only concurrent work.
+  const orNumbers: string[] = []
+  const reservedOrNumbers = new Set<string>()
+  for (const spec of specs) {
+    let orNumber = await nextOrNumber(ctx, spec.createdDate)
+    while (reservedOrNumbers.has(orNumber)) {
+      orNumber = await nextOrNumber(ctx, spec.createdDate)
+    }
+    reservedOrNumbers.add(orNumber)
+    orNumbers.push(orNumber)
   }
+
+  const dispatchIds = await Promise.all(
+    specs.map((spec, index) =>
+      ctx.db.insert("dispatches", {
+        userId: spec.userId,
+        customerReference: spec.customerReference,
+        orNumber: orNumbers[index],
+        status: spec.status,
+        userName: userNameMap[spec.userId],
+        itemCount: spec.items.length,
+        totalQuantity: toFloat(
+          spec.items.reduce((sum, item) => sum + item.dispatchQuantity, 0)
+        ),
+        totalValue: toFloat(
+          spec.items.reduce(
+            (sum, item) => sum + item.quantityDeducted * item.unitCost,
+            0
+          )
+        ),
+        createdAt: spec.createdDate,
+      })
+    )
+  )
+
+  const dispatchIdBySpec = new Map<number, Id<"dispatches">>()
+  dispatchIds.forEach((dispatchId, index) => {
+    dispatchIdBySpec.set(index, dispatchId)
+  })
 
   const itemPromises: Array<Promise<unknown>> = []
   const logPromises: Array<Promise<unknown>> = []
@@ -506,33 +524,33 @@ export const writeBase = internalMutation({
     staffId: v.id("users"),
   },
   handler: async (ctx, { ownerId, staffId }) => {
-    const supplierIds = await Promise.all(
-      SUPPLIER_DEFS.map((def) => ctx.db.insert("suppliers", def))
-    )
-
-    // Sequential: `nextSkuCode()` is a global counter — parallelizing across
-    // suppliers + products would interleave IDs non-deterministically.
-    // react-doctor: deterministic SKU order (sequential intentional)
-    const productResults = await Promise.all(
-      PRODUCT_DEFS.map(async (def) => {
-        const productCreatedAt = randDate(DATE_BASE, DATE_END)
-        const id = await ctx.db.insert("products", {
-          skuCode: nextSkuCode(),
-          name: def.name,
-          category: def.category,
-          baseUom: def.baseUom,
-          conversionFactor: def.conversionFactor,
-          currentQuantity: 0,
-          totalAssetValue: 0,
-          lowStockThreshold: def.lowStockThreshold,
-          status: "active",
-          imagePath: IMAGE_MAP[def.name],
-          createdAt: productCreatedAt.getTime(),
-          ...(def.keywords ? { keywords: def.keywords } : {}),
+    // `nextSkuCode()` is a global counter: reserve the codes sequentially first
+    // so the concurrent inserts below keep deterministic SKU order. Supplier
+    // and product inserts are independent, so they race in one `Promise.all`.
+    const skuCodes = PRODUCT_DEFS.map(() => nextSkuCode())
+    const [supplierIds, productResults] = await Promise.all([
+      Promise.all(SUPPLIER_DEFS.map((def) => ctx.db.insert("suppliers", def))),
+      Promise.all(
+        PRODUCT_DEFS.map(async (def, index) => {
+          const productCreatedAt = randDate(DATE_BASE, DATE_END)
+          const id = await ctx.db.insert("products", {
+            skuCode: skuCodes[index],
+            name: def.name,
+            category: def.category,
+            baseUom: def.baseUom,
+            conversionFactor: def.conversionFactor,
+            currentQuantity: 0,
+            totalAssetValue: 0,
+            lowStockThreshold: def.lowStockThreshold,
+            status: "active",
+            imagePath: IMAGE_MAP[def.name],
+            createdAt: productCreatedAt.getTime(),
+            ...(def.keywords ? { keywords: def.keywords } : {}),
+          })
+          return { id, def }
         })
-        return { id, def }
-      })
-    )
+      ),
+    ])
 
     const productMap: Record<string, { id: Id<"products">; def: ProductDef }> =
       {}
@@ -545,6 +563,18 @@ export const writeBase = internalMutation({
     const batches: SeedBatchInfo[] = []
     const productBatchCounts: Array<{ id: Id<"products">; count: number }> = []
     const totalSpan = DATE_END.getTime() - DATE_BASE.getTime()
+    const batchPlans: Array<{
+      productId: Id<"products">
+      supplierId: Id<"suppliers">
+      userId: Id<"users">
+      batchCode: string
+      totalProcurementCost: number
+      unitCost: number
+      quantity: number
+      createdAt: number
+      productName: string
+      productUom: ProductDef["baseUom"]
+    }> = []
     const stockInLogs: Array<{
       userId: Id<"users">
       description: string
@@ -552,6 +582,9 @@ export const writeBase = internalMutation({
       createdAt: number
     }> = []
 
+    // Plan every random batch field sequentially so `nextBatchCode()` and the
+    // random draws keep their deterministic order. The inserts below are the
+    // only concurrent work: each plan is already fully specified.
     for (const { id: pId, def } of productList) {
       const numBatches = rndInt(6, 8)
       for (let i = 0; i < numBatches; i++) {
@@ -586,47 +619,66 @@ export const writeBase = internalMutation({
               ? rndInt(300, 700)
               : toFloat(rndInt(800, 2000) + Math.random())
 
-        const batchCode = nextBatchCode()
-        const batchId = await ctx.db.insert("batches", {
+        batchPlans.push({
           productId: pId,
           supplierId,
           userId,
-          batchCode,
+          batchCode: nextBatchCode(),
           totalProcurementCost: toFloat(unitCost * qty),
           unitCost,
-          quantityReceived: qty,
-          quantityRemaining: qty,
-          status: "active",
+          quantity: qty,
           createdAt: batchDate.getTime(),
-        })
-
-        batches.push({
-          id: batchId,
-          productId: pId,
-          unitCost,
-          baseUom: def.baseUom,
-          batchCode,
-          createdDate: batchDate.getTime(),
-          quantityRemaining: qty,
-        })
-
-        stockInLogs.push({
-          userId: ownerId,
-          description: JSON.stringify({
-            summary: `Stocked in ${toFloat(qty)} units of ${def.name} (${batchCode})`,
-            details: {
-              product: def.name,
-              batchCode,
-              quantity: toFloat(qty),
-              uom: def.baseUom,
-            },
-          }),
-          resourceId: batchId,
-          createdAt: batchDate.getTime(),
+          productName: def.name,
+          productUom: def.baseUom,
         })
       }
       productBatchCounts.push({ id: pId, count: numBatches })
     }
+
+    const batchIds = await Promise.all(
+      batchPlans.map((plan) =>
+        ctx.db.insert("batches", {
+          productId: plan.productId,
+          supplierId: plan.supplierId,
+          userId: plan.userId,
+          batchCode: plan.batchCode,
+          totalProcurementCost: plan.totalProcurementCost,
+          unitCost: plan.unitCost,
+          quantityReceived: plan.quantity,
+          quantityRemaining: plan.quantity,
+          status: "active",
+          createdAt: plan.createdAt,
+        })
+      )
+    )
+
+    batchPlans.forEach((plan, index) => {
+      const batchId = batchIds[index]
+      batches.push({
+        id: batchId,
+        productId: plan.productId,
+        unitCost: plan.unitCost,
+        baseUom: plan.productUom,
+        batchCode: plan.batchCode,
+        createdDate: plan.createdAt,
+        quantityRemaining: plan.quantity,
+      })
+
+      stockInLogs.push({
+        userId: ownerId,
+        description: JSON.stringify({
+          summary: `Stocked in ${toFloat(plan.quantity)} units of ${plan.productName} (${plan.batchCode})`,
+          details: {
+            product: plan.productName,
+            batchCode: plan.batchCode,
+            quantity: toFloat(plan.quantity),
+            uom: plan.productUom,
+          },
+        }),
+        resourceId: batchId,
+        createdAt: plan.createdAt,
+      })
+    })
 
     await Promise.all(
       productBatchCounts.map(({ id, count }) =>
@@ -1398,6 +1450,15 @@ export const writeTest = internalMutation({
 
     // Map for O(1) lookup — avoids `find` per iteration (react-doctor/js-index-maps)
     const productById = new Map(productList.map((p) => [p.id, p] as const))
+    const adjustmentPlans: Array<{
+      batchId: Id<"batches">
+      productId: Id<"products">
+      userId: Id<"users">
+      quantity: number
+      reason: "damaged" | "lost" | "recount" | "system_reversal"
+      status: "applied" | "voided"
+      createdAt: number
+    }> = []
     for (let i = 0; i < adjBatches.length; i++) {
       const batch = adjBatches[i]
       const product = productById.get(batch.productId)
@@ -1414,22 +1475,14 @@ export const writeTest = internalMutation({
       const isVoided = i === adjBatches.length - 1 // Last one is voided
       const adjDate = randDate(DATE_BASE, DATE_END)
 
-      const adjId = await ctx.db.insert("stockAdjustments", {
+      adjustmentPlans.push({
         batchId: batch.id,
         productId: batch.productId,
         userId,
-        quantityAdjusted: qty,
+        quantity: qty,
         reason,
         status: isVoided ? "voided" : "applied",
         createdAt: adjDate.getTime(),
-      })
-
-      adjustmentRecords.push({
-        id: adjId,
-        batchId: batch.id,
-        productId: batch.productId,
-        quantity: qty,
-        reason,
       })
 
       // Apply to batch if not voided
@@ -1441,6 +1494,31 @@ export const writeTest = internalMutation({
         batch.quantityRemaining = Math.max(0, newRemaining)
       }
     }
+
+    // The plans above are fully specified, so only the inserts run
+    // concurrently. `Promise.all` preserves order for `adjustmentRecords`.
+    const adjustmentIds = await Promise.all(
+      adjustmentPlans.map((plan) =>
+        ctx.db.insert("stockAdjustments", {
+          batchId: plan.batchId,
+          productId: plan.productId,
+          userId: plan.userId,
+          quantityAdjusted: plan.quantity,
+          reason: plan.reason,
+          status: plan.status,
+          createdAt: plan.createdAt,
+        })
+      )
+    )
+    adjustmentPlans.forEach((plan, index) => {
+      adjustmentRecords.push({
+        id: adjustmentIds[index],
+        batchId: plan.batchId,
+        productId: plan.productId,
+        quantity: plan.quantity,
+        reason: plan.reason,
+      })
+    })
 
     // Update batch quantities after adjustments
     for (const batch of batchRecords) {
@@ -1742,11 +1820,14 @@ export const clearTableChunk = internalMutation({
 export const seedStatus = internalQuery({
   args: {},
   handler: async (ctx) => {
-    const counts: Record<string, number> = {}
-    for (const table of CLEARABLE_TABLES) {
-      counts[table] = (await ctx.db.query(table).take(1)).length
-    }
-    return counts
+    // Each single-row status read is independent, so overlap them.
+    const remaining = await Promise.all(
+      CLEARABLE_TABLES.map(async (table) => {
+        const docs = await ctx.db.query(table).take(1)
+        return [table, docs.length] as const
+      })
+    )
+    return Object.fromEntries(remaining)
   },
 })
 

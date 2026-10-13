@@ -42,32 +42,74 @@ const CalendarDayCellImpl = ({
       variant="ghost"
     >
       <span className="absolute font-medium top-1 right-1">{day}</span>
-      {isLoading ? (
-        <div className="grid w-full gap-1">
-          <Skeleton className="w-6 h-5 md:w-full" />
-          <Skeleton className="w-6 h-5 md:w-full" />
-        </div>
-      ) : hasActivity ? (
-        <div className="grid w-full gap-1">
-          {dispatchCount > 0 ? (
-            <Badge className="justify-start md:w-full" variant="warning">
-              {dispatchCount}{" "}
-              <span className="hidden md:flex">
-                {dispatchCount === 1 ? "Dispatch" : "Dispatches"}
-              </span>
-            </Badge>
-          ) : null}
-          {adjustmentCount > 0 ? (
-            <Badge className="justify-start md:w-full" variant="success">
-              {adjustmentCount}{" "}
-              <span className="hidden md:flex">
-                {adjustmentCount === 1 ? "Adjustment" : "Adjustments"}
-              </span>
-            </Badge>
-          ) : null}
-        </div>
-      ) : null}
+      <DayCellBody
+        isLoading={isLoading}
+        hasActivity={hasActivity}
+        dispatchCount={dispatchCount}
+        adjustmentCount={adjustmentCount}
+      />
     </Button>
+  )
+}
+
+// Loading placeholder vs activity badges vs empty. Split out so the cell
+// itself stays a flat layout with no nested branches.
+function DayCellBody({
+  isLoading,
+  hasActivity,
+  dispatchCount,
+  adjustmentCount,
+}: {
+  isLoading?: boolean
+  hasActivity: boolean
+  dispatchCount: number
+  adjustmentCount: number
+}) {
+  if (isLoading) {
+    return (
+      <div className="grid w-full gap-1">
+        <Skeleton className="w-6 h-5 md:w-full" />
+        <Skeleton className="w-6 h-5 md:w-full" />
+      </div>
+    )
+  }
+  if (!hasActivity) return null
+  return (
+    <div className="grid w-full gap-1">
+      <ActivityBadge
+        count={dispatchCount}
+        singular="Dispatch"
+        plural="Dispatches"
+        variant="warning"
+      />
+      <ActivityBadge
+        count={adjustmentCount}
+        singular="Adjustment"
+        plural="Adjustments"
+        variant="success"
+      />
+    </div>
+  )
+}
+
+// One activity badge, hidden when its count is zero.
+function ActivityBadge({
+  count,
+  singular,
+  plural,
+  variant,
+}: {
+  count: number
+  singular: string
+  plural: string
+  variant: "warning" | "success"
+}) {
+  if (count <= 0) return null
+  return (
+    <Badge className="justify-start md:w-full" variant={variant}>
+      {count}{" "}
+      <span className="hidden md:flex">{count === 1 ? singular : plural}</span>
+    </Badge>
   )
 }
 

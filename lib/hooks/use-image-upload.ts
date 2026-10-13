@@ -126,10 +126,12 @@ export function useImageUpload() {
   }
 
   // Revoke preview on unmount — covers the case where dialog is closed
-  // without calling `removeFile`/`reset`.
+  // without calling `removeFile`/`reset`. The preview is copied to a local
+  // first so cleanup revokes exactly the URL this effect observed.
   useEffect(() => {
+    const preview = state.preview
     return () => {
-      if (state.preview?.startsWith("blob:")) URL.revokeObjectURL(state.preview)
+      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview)
     }
   }, [state.preview])
 

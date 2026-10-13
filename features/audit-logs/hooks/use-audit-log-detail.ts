@@ -7,7 +7,7 @@ import { useCurrentUser } from "@/features/auth/components/current-user-provider
 import type { AuditLogEntry } from "./use-audit-logs"
 
 // Shape of the audit log detail returned by the hook, including optional user email and role for owners.
-type AuditLogDetail =
+export type AuditLogDetail =
   | (AuditLogEntry & {
       userEmail?: string | null
       userRole?: string | null

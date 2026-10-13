@@ -15,6 +15,7 @@ import {
   formatChangeLabel,
   parseDescription,
 } from "../helpers/parse-description"
+import type { AuditLogDetail } from "../hooks/use-audit-log-detail"
 import { useAuditLogDetail } from "../hooks/use-audit-log-detail"
 import type { AuditLogEntry } from "../hooks/use-audit-logs"
 
@@ -60,110 +61,145 @@ export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
       <AccordionContent className="h-full border-t pt-2.5">
         {isLoading ? (
           <DetailSkeleton parsedDesc={parsedDesc} />
-        ) : (
-          detail && (
-            <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 type-body-small">
-              <DetailRow
-                label={FIELD_LABELS.timestamp}
-                value={formattedTimestamp}
-              />
-              <DetailRow
-                label={FIELD_LABELS.action}
-                value={formatAction(detail.action)}
-              />
-              <DetailRow
-                label={FIELD_LABELS.userName}
-                value={detail.userName ?? "—"}
-              />
-              <DetailRow
-                label={FIELD_LABELS.userId}
-                value={detail.userId ?? "—"}
-              />
-              <DetailRow
-                label={FIELD_LABELS.userEmail}
-                value={detail.userEmail ?? "—"}
-              />
-              <DetailRow
-                label={FIELD_LABELS.userRole}
-                value={detail.userRole ?? "—"}
-              />
-              <DetailRow
-                label={FIELD_LABELS.resourceType}
-                value={detail.resourceType ?? "—"}
-              />
-              <DetailRow
-                label={FIELD_LABELS.resourceId}
-                value={detail.resourceId ?? "—"}
-              />
-              {parsedDesc.isFlat ? (
-                parsedDesc.details &&
-                Object.keys(parsedDesc.details).length > 0 &&
-                Object.entries(parsedDesc.details).map(([key, value]) => (
-                  <DetailRow key={key} label={key} value={String(value)} />
-                ))
-              ) : (
-                <>
-                  {parsedDesc.details &&
-                    Object.keys(parsedDesc.details).length > 0 && (
-                      <>
-                        <dt className="text-muted-foreground">
-                          {FIELD_LABELS.details}
-                        </dt>
-                        <dd>
-                          <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
-                            {Object.entries(parsedDesc.details).map(
-                              ([key, value]) => (
-                                <GroupedField
-                                  key={key}
-                                  label={key}
-                                  value={String(value)}
-                                />
-                              )
-                            )}
-                          </div>
-                        </dd>
-                      </>
-                    )}
-                  {parsedDesc.changes &&
-                    Object.keys(parsedDesc.changes).length > 0 && (
-                      <>
-                        <dt className="text-muted-foreground">
-                          {FIELD_LABELS.changes}
-                        </dt>
-                        <dd>
-                          <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
-                            {Object.entries(parsedDesc.changes).map(
-                              ([key, change]: [
-                                string,
-                                { old: unknown; new: unknown },
-                              ]) => (
-                                <ChangeEntry
-                                  key={key}
-                                  label={formatChangeLabel(key)}
-                                  oldVal={String(change.old)}
-                                  newVal={String(change.new)}
-                                />
-                              )
-                            )}
-                          </div>
-                        </dd>
-                      </>
-                    )}
-                </>
-              )}
-              <DetailRow
-                label={FIELD_LABELS.ipAddress}
-                value={detail.ipAddress ?? "—"}
-              />
-              <DetailRow
-                label={FIELD_LABELS.userAgent}
-                value={detail.userAgent ?? "—"}
-              />
-            </dl>
-          )
-        )}
+        ) : detail ? (
+          <DetailBody
+            detail={detail}
+            parsedDesc={parsedDesc}
+            formattedTimestamp={formattedTimestamp}
+          />
+        ) : null}
       </AccordionContent>
     </AccordionItem>
+  )
+}
+
+// Loaded detail panel. Split from `AuditLogItem` so the accordion item stays a
+// flat trigger + content switch; the core/trailing rows and the
+// details/changes sections compose here.
+function DetailBody({
+  detail,
+  parsedDesc,
+  formattedTimestamp,
+}: {
+  detail: NonNullable<AuditLogDetail>
+  parsedDesc: ReturnType<typeof parseDescription>
+  formattedTimestamp: string
+}) {
+  return (
+    <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 type-body-small">
+      <DetailRow label={FIELD_LABELS.timestamp} value={formattedTimestamp} />
+      <DetailRow
+        label={FIELD_LABELS.action}
+        value={formatAction(detail.action)}
+      />
+      <DetailRow label={FIELD_LABELS.userName} value={detail.userName ?? "—"} />
+      <DetailRow label={FIELD_LABELS.userId} value={detail.userId ?? "—"} />
+      <DetailRow
+        label={FIELD_LABELS.userEmail}
+        value={detail.userEmail ?? "—"}
+      />
+      <DetailRow label={FIELD_LABELS.userRole} value={detail.userRole ?? "—"} />
+      <DetailRow
+        label={FIELD_LABELS.resourceType}
+        value={detail.resourceType ?? "—"}
+      />
+      <DetailRow
+        label={FIELD_LABELS.resourceId}
+        value={detail.resourceId ?? "—"}
+      />
+      <ParsedSections parsedDesc={parsedDesc} />
+      <DetailRow
+        label={FIELD_LABELS.ipAddress}
+        value={detail.ipAddress ?? "—"}
+      />
+      <DetailRow
+        label={FIELD_LABELS.userAgent}
+        value={detail.userAgent ?? "—"}
+      />
+    </dl>
+  )
+}
+
+// Flat key-value details vs grouped details/changes sections.
+function ParsedSections({
+  parsedDesc,
+}: {
+  parsedDesc: ReturnType<typeof parseDescription>
+}) {
+  if (parsedDesc.isFlat) return <FlatDetails parsedDesc={parsedDesc} />
+  return (
+    <>
+      <GroupedDetails parsedDesc={parsedDesc} />
+      <GroupedChanges parsedDesc={parsedDesc} />
+    </>
+  )
+}
+
+// Flat details: one row per key, rendered only when details are non-empty.
+function FlatDetails({
+  parsedDesc,
+}: {
+  parsedDesc: ReturnType<typeof parseDescription>
+}) {
+  if (!parsedDesc.details || Object.keys(parsedDesc.details).length === 0)
+    return null
+  return (
+    <>
+      {Object.entries(parsedDesc.details).map(([key, value]) => (
+        <DetailRow key={key} label={key} value={String(value)} />
+      ))}
+    </>
+  )
+}
+
+// Grouped details section, rendered only when details are non-empty.
+function GroupedDetails({
+  parsedDesc,
+}: {
+  parsedDesc: ReturnType<typeof parseDescription>
+}) {
+  if (!parsedDesc.details || Object.keys(parsedDesc.details).length === 0)
+    return null
+  return (
+    <>
+      <dt className="text-muted-foreground">{FIELD_LABELS.details}</dt>
+      <dd>
+        <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
+          {Object.entries(parsedDesc.details).map(([key, value]) => (
+            <GroupedField key={key} label={key} value={String(value)} />
+          ))}
+        </div>
+      </dd>
+    </>
+  )
+}
+
+// Grouped changes section, rendered only when changes are non-empty.
+function GroupedChanges({
+  parsedDesc,
+}: {
+  parsedDesc: ReturnType<typeof parseDescription>
+}) {
+  if (!parsedDesc.changes || Object.keys(parsedDesc.changes).length === 0)
+    return null
+  return (
+    <>
+      <dt className="text-muted-foreground">{FIELD_LABELS.changes}</dt>
+      <dd>
+        <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
+          {Object.entries(parsedDesc.changes).map(
+            ([key, change]: [string, { old: unknown; new: unknown }]) => (
+              <ChangeEntry
+                key={key}
+                label={formatChangeLabel(key)}
+                oldVal={String(change.old)}
+                newVal={String(change.new)}
+              />
+            )
+          )}
+        </div>
+      </dd>
+    </>
   )
 }
 

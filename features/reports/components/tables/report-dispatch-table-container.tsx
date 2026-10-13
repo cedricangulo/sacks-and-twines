@@ -87,7 +87,6 @@ export default function ReportDispatchTableContainer({
           </span>
         ),
         sortingFn: "basic",
-        enableSorting: false,
       }),
       columnHelper.accessor((row) => row.totalQuantity ?? 0, {
         id: "totalQuantity",
@@ -99,7 +98,6 @@ export default function ReportDispatchTableContainer({
           </span>
         ),
         sortingFn: "basic",
-        enableSorting: false,
       }),
       columnHelper.accessor((row) => row.createdAt ?? row._creationTime, {
         id: "createdAt",

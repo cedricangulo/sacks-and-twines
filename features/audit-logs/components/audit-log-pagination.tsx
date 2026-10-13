@@ -1,12 +1,6 @@
 "use client"
 
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import CursorPagination from "@/components/cursor-pagination"
 
 // Props for the audit log pagination controls.
 interface AuditLogPaginationProps {
@@ -19,49 +13,6 @@ interface AuditLogPaginationProps {
 }
 
 // Previous/next pagination controls for the audit log list.
-export default function AuditLogPagination({
-  pageNum,
-  hasNext,
-  hasPrev,
-  onNext,
-  onPrev,
-  isLoading,
-}: AuditLogPaginationProps) {
-  return (
-    <Pagination>
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            onClick={hasPrev && !isLoading ? onPrev : undefined}
-            href={undefined}
-            text="Previous"
-            className={
-              !hasPrev || isLoading
-                ? "pointer-events-none opacity-50"
-                : "cursor-pointer"
-            }
-          />
-        </PaginationItem>
-
-        <PaginationItem>
-          <span className="flex h-9 items-center px-4 type-body-small tabular-nums text-muted-foreground">
-            Page {pageNum}
-          </span>
-        </PaginationItem>
-
-        <PaginationItem>
-          <PaginationNext
-            onClick={hasNext && !isLoading ? onNext : undefined}
-            href={undefined}
-            text="Next"
-            className={
-              !hasNext || isLoading
-                ? "pointer-events-none opacity-50"
-                : "cursor-pointer"
-            }
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  )
+export default function AuditLogPagination(props: AuditLogPaginationProps) {
+  return <CursorPagination {...props} />
 }

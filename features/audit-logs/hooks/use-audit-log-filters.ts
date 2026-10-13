@@ -4,11 +4,13 @@ import { parseAsString, useQueryState } from "nuqs"
 import { useMemo } from "react"
 import type { Id } from "@/convex/_generated/dataModel"
 import { getTimestampFromPreset } from "@/features/audit-logs/helpers/date-presets"
+import { formatDateTime } from "@/lib/formatters"
+import { matchesSearch, normalizeSearchTerm } from "@/lib/search"
 import type { AuditLogEntry, AuditLogFilters } from "./use-audit-logs"
 
 // URL-synced search, action, user, and date range filters for the audit log list with client-side filtering.
 export function useAuditLogFilters(logs: AuditLogEntry[] | undefined) {
-  const [search, setSearch] = useQueryState(
+  const [rawSearch, setSearch] = useQueryState(
     "search",
     parseAsString.withDefault("").withOptions({
       history: "replace",
@@ -43,6 +45,9 @@ export function useAuditLogFilters(logs: AuditLogEntry[] | undefined) {
     })
   )
 
+  // Normalized once here so the input and the results describe the same term.
+  const search = normalizeSearchTerm(rawSearch)
+
   const hasActiveFilters =
     search !== "" ||
     action !== "all" ||
@@ -73,15 +78,31 @@ export function useAuditLogFilters(logs: AuditLogEntry[] | undefined) {
     [action, userId, resolvedDateFrom, resolvedDateTo]
   )
 
+  // Client-side residue over the already-fetched page.
+  //
+  // This is a *narrowing* pass, not the filter itself: `useAuditLogs` pushes
+  // `search` to `auditLogs.queries.list`, which does the real matching. That
+  // server predicate previously covered only `action` and `description` even
+  // though this code also matched `userName` — so an actor name typed here was
+  // silently discarded before it ever reached this memo, and appeared to find
+  // nothing. The server now matches `userName` too (the join is hoisted above
+  // the predicate); this pass is retained so the two stay consistent.
   const filtered = useMemo(() => {
     if (!logs) return undefined
     if (!search) return logs
-    const q = search.toLowerCase()
     return logs.filter(
       (log) =>
-        (log.userName ?? "").toLowerCase().includes(q) ||
-        log.action.toLowerCase().includes(q) ||
-        log.description.toLowerCase().includes(q)
+        matchesSearch(log.userName, search) ||
+        matchesSearch(log.action, search) ||
+        matchesSearch(log.description, search) ||
+        matchesSearch(log.resourceType, search) ||
+        matchesSearch(log.resourceId, search) ||
+        matchesSearch(log.ipAddress, search) ||
+        matchesSearch(log.userAgent, search) ||
+        matchesSearch(
+          formatDateTime(log.createdAt ?? log._creationTime),
+          search
+        )
     )
   }, [logs, search])
 

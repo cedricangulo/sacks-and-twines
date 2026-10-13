@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "convex-helpers/react/cache"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { ITEMS_PER_PAGE } from "../constants"
@@ -63,21 +63,19 @@ export function useAuditLogs(
     ]
   )
 
-  const prevFiltersKeyRef = useRef(filtersKey)
-  // Pagination must restart at page 1 when query changes — intentional
-  // state sync on prop change; alternative `key={filtersKey}` would remount
-  // the table and lose transition state.
-  // react-doctor: pagination reset is required UX (intentional sync)
-  useEffect(() => {
-    if (filtersKey !== prevFiltersKeyRef.current) {
-      prevFiltersKeyRef.current = filtersKey
-      setCursor(null)
-      setHistory([])
-      setPageNum(1)
-      setMaxPage(1)
-      setIsTransitioning(false)
-    }
-  }, [filtersKey])
+  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey)
+  // Pagination must restart at page 1 when the query changes. This uses React's
+  // render-phase state adjustment pattern: the reset commits with the same
+  // render that sees the new filters, so stale rows are never painted. A
+  // `key={filtersKey}` remount would also drop transition state.
+  if (filtersKey !== prevFiltersKey) {
+    setPrevFiltersKey(filtersKey)
+    setCursor(null)
+    setHistory([])
+    setPageNum(1)
+    setMaxPage(1)
+    setIsTransitioning(false)
+  }
 
   const queryArgs = useMemo(
     () =>
@@ -106,13 +104,16 @@ export function useAuditLogs(
     | { page: AuditLogEntry[]; continueCursor: string; isDone: boolean }
     | undefined
 
-  // Clear transitioning flag once Convex returns the next page.
-  // react-doctor: clears loading flag after fetch (intentional)
-  useEffect(() => {
+  // Clear the transitioning flag as soon as a new page resolves. Comparing the
+  // result identity during render is the same adjustment pattern used above;
+  // it avoids painting one stale frame before an effect could clear the flag.
+  const [prevResult, setPrevResult] = useState(result)
+  if (result !== prevResult) {
+    setPrevResult(result)
     if (result !== undefined && isTransitioning) {
       setIsTransitioning(false)
     }
-  }, [result, isTransitioning])
+  }
 
   const goNext = useCallback(() => {
     if (!result || result.isDone || isTransitioning) return
