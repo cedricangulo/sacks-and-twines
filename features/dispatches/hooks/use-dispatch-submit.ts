@@ -9,6 +9,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { BACKDATE_WINDOW_MS } from "@/convex/lib/constants"
 import { handleConvexError } from "@/lib/error-handler"
 import { dateTimeToMs } from "@/lib/form-primitives"
+import { useIsMobile } from "@/hooks/use-mobile"
 import {
   type DispatchSubmitFieldErrors,
   validateDispatchSubmit,
@@ -25,6 +26,11 @@ export function useDispatchSubmit(onSuccess?: () => void) {
   const [dispatchTime, setDispatchTime] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<DispatchSubmitFieldErrors>({})
+  const isMobile = useIsMobile()
+  // Sidebar is only visible at xl+, so on mobile the right side is free for
+  // bottom-right toasts. Everywhere else use bottom-center to avoid covering
+  // the dispatch queue sidebar and its submit button.
+  const toastPosition = isMobile ? "bottom-right" : "bottom-center"
 
   const handleSubmit = async () => {
     if (itemCount === 0) return
@@ -56,6 +62,7 @@ export function useDispatchSubmit(onSuccess?: () => void) {
             itemErrorCount === 1
               ? "One item has an error and needs attention."
               : `${itemErrorCount} items have errors and need attention.`,
+          position: toastPosition,
         })
       }
       return
@@ -91,6 +98,7 @@ export function useDispatchSubmit(onSuccess?: () => void) {
           loading: { title: "Processing dispatch..." },
           success: { title: "Dispatch completed" },
           error: (err) => handleConvexError(err, "Dispatch failed"),
+          position: toastPosition,
         }
       )
       .then(() => {

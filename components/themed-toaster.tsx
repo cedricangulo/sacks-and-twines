@@ -8,7 +8,7 @@ export function ThemedToaster() {
 
   return (
     <Toaster
-      position="top-center"
+      position="bottom-right"
       theme={resolvedTheme === "dark" ? "dark" : "light"}
       options={{
         fill:
