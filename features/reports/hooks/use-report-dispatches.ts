@@ -6,6 +6,11 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 
+// Shared stable identity for the loading state — `(result ?? [])` mints a
+// fresh array every render, which cascades into fresh pagination objects and
+// table data arrays downstream (see `calendar-detail-panel.tsx`).
+const EMPTY: never[] = []
+
 // A single dispatch entry as returned by the reports query.
 // `userName`, `itemCount`, `totalQuantity` and `totalValue` are denormalized
 // onto the dispatch doc at write time, so the query's `...dispatch` spread
@@ -50,7 +55,7 @@ export function useDispatchesByDateRange(
     | undefined
 
   return {
-    data: (result ?? []) as unknown as ReportDispatch[],
+    data: (result ?? EMPTY) as unknown as ReportDispatch[],
     isLoading: result === undefined && startMs !== null && endMs !== null,
   }
 }

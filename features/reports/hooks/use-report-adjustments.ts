@@ -6,6 +6,11 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 
+// Shared stable identity for the loading state — `(result ?? [])` mints a
+// fresh array every render, which cascades into fresh pagination objects and
+// table data arrays downstream (see `calendar-detail-panel.tsx`).
+const EMPTY: never[] = []
+
 // A single stock adjustment entry as returned by the reports query.
 export interface ReportAdjustment {
   _id: Id<"stockAdjustments">
@@ -50,7 +55,7 @@ export function useAdjustmentsByDateRange(
   ) as Array<Record<string, unknown>> | undefined
 
   return {
-    data: (result ?? []) as unknown as ReportAdjustment[],
+    data: (result ?? EMPTY) as unknown as ReportAdjustment[],
     isLoading: result === undefined && startMs !== null && endMs !== null,
   }
 }

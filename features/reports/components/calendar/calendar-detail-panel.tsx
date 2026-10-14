@@ -55,7 +55,9 @@ export default function CalendarDetailPanel() {
 
   const handleTabChange = (value: string) => {
     setActiveTab(value)
-    setPageValue(1)
+    // Skip the nuqs write when already on page 1 — it would still round-trip
+    // through the filters context and re-render every consumer for no change.
+    if (page !== 1) setPageValue(1)
   }
 
   const paginatedDispatches = useMemo(

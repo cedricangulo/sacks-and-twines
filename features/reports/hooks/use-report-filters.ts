@@ -1,7 +1,7 @@
 "use client"
 
 import { parseAsInteger, useQueryStates } from "nuqs"
-import { useEffect, useMemo } from "react"
+import { useCallback, useEffect, useMemo } from "react"
 
 /**
  * Read current month/year at call time — not at module load — so the value
@@ -92,7 +92,7 @@ export function useReportFilters() {
     return FILTER_DATE_FMT.format(new Date(year, month, day))
   }, [year, month, day])
 
-  const goPrevMonth = () => {
+  const goPrevMonth = useCallback(() => {
     const newMonth = month === 0 ? 11 : month - 1
     const newYear = month === 0 ? year - 1 : year
     setQueries({
@@ -101,9 +101,9 @@ export function useReportFilters() {
       day: clampDay(day, newYear, newMonth),
       page: 1,
     })
-  }
+  }, [month, year, day, setQueries])
 
-  const goNextMonth = () => {
+  const goNextMonth = useCallback(() => {
     const newMonth = month === 11 ? 0 : month + 1
     const newYear = month === 11 ? year + 1 : year
     setQueries({
@@ -112,41 +112,86 @@ export function useReportFilters() {
       day: clampDay(day, newYear, newMonth),
       page: 1,
     })
-  }
+  }, [month, year, day, setQueries])
 
-  const selectDay = (target: number) => {
-    setQueries({ day: target === day ? null : target, page: 1 })
-  }
+  const selectDay = useCallback(
+    (target: number) => {
+      setQueries({ day: target === day ? null : target, page: 1 })
+    },
+    [day, setQueries]
+  )
 
-  const setMonthValue = (newMonth: number) => {
-    setQueries({ month: newMonth, day: clampDay(day, year, newMonth), page: 1 })
-  }
+  const setMonthValue = useCallback(
+    (newMonth: number) => {
+      setQueries({
+        month: newMonth,
+        day: clampDay(day, year, newMonth),
+        page: 1,
+      })
+    },
+    [day, year, setQueries]
+  )
 
-  const setYearValue = (newYear: number) => {
-    setQueries({ year: newYear, day: clampDay(day, newYear, month), page: 1 })
-  }
+  const setYearValue = useCallback(
+    (newYear: number) => {
+      setQueries({
+        year: newYear,
+        day: clampDay(day, newYear, month),
+        page: 1,
+      })
+    },
+    [day, month, setQueries]
+  )
 
-  const setPageValue = (newPage: number) => {
-    setQueries({ page: newPage })
-  }
+  const setPageValue = useCallback(
+    (newPage: number) => {
+      setQueries({ page: newPage })
+    },
+    [setQueries]
+  )
 
-  return {
-    month,
-    year,
-    selectedDay: day,
-    page,
-    currentMonth: nowParts.month,
-    currentYear: nowParts.year,
-    monthStartMs,
-    monthEndMs,
-    selectedDayStartMs,
-    selectedDayEndMs,
-    formattedDate,
-    goPrevMonth,
-    goNextMonth,
-    selectDay,
-    setMonthValue,
-    setYearValue,
-    setPageValue,
-  }
+  // Memoized so the context value keeps its identity between renders —
+  // otherwise every consumer (calendar, stats, detail panel) re-renders on
+  // any interaction, and the new `setPageValue` identity cascades into fresh
+  // pagination objects and table data arrays downstream.
+  return useMemo(
+    () => ({
+      month,
+      year,
+      selectedDay: day,
+      page,
+      currentMonth: nowParts.month,
+      currentYear: nowParts.year,
+      monthStartMs,
+      monthEndMs,
+      selectedDayStartMs,
+      selectedDayEndMs,
+      formattedDate,
+      goPrevMonth,
+      goNextMonth,
+      selectDay,
+      setMonthValue,
+      setYearValue,
+      setPageValue,
+    }),
+    [
+      month,
+      year,
+      day,
+      page,
+      nowParts.month,
+      nowParts.year,
+      monthStartMs,
+      monthEndMs,
+      selectedDayStartMs,
+      selectedDayEndMs,
+      formattedDate,
+      goPrevMonth,
+      goNextMonth,
+      selectDay,
+      setMonthValue,
+      setYearValue,
+      setPageValue,
+    ]
+  )
 }

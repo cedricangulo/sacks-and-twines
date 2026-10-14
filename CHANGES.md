@@ -15,6 +15,8 @@
 - The dispatch status column is gone from history, reports, and downloads.
   Every recorded dispatch is final, so a "Completed / Voided" label that
   could never say "Voided" was only misleading.
+- Clicking a calendar day and switching between dispatches and adjustments
+  no longer makes the tables flicker and reload repeatedly.
 
 ## Recording past dates
 - Stock-in, dispatch, and stock-adjustment windows now have an optional date
