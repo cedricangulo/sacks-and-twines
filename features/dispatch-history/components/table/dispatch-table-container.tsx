@@ -10,7 +10,6 @@ import {
 } from "@tanstack/react-table"
 import type { Dispatch, SetStateAction } from "react"
 import { useMemo, useState } from "react"
-import { Badge } from "@/components/ui/badge"
 import { formatDateTime } from "@/lib/formatters"
 import type { Dispatch as DispatchType } from "../../validation"
 import DispatchTable from "./dispatch-table"
@@ -70,18 +69,6 @@ export default function DispatchTableContainer({
       columnHelper.accessor("userName", {
         header: "Dispatched By",
         cell: (info) => info.getValue(),
-        sortingFn: "alphanumeric",
-      }),
-      columnHelper.accessor("status", {
-        header: "Status",
-        cell: (info) => {
-          const status = info.getValue()
-          return (
-            <Badge variant={status === "completed" ? "success" : "destructive"}>
-              {status === "completed" ? "Completed" : "Voided"}
-            </Badge>
-          )
-        },
         sortingFn: "alphanumeric",
       }),
       columnHelper.accessor((row) => row.itemCount, {

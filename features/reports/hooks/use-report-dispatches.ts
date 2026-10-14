@@ -17,7 +17,6 @@ export interface ReportDispatch {
   userId: Id<"users">
   customerReference?: string
   orNumber?: string
-  status: "completed" | "voided"
   userName?: string
   itemCount?: number
   totalQuantity?: number

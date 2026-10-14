@@ -34,7 +34,6 @@ const baseData = {
     {
       _id: "d1",
       date: Date.now(),
-      status: "completed",
       orNumber: "OR-1",
       customerRef: "Acme",
       dispatchedBy: "Ann",
@@ -45,7 +44,6 @@ const baseData = {
     {
       _id: "d2",
       date: Date.now(),
-      status: "completed",
       orNumber: "OR-2",
       customerRef: "",
       dispatchedBy: "",

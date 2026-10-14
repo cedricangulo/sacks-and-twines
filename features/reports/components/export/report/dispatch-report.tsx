@@ -7,8 +7,6 @@ const PALE = "#eff6ff"
 const ZEBRA = "#f4f6fd"
 const INK = "#1a1a2e"
 const MUTED = "#6b7280"
-const SUCCESS_TEXT = "#166534"
-const DANGER_TEXT = "#b91c1c"
 const WARNING_BG = "#fef3c7"
 const WARNING_TEXT = "#92400e"
 
@@ -41,7 +39,6 @@ function formatPeso(value: number, useEmbeddedFont: boolean): string {
 export interface PdfDispatchRow {
   _id: string
   date: number
-  status: string
   orNumber: string
   customerRef: string
   dispatchedBy: string
@@ -322,24 +319,16 @@ export function DispatchReport({
         </View>
 
         {dispatches.map((d) => (
-          <View key={d._id} wrap={false}>
-            <View style={pdfStyles.groupHeader}>
+          <View key={d._id}>
+            {/* The header stays on one page; the items table below may break
+            across pages so an item-heavy dispatch never overflows off the
+            page bottom (`wrap={false}` on the whole group would clip it). */}
+            <View style={pdfStyles.groupHeader} wrap={false}>
               <Text style={pdfStyles.groupIdentity}>
                 <Text style={pdfStyles.groupOr}>{d.orNumber || "-"}</Text>
                 {"  ·  "}
                 {formatDate(d.date)} · {d.customerRef || "No ref"} ·{" "}
-                {d.dispatchedBy || "-"} ·{" "}
-                <Text
-                  style={{
-                    color:
-                      d.status === "completed" ? SUCCESS_TEXT : DANGER_TEXT,
-                    fontFamily: boldFamily,
-                    ...boldWeight,
-                  }}
-                >
-                  {d.status === "completed" ? "Completed" : "Voided"}
-                </Text>{}
-                · {d.itemCount} items
+                {d.dispatchedBy || "-"} · {d.itemCount} items
               </Text>
               <Text style={pdfStyles.groupTotal}>
                 {formatPeso(d.totalValue, useEmbeddedFont)}

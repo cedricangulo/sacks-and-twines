@@ -214,16 +214,15 @@ export const monthlyAggregates = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    // Two reads of the same range, each bounded to a different index set:
-    // `by_status_createdAt` (completed only) for the totals, and `by_createdAt`
-    // (all statuses) for the calendar grid. Reading them together keeps it to
-    // two index ranges instead of two calls each doing its own.
-    const [allDispatchesRead, completedRead] = await Promise.all([
-      fetchDispatches(ctx, startMs, endMs),
-      fetchDispatches(ctx, startMs, endMs, "completed"),
-    ])
-    const allDispatches = allDispatchesRead.docs
-    const merged = completedRead.docs
+    // One `by_createdAt` index range over the month. Dispatches carry no
+    // status — every stored dispatch is a completed one — so a single read
+    // serves both the totals and the calendar grid.
+    const { docs: dispatches, truncated } = await fetchDispatches(
+      ctx,
+      startMs,
+      endMs
+    )
+    const merged = dispatches
 
     let totalItems = 0
     let totalValue = 0
@@ -261,15 +260,12 @@ export const monthlyAggregates = query({
       totalValue,
       // The aggregate is a summary, not an export, so a capped read is reported
       // rather than acted on — the client shows it next to the totals.
-      truncated:
-        adjustmentsTruncated ||
-        allDispatchesRead.truncated ||
-        completedRead.truncated,
-      // `allDispatches` (unfiltered by status) backs the calendar grid, which
-      // marks any day with a dispatch. Read via the same helper so the range is
-      // issued once per index rather than once per consumer.
+      truncated: adjustmentsTruncated || truncated,
+      // `dispatches` backs the calendar grid, which marks any day with a
+      // dispatch. Read via the same helper so the range is issued once per
+      // index rather than once per consumer.
       dispatchTimestamps: [
-        ...new Set(allDispatches.map((d) => d.createdAt ?? d._creationTime)),
+        ...new Set(dispatches.map((d) => d.createdAt ?? d._creationTime)),
       ],
       adjustmentTimestamps: [
         ...new Set(adjustments.map((a) => a.createdAt ?? a._creationTime)),
@@ -487,7 +483,6 @@ export const exportDispatches = query({
       ctx,
       startMs,
       endMs,
-      undefined,
       UNBOUNDED_RANGE_LIMIT,
       "desc"
     )
@@ -519,7 +514,6 @@ export const exportDispatches = query({
         return {
           _id: d._id,
           date: d.createdAt ?? d._creationTime,
-          status: d.status,
           orNumber: d.orNumber ?? "",
           customerRef: d.customerReference ?? "",
           dispatchedBy: userName,
@@ -555,14 +549,12 @@ export const exportDispatchItems = query({
       ctx,
       startMs,
       endMs,
-      undefined,
       UNBOUNDED_RANGE_LIMIT,
       "desc"
     )
 
     const rows: Array<{
       date: number
-      status: string
       orNumber: string
       customerRef: string
       dispatchedBy: string
@@ -598,7 +590,6 @@ export const exportDispatchItems = query({
       for (const item of itemsByDispatch[index]) {
         rows.push({
           date: d.createdAt ?? d._creationTime,
-          status: d.status,
           orNumber: d.orNumber ?? "",
           customerRef: d.customerReference ?? "",
           dispatchedBy: userName,
@@ -649,7 +640,6 @@ export const exportDispatchReport = query({
       ctx,
       startMs,
       endMs,
-      undefined,
       UNBOUNDED_RANGE_LIMIT,
       "desc"
     )
@@ -682,7 +672,6 @@ export const exportDispatchReport = query({
       return {
         _id: d._id,
         date: d.createdAt ?? d._creationTime,
-        status: d.status,
         orNumber: d.orNumber ?? "",
         customerRef: d.customerReference ?? "",
         dispatchedBy: userName,
@@ -697,7 +686,6 @@ export const exportDispatchReport = query({
       return itemsByDispatch[index].map((item) => ({
         dispatchId: d._id,
         date: d.createdAt ?? d._creationTime,
-        status: d.status,
         orNumber: d.orNumber ?? "",
         customerRef: d.customerReference ?? "",
         dispatchedBy: userName,
@@ -800,7 +788,6 @@ export const exportMonthlyReport = query({
       unitCost: number
       lineTotal: number
       dispatchDate: number
-      dispatchStatus: string
       customerRef: string
       dispatchedBy: string
     }> = []
@@ -845,7 +832,6 @@ export const exportMonthlyReport = query({
           unitCost: item.unitCost,
           lineTotal,
           dispatchDate: d.createdAt ?? d._creationTime,
-          dispatchStatus: d.status,
           customerRef: d.customerReference ?? "",
           dispatchedBy: userName,
         })

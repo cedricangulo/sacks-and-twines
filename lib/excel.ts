@@ -3,7 +3,6 @@ import ExcelJS from "exceljs"
 export interface DispatchExcelRow {
   _id: string
   date: number
-  status: string
   orNumber: string
   customerRef: string
   dispatchedBy: string
@@ -15,7 +14,6 @@ export interface DispatchExcelRow {
 export interface DispatchItemExcelRow {
   dispatchId: string
   date: number
-  status: string
   orNumber: string
   customerRef: string
   dispatchedBy: string
@@ -48,10 +46,6 @@ const INK = "FF1A1A2E"
 const MUTED = "FF6B7280"
 const WARNING_FILL = "FFFEF3C7"
 const WARNING_TEXT = "FF92400E"
-const SUCCESS_FILL = "FFDCFCE7"
-const SUCCESS_TEXT = "FF166534"
-const DANGER_FILL = "FFFDE8E8"
-const DANGER_TEXT = "FFB91C1C"
 
 const DATE_FMT = "mmm dd, yyyy h:mm AM/PM"
 const MONEY_FMT = "₱#,##0.00"
@@ -126,50 +120,6 @@ function paintTableHeader(
       wrapText: true,
     }
   }
-}
-
-// Status pills mirroring the app's `Badge` success/destructive variants.
-// Applied as conditional formatting so banding survives row insert/delete.
-function paintStatusColumn(
-  ws: ExcelJS.Worksheet,
-  colLetter: string,
-  firstRow: number,
-  lastRow: number
-): void {
-  if (lastRow < firstRow) return
-  ws.addConditionalFormatting({
-    ref: `${colLetter}${firstRow}:${colLetter}${lastRow}`,
-    rules: [
-      {
-        type: "cellIs",
-        operator: "equal",
-        priority: 1,
-        formulae: ['"completed"'],
-        style: {
-          font: { color: { argb: SUCCESS_TEXT } },
-          fill: {
-            type: "pattern",
-            pattern: "solid",
-            bgColor: { argb: SUCCESS_FILL },
-          },
-        },
-      },
-      {
-        type: "cellIs",
-        operator: "equal",
-        priority: 2,
-        formulae: ['"voided"'],
-        style: {
-          font: { color: { argb: DANGER_TEXT } },
-          fill: {
-            type: "pattern",
-            pattern: "solid",
-            bgColor: { argb: DANGER_FILL },
-          },
-        },
-      },
-    ],
-  })
 }
 
 function setupSheet(
@@ -262,7 +212,7 @@ export function buildDispatchWorkbook(
     "Sacks & Twines — Dispatch Report",
     data.rangeLabel,
     data.generatedAt,
-    8
+    7
   )
 
   dws.addTable({
@@ -276,7 +226,6 @@ export function buildDispatchWorkbook(
       { name: "OR Number", filterButton: true },
       { name: "Customer Ref", filterButton: true },
       { name: "Dispatched By", filterButton: true },
-      { name: "Status", filterButton: true },
       { name: "Items", filterButton: false },
       { name: "Total Qty", filterButton: false },
       { name: "Total Value", filterButton: false },
@@ -286,53 +235,50 @@ export function buildDispatchWorkbook(
       safeString(d.orNumber || "-"),
       safeString(d.customerRef || "-"),
       safeString(d.dispatchedBy || "-"),
-      d.status,
       d.itemCount,
       d.totalQuantity,
       d.totalValue,
     ]),
   })
-  paintTableHeader(dws, 5, 8)
+  paintTableHeader(dws, 5, 7)
   dws.getColumn(1).width = 20
   dws.getColumn(2).width = 16
   dws.getColumn(3).width = 20
   dws.getColumn(4).width = 18
-  dws.getColumn(5).width = 12
-  dws.getColumn(6).width = 9
-  dws.getColumn(7).width = 11
-  dws.getColumn(8).width = 15
+  dws.getColumn(5).width = 9
+  dws.getColumn(6).width = 11
+  dws.getColumn(7).width = 15
   const dFirst = 6
   const dLast = 5 + data.dispatches.length
   for (let r = dFirst; r <= dLast; r++) {
     const row = dws.getRow(r)
     row.getCell(1).numFmt = DATE_FMT
+    row.getCell(5).numFmt = QTY_FMT
     row.getCell(6).numFmt = QTY_FMT
-    row.getCell(7).numFmt = QTY_FMT
-    row.getCell(8).numFmt = MONEY_FMT
-    for (let c = 6; c <= 8; c++)
+    row.getCell(7).numFmt = MONEY_FMT
+    for (let c = 5; c <= 7; c++)
       row.getCell(c).alignment = { horizontal: "right" }
   }
   if (data.dispatches.length > 0) {
     const totals = dws.getRow(dLast + 1)
     totals.getCell(1).value = "Totals:"
     totals.getCell(1).font = { bold: true, color: { argb: INK } }
+    totals.getCell(5).value = { formula: `SUM(E${dFirst}:E${dLast})` }
+    totals.getCell(5).numFmt = QTY_FMT
+    totals.getCell(5).alignment = { horizontal: "right" }
     totals.getCell(6).value = { formula: `SUM(F${dFirst}:F${dLast})` }
     totals.getCell(6).numFmt = QTY_FMT
     totals.getCell(6).alignment = { horizontal: "right" }
     totals.getCell(7).value = { formula: `SUM(G${dFirst}:G${dLast})` }
-    totals.getCell(7).numFmt = QTY_FMT
+    totals.getCell(7).numFmt = MONEY_FMT
     totals.getCell(7).alignment = { horizontal: "right" }
-    totals.getCell(8).value = { formula: `SUM(H${dFirst}:H${dLast})` }
-    totals.getCell(8).numFmt = MONEY_FMT
-    totals.getCell(8).alignment = { horizontal: "right" }
   }
-  paintStatusColumn(dws, "E", dFirst, dLast)
   const dFooter = dLast + 3
   if (data.truncated) {
     writeHonestyFooter(
       dws,
       dFooter,
-      8,
+      7,
       [
         `TRUNCATED: first ${data.dispatches.length} of more than ${data.limit} matching dispatches. Narrow the date range or split the export.`,
       ],

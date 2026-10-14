@@ -215,7 +215,6 @@ async function seedAtProductionVolume(t: TestInstance): Promise<SeedRefs> {
               userId: ownerId,
               customerReference: `PO-${i}`,
               orNumber: `OR-${i}`,
-              status: i % 17 === 0 ? "voided" : "completed",
               userName: "Stress Owner",
               itemCount: 1,
               totalQuantity: 5,

@@ -20,23 +20,13 @@ import {
 } from "@/components/ui/select"
 import { api } from "@/convex/_generated/api"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
-import {
-  DISPATCH_TABLE_COLUMNS,
-  ITEMS_TABLE_COLUMNS,
-  STATUS_OPTIONS,
-} from "../constants"
+import { DISPATCH_TABLE_COLUMNS, ITEMS_TABLE_COLUMNS } from "../constants"
 
 interface Props {
   search: string
   onSearchChange: (value: string) => void
-  status: "all" | "completed" | "voided"
   createdByUserId: string
-  onFilterChange: (
-    filters: Partial<{
-      status: "all" | "completed" | "voided"
-      createdByUserId: string
-    }>
-  ) => void
+  onFilterChange: (filters: Partial<{ createdByUserId: string }>) => void
   hasActiveFilters: boolean
   onClear: () => void
   dispatchVisibility: Record<string, boolean>
@@ -49,7 +39,6 @@ interface Props {
 export default function DispatchFilterBar({
   search,
   onSearchChange,
-  status,
   createdByUserId,
   onFilterChange,
   hasActiveFilters,
@@ -89,28 +78,6 @@ export default function DispatchFilterBar({
           className="pl-9"
         />
       </div>
-
-      <Select
-        value={status}
-        onValueChange={(v) =>
-          onFilterChange({
-            status: v as "all" | "completed" | "voided",
-          })
-        }
-      >
-        <SelectTrigger className="w-34">
-          <SelectValue>
-            {STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {STATUS_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
 
       <Select
         value={createdByUserId}

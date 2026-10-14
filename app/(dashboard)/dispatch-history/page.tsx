@@ -18,14 +18,9 @@ import { useDispatches } from "@/features/dispatch-history/hooks/use-dispatches"
 // Applies the filter-bar update to the matching state owner. Kept outside the
 // page component so the page's control flow stays flat.
 function applyDispatchFilterChange(
-  filters: Partial<{
-    status: "all" | "completed" | "voided"
-    createdByUserId: string
-  }>,
-  setFilters: (filters: { status?: "all" | "completed" | "voided" }) => void,
+  filters: Partial<{ createdByUserId: string }>,
   setCreatedByUserId: (value: string) => void
 ) {
-  if (filters.status) setFilters({ status: filters.status })
   if (filters.createdByUserId) setCreatedByUserId(filters.createdByUserId)
 }
 
@@ -39,15 +34,8 @@ export default function DispatchHistoryPage() {
 
   const { data: dispatches, isLoading } = useDispatches({ createdByUserId })
 
-  const {
-    search,
-    setSearch,
-    status,
-    setFilters,
-    filtered,
-    hasActiveFilters,
-    clearFilters,
-  } = useDispatchHistoryFilters(dispatches)
+  const { search, setSearch, filtered, hasActiveFilters, clearFilters } =
+    useDispatchHistoryFilters(dispatches)
 
   const [dispatchVisibility, setDispatchVisibility] = useState<
     Record<string, boolean>
@@ -68,10 +56,9 @@ export default function DispatchHistoryPage() {
         <DispatchFilterBar
           search={search}
           onSearchChange={setSearch}
-          status={status}
           createdByUserId={createdByUserId}
           onFilterChange={(filters) =>
-            applyDispatchFilterChange(filters, setFilters, setCreatedByUserId)
+            applyDispatchFilterChange(filters, setCreatedByUserId)
           }
           hasActiveFilters={hasActiveFilters}
           onClear={clearFilters}
@@ -96,7 +83,7 @@ export default function DispatchHistoryPage() {
       }
       empty={
         <FilteredEmptyState
-          isFiltered={Boolean(search || hasActiveFilters)}
+          isFiltered={hasActiveFilters}
           filteredIcon={<XCircleIcon weight="bold" />}
           emptyIcon={<PackageIcon weight="fill" />}
           filteredTitle="No dispatches match your filters"

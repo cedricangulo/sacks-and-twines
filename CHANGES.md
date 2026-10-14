@@ -12,6 +12,9 @@
 - Peso amounts print with the ₱ sign in both files.
 - Very large periods are capped so a download can't silently drop rows — if
   that happens the file says so and suggests narrowing the range.
+- The dispatch status column is gone from history, reports, and downloads.
+  Every recorded dispatch is final, so a "Completed / Voided" label that
+  could never say "Voided" was only misleading.
 
 ## Recording past dates
 - Stock-in, dispatch, and stock-adjustment windows now have an optional date

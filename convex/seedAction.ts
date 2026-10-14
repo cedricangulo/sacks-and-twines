@@ -259,7 +259,7 @@ export const seedClean = internalAction({
 /**
  * Test database seed action. Creates owner, active staff, and deactivated staff,
  * then populates with real products plus edge case fixtures for QA testing.
- * Includes: archived product, depleted batch, voided batch, voided dispatch,
+ * Includes: archived product, depleted batch, voided batch,
  * voided adjustment, and realistic audit logs.
  */
 export const seedTest = internalAction({

@@ -74,26 +74,9 @@ export async function fetchDispatches(
   ctx: QueryCtx,
   startMs: number,
   endMs: number,
-  status?: "completed" | "voided",
   limit: number = UNBOUNDED_RANGE_LIMIT,
   order: "asc" | "desc" = "asc"
 ): Promise<CappedRead<Doc<"dispatches">>> {
-  if (status) {
-    return capRead(
-      (n) =>
-        ctx.db
-          .query("dispatches")
-          .withIndex("by_status_createdAt", (q) =>
-            q
-              .eq("status", status)
-              .gte("createdAt", startMs)
-              .lte("createdAt", endMs)
-          )
-          .order(order)
-          .take(n),
-      limit
-    )
-  }
   return capRead(
     (n) =>
       ctx.db
@@ -110,7 +93,7 @@ export async function fetchDispatches(
 /**
  * Fetch dispatches within a date range, newest first, optionally capped.
  *
- * Equivalent to `fetchDispatches(ctx, startMs, endMs, undefined, limit, "desc")`.
+ * Equivalent to `fetchDispatches(ctx, startMs, endMs, limit, "desc")`.
  * Kept as a separate export because the shape differs (no `status`, optional
  * `limit`), which is easier to read at the call site than six positional args.
  */

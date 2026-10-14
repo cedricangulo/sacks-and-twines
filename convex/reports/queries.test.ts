@@ -127,7 +127,6 @@ async function createDispatch(
   args: {
     userId: Id<"users">
     customerReference?: string
-    status?: "completed" | "voided"
     userName?: string
     itemCount?: number
     createdAt?: number
@@ -137,7 +136,6 @@ async function createDispatch(
     return await ctx.db.insert("dispatches", {
       userId: args.userId,
       customerReference: args.customerReference,
-      status: args.status ?? "completed",
       userName: args.userName,
       itemCount: args.itemCount,
       createdAt: args.createdAt,
@@ -272,20 +270,15 @@ describe("monthlyAggregates — calendar timestamps", () => {
     expect(result.adjustmentTimestamps[0]).toBeGreaterThan(0)
   })
 
-  it("includes voided dispatches in calendar timestamps but not the totals", async () => {
-    // The calendar grid marks any day with a dispatch; `dispatchCount` counts
-    // completed ones only. Folding the two queries together must preserve both
-    // semantics.
+  it("counts every dispatch in the totals and the calendar timestamps", async () => {
+    // The calendar grid marks any day with a dispatch and `dispatchCount`
+    // counts the same rows — a single read serves both, with no status split.
     const t = makeTest()
     const ownerId = await createUser(t)
     const now = Date.now()
 
     await createDispatch(t, { userId: ownerId, createdAt: now })
-    await createDispatch(t, {
-      userId: ownerId,
-      createdAt: now,
-      status: "voided",
-    })
+    await createDispatch(t, { userId: ownerId, createdAt: now })
 
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
@@ -295,7 +288,7 @@ describe("monthlyAggregates — calendar timestamps", () => {
     })
 
     expect(result.dispatchTimestamps).toHaveLength(1)
-    expect(result.dispatchCount).toBe(1)
+    expect(result.dispatchCount).toBe(2)
   })
 })
 
@@ -399,7 +392,6 @@ describe("monthlyAggregates", () => {
       for (let i = 0; i < UNBOUNDED_RANGE_LIMIT + 1; i++) {
         await ctx.db.insert("dispatches", {
           userId: ownerId,
-          status: "completed",
           userName: "Owner",
           itemCount: 1,
           totalValue: 10,
@@ -713,7 +705,6 @@ describe("exportDispatches", () => {
     const dispatchId = await createDispatch(t, {
       userId: ownerId,
       customerReference: "REF-001",
-      status: "completed",
       userName: "Dispatcher",
       createdAt: now,
     })
@@ -746,7 +737,6 @@ describe("exportDispatches", () => {
     expect(result.records).toHaveLength(1)
     expect(result.records[0]).toMatchObject({
       date: expect.any(Number),
-      status: "completed",
       customerRef: "REF-001",
       dispatchedBy: "Dispatcher",
       itemCount: 2,
@@ -768,7 +758,6 @@ describe("exportDispatches", () => {
         ids.push(
           await ctx.db.insert("dispatches", {
             userId: ownerId,
-            status: "completed",
             userName: "Dispatcher",
             customerReference: `REF-${i}`,
             itemCount: 1,
@@ -819,7 +808,6 @@ describe("exportDispatches", () => {
     const dispatchId = await createDispatch(t, {
       userId: dispatcherId,
       customerReference: "REF-LEGACY",
-      status: "completed",
       itemCount: 1,
       createdAt: now,
     })
@@ -911,7 +899,6 @@ describe("exportDispatchItems", () => {
     const dispatchId = await createDispatch(t, {
       userId: ownerId,
       customerReference: "REF-002",
-      status: "completed",
       userName: "Dispatcher",
       createdAt: now,
     })
@@ -936,7 +923,6 @@ describe("exportDispatchItems", () => {
     expect(result.records).toHaveLength(1)
     expect(result.records[0]).toMatchObject({
       date: expect.any(Number),
-      status: "completed",
       customerRef: "REF-002",
       dispatchedBy: "Dispatcher",
       product: "Product X",
@@ -987,7 +973,6 @@ describe("exportDispatchReport", () => {
     const dispatchId = await createDispatch(t, {
       userId: ownerId,
       customerReference: "REF-002",
-      status: "completed",
       userName: "Dispatcher",
       createdAt: now,
     })
@@ -1291,7 +1276,6 @@ describe("report exports report their own truncation", () => {
       for (let i = 0; i < count; i++) {
         await ctx.db.insert("dispatches", {
           userId: ownerId,
-          status: "completed",
           userName: "Owner",
           itemCount: 1,
           createdAt: 1_700_000_000_000 + i,

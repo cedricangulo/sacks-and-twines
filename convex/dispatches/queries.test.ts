@@ -61,7 +61,6 @@ describe("dispatch queries", () => {
           return await ctx.db.insert("dispatches", {
             userId,
             customerReference: i === 0 ? "Walk-in" : undefined,
-            status: i === 4 ? "voided" : "completed",
             createdAt: Date.now() + i * 1000,
           })
         })
@@ -289,7 +288,6 @@ describe("dispatch queries", () => {
         await ctx.db.insert("dispatches", {
           userId: userA,
           customerReference: `REF-${i}`,
-          status: "completed",
           itemCount: 1,
           totalValue: 10,
           userName: "Owner",

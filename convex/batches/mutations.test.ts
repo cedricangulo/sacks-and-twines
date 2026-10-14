@@ -94,7 +94,6 @@ describe("batch mutations", () => {
     return await t.run(async (ctx) => {
       const dispatchId = await ctx.db.insert("dispatches", {
         userId: overrides.userId,
-        status: "completed",
       })
       return await ctx.db.insert("dispatchItems", {
         dispatchId,

@@ -1,8 +1,8 @@
 import { internal } from "../_generated/api"
 import type { Id } from "../_generated/dataModel"
 import { requireActive } from "../auth/guards"
-import { DISPATCH_UOM_BY_CATEGORY, INTEGER_UOMS } from "../lib/constants"
 import { resolveBusinessTime } from "../lib/backdate"
+import { DISPATCH_UOM_BY_CATEGORY, INTEGER_UOMS } from "../lib/constants"
 import { formatBackdate } from "../lib/dates"
 import { nextOrNumber } from "../lib/orNumber"
 import { globalLimit, perUserLimit } from "../rate_limiter"
@@ -50,7 +50,6 @@ export const submit = zMutation({
       userId: callerId,
       customerReference: customerReference ?? undefined,
       orNumber,
-      status: "completed",
       userName: caller?.name ?? "Unknown",
       createdAt: timestampMs,
     })

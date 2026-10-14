@@ -98,7 +98,6 @@ export const listByDateRange = query({
       ctx,
       startMs,
       endMs,
-      undefined,
       UNBOUNDED_RANGE_LIMIT,
       "desc"
     )

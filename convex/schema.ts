@@ -122,7 +122,6 @@ export default defineSchema({
     userId: v.id("users"),
     customerReference: v.optional(v.string()),
     orNumber: v.optional(v.string()),
-    status: v.union(v.literal("completed"), v.literal("voided")),
     userName: v.optional(v.string()),
     itemCount: v.optional(v.number()),
     totalQuantity: v.optional(v.number()),
@@ -142,7 +141,6 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_userId_createdAt", ["userId", "createdAt"])
     .index("by_createdAt", ["createdAt"])
-    .index("by_status_createdAt", ["status", "createdAt"])
     .index("by_orNumber", ["orNumber"]),
 
   dispatchItems: defineTable({

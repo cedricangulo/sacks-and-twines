@@ -234,7 +234,6 @@ interface SeedDispatchPlan {
 interface DispatchSpec {
   userId: Id<"users">
   createdDate: number
-  status: "completed" | "voided"
   customerReference: string | undefined
   orNumber?: string
   items: Array<{
@@ -323,7 +322,6 @@ function buildDispatchSpec(
   batches: SeedBatchInfo[]
 ): DispatchSpec | null {
   const userId = rnd(userIds)
-  const isVoided = Math.random() < 0.05
   const numItems = rndInt(1, 5)
   const usedProducts = new Set<Id<"products">>()
   const items: DispatchSpec["items"] = []
@@ -378,7 +376,6 @@ function buildDispatchSpec(
   return {
     userId,
     createdDate,
-    status: isVoided ? ("voided" as const) : ("completed" as const),
     customerReference: nextCustomerReference(),
     items,
   }
@@ -427,7 +424,6 @@ async function seedDispatches(
         userId: spec.userId,
         customerReference: spec.customerReference,
         orNumber: orNumbers[index],
-        status: spec.status,
         userName: userNameMap[spec.userId],
         itemCount: spec.items.length,
         totalQuantity: toFloat(
@@ -1018,7 +1014,7 @@ export const writeAuthLogs = internalMutation({
 /**
  * Writes a test seed with real products plus edge case fixtures.
  * Includes: archived product, deactivated staff, depleted batch, voided batch,
- * voided dispatch, voided adjustment, and realistic audit logs.
+ * voided adjustment, and realistic audit logs.
  * Internal mutation — called by `seedTest` action.
  */
 export const writeTest = internalMutation({
@@ -1219,13 +1215,12 @@ export const writeTest = internalMutation({
       )
     )
 
-    // ── 4. Insert dispatches (~15, mix of completed and voided) ──────
+    // ── 4. Insert dispatches (~15) ───────────────────────────────
     const NUM_TEST_DISPATCHES = 15
     const dispatchRecords: Array<{
       id: Id<"dispatches">
       userId: Id<"users">
       createdDate: Date
-      status: "completed" | "voided"
     }> = []
     const dispatchItemsToInsert: Array<{
       dispatchId: Id<"dispatches">
@@ -1266,13 +1261,11 @@ export const writeTest = internalMutation({
         `SO-${rndInt(100, 999)}`,
       ]
       const customerReference = rnd(refs)
-      const isVoided = i === NUM_TEST_DISPATCHES - 1 // Last one is voided
 
       const dispatchId = await ctx.db.insert("dispatches", {
         userId,
         customerReference: customerReference ?? undefined,
         orNumber: await nextOrNumber(ctx, dBase.getTime()),
-        status: isVoided ? "voided" : "completed",
         createdAt: dBase.getTime(),
       })
 
@@ -1280,7 +1273,6 @@ export const writeTest = internalMutation({
         id: dispatchId,
         userId,
         createdDate: dBase,
-        status: isVoided ? "voided" : "completed",
       })
 
       // 1-3 items per dispatch
@@ -1616,12 +1608,9 @@ export const writeTest = internalMutation({
 
         return ctx.db.insert("auditLogs", {
           userId: dispatch.userId,
-          action: dispatch.status === "voided" ? "dispatch_void" : "stock_out",
+          action: "stock_out",
           description: JSON.stringify({
-            summary:
-              dispatch.status === "voided"
-                ? `Voided dispatch with ${items.length} product(s)`
-                : `Dispatched ${items.length} product(s) (${toFloat(items.reduce((sum, item) => sum + item.dispatchQuantity, 0))} units)`,
+            summary: `Dispatched ${items.length} product(s) (${toFloat(items.reduce((sum, item) => sum + item.dispatchQuantity, 0))} units)`,
             details: {
               totalItems: items.length,
               totalQuantity: toFloat(

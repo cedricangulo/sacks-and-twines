@@ -8,7 +8,6 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { useMemo, useState } from "react"
-import { Badge } from "@/components/ui/badge"
 import { formatDateTime } from "@/lib/formatters"
 import type { ReportDispatch } from "../../hooks/use-report-dispatches"
 import ReportDispatchTable from "./report-dispatch-table"
@@ -63,18 +62,6 @@ export default function ReportDispatchTableContainer({
       columnHelper.accessor("userName", {
         header: "Dispatched By",
         cell: (info) => info.getValue(),
-        sortingFn: "alphanumeric",
-      }),
-      columnHelper.accessor("status", {
-        header: "Status",
-        cell: (info) => {
-          const status = info.getValue()
-          return (
-            <Badge variant={status === "completed" ? "success" : "destructive"}>
-              {status === "completed" ? "Completed" : "Voided"}
-            </Badge>
-          )
-        },
         sortingFn: "alphanumeric",
       }),
       columnHelper.accessor((row) => row.itemCount ?? 0, {

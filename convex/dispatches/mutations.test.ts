@@ -236,7 +236,6 @@ describe("dispatch mutations", () => {
       const dispatch = await ctx.db.get(result.dispatchId)
       expect(dispatch).not.toBeNull()
       expect(dispatch!.customerReference).toBe("Walk-in Customer")
-      expect(dispatch!.status).toBe("completed")
       expect(dispatch!.totalQuantity).toBe(10)
     })
 

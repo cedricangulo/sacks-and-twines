@@ -460,6 +460,9 @@ export async function fetchDispatches(
   ).collect()          // ← no limit param at all
 }
 ```
+(Audit-time shape, preserved as evidence. Since fixed: reads are capped via
+`capRead`, and the dispatch `status` field — hence the `status` parameter and
+the `by_status_createdAt` index — was removed entirely.)
 
 `fetchAdjustments` (`:56-67`) is identically unbounded.
 

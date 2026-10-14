@@ -59,7 +59,6 @@ describe("DispatchReport peso rendering", () => {
         {
           _id: "d1",
           date: now,
-          status: "completed",
           orNumber: "OR-1",
           customerRef: "Acme",
           dispatchedBy: "Ann",

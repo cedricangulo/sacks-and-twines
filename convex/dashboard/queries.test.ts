@@ -129,7 +129,6 @@ async function createDispatch(
   args: {
     userId: Id<"users">
     customerReference?: string
-    status?: "completed" | "voided"
     userName?: string
     itemCount?: number
     createdAt?: number
@@ -139,7 +138,6 @@ async function createDispatch(
     return await ctx.db.insert("dispatches", {
       userId: args.userId,
       customerReference: args.customerReference,
-      status: args.status ?? "completed",
       userName: args.userName,
       itemCount: args.itemCount,
       createdAt: args.createdAt,
@@ -1127,7 +1125,7 @@ describe("productMovement", () => {
     ).rejects.toThrowError("Unauthorized")
   })
 
-  it("aggregates quantityDeducted per product and excludes voided dispatches", async () => {
+  it("aggregates quantityDeducted per product across dispatches", async () => {
     const t = makeTest()
     const ownerId = await createUser(t)
     const supplierId = await createSupplier(t)
@@ -1150,39 +1148,37 @@ describe("productMovement", () => {
     })
 
     const now = Date.now()
-    const completed = await createDispatch(t, {
+    const first = await createDispatch(t, {
       userId: ownerId,
-      status: "completed",
       createdAt: now - 1000,
     })
-    const voided = await createDispatch(t, {
+    const second = await createDispatch(t, {
       userId: ownerId,
-      status: "voided",
       createdAt: now - 1000,
     })
 
     // 30 + 20 = 50 units of Fast across two items; 5 units of Slow.
     await createDispatchItem(t, {
-      dispatchId: completed,
+      dispatchId: first,
       batchId: batchFast,
       productId: pFast,
       quantityDeducted: 30,
     })
     await createDispatchItem(t, {
-      dispatchId: completed,
+      dispatchId: first,
       batchId: batchFast,
       productId: pFast,
       quantityDeducted: 20,
     })
     await createDispatchItem(t, {
-      dispatchId: completed,
+      dispatchId: first,
       batchId: batchSlow,
       productId: pSlow,
       quantityDeducted: 5,
     })
-    // Voided dispatch must not count.
+    // Every stored dispatch counts — there is no voided state.
     await createDispatchItem(t, {
-      dispatchId: voided,
+      dispatchId: second,
       batchId: batchFast,
       productId: pFast,
       quantityDeducted: 999,
@@ -1200,7 +1196,7 @@ describe("productMovement", () => {
     const slow = result.find((r) => r.productId === pSlow)
     const archived = result.find((r) => r.productId === pArchived)
 
-    expect(fast?.unitsSold).toBe(50)
+    expect(fast?.unitsSold).toBe(1049)
     expect(slow?.unitsSold).toBe(5)
     expect(archived).toBeUndefined()
   })
@@ -1219,7 +1215,6 @@ describe("productMovement", () => {
     const now = Date.now()
     const oldDispatch = await createDispatch(t, {
       userId: ownerId,
-      status: "completed",
       createdAt: now - 90 * 86_400_000,
     })
     await createDispatchItem(t, {

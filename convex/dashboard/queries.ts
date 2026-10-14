@@ -118,7 +118,7 @@ export const summaryStats = query({
 /**
  * Daily dispatch volume for the current month area chart.
  * Returns the total quantity deducted per calendar day within the range,
- * along with how many completed dispatches contributed to that day.
+ * along with how many dispatches contributed to that day.
  *
  * Access: Owner only.
  */
@@ -136,12 +136,7 @@ export const dailyDispatchVolume = query({
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const { docs: dispatches } = await fetchDispatches(
-      ctx,
-      startMs,
-      endMs,
-      "completed"
-    )
+    const { docs: dispatches } = await fetchDispatches(ctx, startMs, endMs)
 
     const dayMap = new Map<number, { units: number; dispatchCount: number }>()
 
@@ -242,7 +237,7 @@ export const weeklyVelocity = query({
  * Product movement ranking for the Product Movement card.
  *
  * Aggregates units sold (sum of dispatchItems.quantityDeducted) per active
- * product across completed dispatches in the given window, returning one
+ * product across dispatches in the given window, returning one
  * entry per active product (units 0 when nothing sold). The client selects
  * the top-5 fastest and bottom-5 slowest and classifies velocity.
  *
@@ -260,12 +255,7 @@ export const productMovement = query({
     const caller = await ctx.db.get(userId)
     if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
 
-    const { docs: dispatches } = await fetchDispatches(
-      ctx,
-      startMs,
-      endMs,
-      "completed"
-    )
+    const { docs: dispatches } = await fetchDispatches(ctx, startMs, endMs)
 
     // Per-product units are denormalized onto each dispatch at submit time, so
     // this is a local aggregation rather than one `dispatchItems.by_dispatch`
@@ -349,8 +339,7 @@ export const weeklyDemand = query({
     const { docs: dispatches } = await fetchDispatches(
       ctx,
       historyStartMs,
-      endMs,
-      "completed"
+      endMs
     )
 
     const dayMap = new Map<string, number>()
