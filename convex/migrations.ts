@@ -255,14 +255,17 @@ export const backfillProductKeywords = migrations.define({
 
 /**
  * Backfills an auto-generated official receipt (OR) tracking number on
- * dispatches that lack one. Uses `createdAt ?? _creationTime` for the date
- * portion of `OR-YYYYMMDD-####` (in Philippine time).
+ * dispatches that lack one. Uses `_creationTime` (record time) for the date
+ * portion of `OR-YYYYMMDD-####` (in Philippine time): the OR is a receipt, so
+ * its date is the issue date, not the business date. Matches
+ * `dispatches.mutations.submit`, which mints ORs from record time even for
+ * backdated dispatches.
  */
 export const backfillDispatchOrNumbers = migrations.define({
   table: "dispatches",
   migrateOne: async (ctx, dispatch) => {
     if (dispatch.orNumber !== undefined) return
-    const timestampMs = dispatch.createdAt ?? dispatch._creationTime
+    const timestampMs = dispatch._creationTime
     const datePart = orDatePart(timestampMs)
 
     for (let i = 0; i < 20; i++) {

@@ -19,6 +19,25 @@ literally downloading. Sources of truth:
   written raw.
 - Timestamp format (`en-PH`): `Aug 14, 2026, 6:12 PM`.
 - File name: `<entity>-<yyyy-mm-dd>.csv`.
+- Every CSV ends with a `# GENERATED: <timestamp>` comment row pinning
+  point-in-time semantics; the monthly PDF states the same on its cover page.
+
+## Business time vs record time
+
+- `createdAt` is business time ("when it happened"), defaulting to now and
+  backdatable by owners up to 30 days past (see `BACKDATE_WINDOW_MS` in
+  `convex/lib/constants.ts`). `_creationTime` stays the record time.
+- Inventory math always applies at record time — backdating attributes the
+  *event* to its business date for reports/history; it never replays a
+  retroactive ledger.
+- Consequence: re-running a past period after backdated entries were recorded
+  can differ from a previously issued file. The generated-at stamp is what
+  makes an issued file stand on its own.
+- Receipts are the exception: OR numbers carry the *issue* date (record time),
+  so backdated dispatches never sequence before already-issued receipts.
+- Backdated creations are flagged in the audit trail: the log's `details`
+  carry `transactionDate` and the summary carries a "(backdated to …)" suffix,
+  while the log's own timestamp remains the record time.
 
 ## Products — `exportProducts`
 

@@ -41,5 +41,8 @@ export const submitDispatchArgs = {
       })
     )
     .min(1, "At least one item is required"),
+  // Business time ("when it happened"). Shared by the dispatch and all its
+  // items so one dispatch never straddles a date-window edge.
+  createdAt: z.optional(z.number().int().positive().finite()),
   ...auditMeta,
 }

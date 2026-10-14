@@ -1,6 +1,8 @@
 import { internal } from "../_generated/api"
 import { Doc } from "../_generated/dataModel"
 import { requireOwner } from "../auth/guards"
+import { resolveBusinessTime } from "../lib/backdate"
+import { formatBackdate } from "../lib/dates"
 import { DEFAULT_CONVERSION_FACTOR } from "../lib/constants"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
@@ -35,6 +37,7 @@ export const create = zMutation({
       conversionFactor,
       lowStockThreshold,
       keywords,
+      createdAt,
       userAgent,
     }
   ) => {
@@ -65,6 +68,14 @@ export const create = zMutation({
 
     const normalizedKeywords = normalizeKeywords(keywords)
 
+    // `createdAt` is business time ("when it happened"), defaulting to now.
+    // Legacy rows are backfilled by `backfillProductCreatedAt`. Owner-only
+    // endpoint, so the override needs no further role check.
+    const { eventMs, wasBackdated } = resolveBusinessTime({
+      createdAt,
+      isOwner: true,
+    })
+
     const productId = await ctx.db.insert("products", {
       skuCode,
       name,
@@ -79,16 +90,21 @@ export const create = zMutation({
       // was undefined, `products.queries.getEditDetail` fell back to collecting
       // every batch of the product on each call.
       batchCount: 0,
-      // Required for the `by_createdAt` index range; legacy rows are backfilled
-      // by `backfillProductCreatedAt`.
-      createdAt: Date.now(),
+      createdAt: eventMs,
       ...(normalizedKeywords ? { keywords: normalizedKeywords } : {}),
     })
 
     await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "product_create",
-      description: `Created product ${name} (${skuCode})`,
+      // Plain string in the common case (existing assertions match on it);
+      // structured shape only when backdated so the transaction date surfaces.
+      description: wasBackdated
+        ? JSON.stringify({
+            summary: `Created product ${name} (${skuCode}) (backdated to ${formatBackdate(eventMs)})`,
+            details: { transactionDate: eventMs },
+          })
+        : `Created product ${name} (${skuCode})`,
       resourceType: "product",
       resourceId: productId,
       userAgent,

@@ -2,6 +2,7 @@ import { register as registerRateLimiter } from "@convex-dev/rate-limiter/test"
 import { convexTest } from "convex-test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { api } from "../_generated/api"
+import { orDatePart } from "../lib/orNumber"
 import schema from "../schema"
 
 const authMocks = vi.hoisted(() => ({
@@ -389,6 +390,139 @@ describe("dispatch mutations", () => {
     expect(first.orNumber).toMatch(/^OR-\d{8}-\d{4}$/)
     expect(second.orNumber).toMatch(/^OR-\d{8}-\d{4}$/)
     expect(first.orNumber).not.toBe(second.orNumber)
+  })
+
+  it("dates a backdated dispatch OR by issue date, not business date", async () => {
+    const t = makeTest()
+    const userId = await createUser(t)
+    authMocks.getAuthUserId.mockImplementation(async () => userId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        currentQuantity: 100,
+        totalAssetValue: 50000,
+      }),
+      createSupplier(t),
+    ])
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId,
+      quantityReceived: 100,
+      quantityRemaining: 100,
+      unitCost: 500,
+    })
+
+    // Yesterday noon in Philippine time — safely "yesterday" regardless of
+    // the runner's local zone, and safely in the past for the future-guard.
+    const backdatedMs = Date.now() - 36 * 60 * 60 * 1000
+    // 36h guarantees a different Manila calendar day than today.
+    expect(orDatePart(backdatedMs)).not.toBe(orDatePart(Date.now()))
+    const dayBefore = orDatePart(Date.now())
+    const result = await t.mutation(api.dispatches.mutations.submit, {
+      items: [{ productId, quantity: 10, dispatchUom: "piece" }],
+      createdAt: backdatedMs,
+    })
+
+    // The receipt carries today's date part even though the event is backdated,
+    // so backdated ORs can never sequence before already-issued receipts.
+    // Either side of a midnight rollover during the test is accepted.
+    expect(result.orNumber).toBeDefined()
+    expect([dayBefore, orDatePart(Date.now())]).toContain(
+      result.orNumber!.slice(3, 11)
+    )
+    expect(result.orNumber!.slice(3, 11)).not.toBe(orDatePart(backdatedMs))
+
+    await t.run(async (ctx) => {
+      const dispatch = await ctx.db.get(result.dispatchId)
+      expect(dispatch!.createdAt).toBe(backdatedMs)
+      const items = await ctx.db
+        .query("dispatchItems")
+        .withIndex("by_dispatch", (q) => q.eq("dispatchId", result.dispatchId))
+        .collect()
+      expect(items).toHaveLength(1)
+      // Items inherit the parent's business time, not the issue time.
+      expect(items[0].createdAt).toBe(backdatedMs)
+    })
+  })
+
+  it("rejects a staff backdate override", async () => {
+    const t = makeTest()
+    const staffId = await createUser(t, {
+      email: "staff@test.com",
+      role: "staff",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => staffId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        currentQuantity: 100,
+        totalAssetValue: 50000,
+      }),
+      createSupplier(t),
+    ])
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId: staffId,
+      quantityReceived: 100,
+      quantityRemaining: 100,
+      unitCost: 500,
+    })
+
+    // Staff can dispatch (stamps now), but moving events in time is owner-only.
+    await expect(
+      t.mutation(api.dispatches.mutations.submit, {
+        items: [{ productId, quantity: 10, dispatchUom: "piece" }],
+        createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
+      })
+    ).rejects.toThrowError("Only owners can backdate a transaction")
+
+    const ok = await t.mutation(api.dispatches.mutations.submit, {
+      items: [{ productId, quantity: 10, dispatchUom: "piece" }],
+    })
+    expect(ok.dispatchId).toBeDefined()
+  })
+
+  it("records the transaction date in the audit log when backdated", async () => {
+    const t = makeTest()
+    const userId = await createUser(t)
+    authMocks.getAuthUserId.mockImplementation(async () => userId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, {
+        currentQuantity: 100,
+        totalAssetValue: 50000,
+      }),
+      createSupplier(t),
+    ])
+    await createBatch(t, {
+      productId,
+      supplierId,
+      userId,
+      quantityReceived: 100,
+      quantityRemaining: 100,
+      unitCost: 500,
+    })
+
+    const backdatedMs = Date.now() - 2 * 24 * 60 * 60 * 1000
+    await t.mutation(api.dispatches.mutations.submit, {
+      items: [{ productId, quantity: 10, dispatchUom: "piece" }],
+      createdAt: backdatedMs,
+    })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "dispatch_submit"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    const description = JSON.parse(logs[0].description)
+    expect(description.details.transactionDate).toBe(backdatedMs)
+    expect(description.summary).toContain("backdated to")
   })
 
   it("submits multi-item dispatch", async () => {

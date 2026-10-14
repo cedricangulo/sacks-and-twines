@@ -5,10 +5,12 @@ import Image from "next/image"
 import { FieldCounter } from "@/components/field-counter"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DateTimePicker } from "@/components/ui/date-time-picker"
 import { Field, FieldError } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
+import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import { formatNumber } from "@/lib/formatters"
 import { getInitials } from "@/lib/utils"
 import { useDispatchQueueContext } from "../hooks/dispatch-queue-context"
@@ -36,9 +38,14 @@ function queueRowError(
 // Desktop sidebar showing selected dispatch items, customer reference input, and a submit button.
 export default function DispatchQueueSidebar({ onSuccess }: Props) {
   const { items, itemCount, removeFromQueue } = useDispatchQueueContext()
+  const { user } = useCurrentUser()
   const {
     customerReference,
     setCustomerReference,
+    dispatchDate,
+    setDispatchDate,
+    dispatchTime,
+    setDispatchTime,
     isSubmitting,
     errors,
     handleSubmit,
@@ -135,6 +142,25 @@ export default function DispatchQueueSidebar({ onSuccess }: Props) {
           />
           <FieldError>{errors.customerReference}</FieldError>
         </Field>
+        {user?.role === "owner" ? (
+          <DateTimePicker
+            idPrefix="dispatch"
+            label="Dispatch Date"
+            value={{ date: dispatchDate, time: dispatchTime }}
+            onChange={({ date, time }) => {
+              setDispatchDate(date)
+              setDispatchTime(time)
+            }}
+            error={errors.createdAt}
+            disabled={isSubmitting}
+          />
+        ) : (
+          // Staff dispatches always stamp now (server rejects overrides), so
+          // the picker is owner-only instead of a control that never works.
+          <p className="type-body-small text-muted-foreground">
+            Recorded as of now. Only owners can backdate a dispatch.
+          </p>
+        )}
         <Button
           type="button"
           onClick={handleSubmit}

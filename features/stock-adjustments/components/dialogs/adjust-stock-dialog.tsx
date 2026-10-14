@@ -2,6 +2,7 @@
 
 import { useQuery } from "convex-helpers/react/cache"
 import { Button } from "@/components/ui/button"
+import { DateTimePicker } from "@/components/ui/date-time-picker"
 import {
   Dialog,
   DialogContent,
@@ -71,12 +72,16 @@ export default function AdjustStockDialog({
     direction,
     quantity,
     reason,
+    occurredDate,
+    occurredTime,
     errors,
     isDirty,
     newQuantity,
     setDirection,
     setQuantity,
     setReason,
+    setOccurredDate,
+    setOccurredTime,
     setOpen,
     handleSubmit,
   } = useStockAdjustForm({
@@ -175,6 +180,17 @@ export default function AdjustStockDialog({
               productTotal={product?.currentQuantity ?? 0}
               newQuantity={newQuantity}
               unit={unit}
+            />
+
+            <DateTimePicker
+              idPrefix="adjust"
+              label="Adjustment Date"
+              value={{ date: occurredDate, time: occurredTime }}
+              onChange={({ date, time }) => {
+                setOccurredDate(date)
+                setOccurredTime(time)
+              }}
+              error={errors.createdAt}
             />
           </FieldGroup>
 

@@ -1,4 +1,20 @@
 // Parses a JSON-encoded audit log description into a summary, optional changes diff, and optional details object. Falls back to the raw string on parse failure.
+import { formatDateTime } from "@/lib/formatters"
+
+// Renders a detail value for display. A `transactionDate` holds millis (see
+// the backdated writes in `convex/*/mutations.ts`) and is formatted like the
+// log's own Timestamp row — pinned to Asia/Manila so both rows agree in any
+// browser zone. Everything else stringifies as before.
+export function formatDetailValue(key: string, value: unknown): string {
+  if (
+    key === "transactionDate" &&
+    typeof value === "number" &&
+    Number.isFinite(value)
+  ) {
+    return formatDateTime(value, { timeZone: "Asia/Manila" })
+  }
+  return String(value)
+}
 export function parseDescription(description: string): {
   summary: string
   changes: Record<string, { old: unknown; new: unknown }> | null
@@ -16,7 +32,7 @@ export function parseDescription(description: string): {
         const details: Record<string, string> = {}
         if (parsed.details && typeof parsed.details === "object") {
           for (const [k, v] of Object.entries(parsed.details)) {
-            details[k] = String(v)
+            details[k] = formatDetailValue(k, v)
           }
         }
         return {

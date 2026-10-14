@@ -762,6 +762,42 @@ describe("product mutations", () => {
     expect(logs[0].description).toContain("Audited Product")
   })
 
+  it("create records the transaction date in the audit log when backdated", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const backdatedMs = Date.now() - 2 * 24 * 60 * 60 * 1000
+    const productId = await t.mutation(api.products.mutations.create, {
+      name: "Backdated Product",
+      category: "sacks",
+      baseUom: "piece",
+      createdAt: backdatedMs,
+    })
+
+    const product = await t.run(async (ctx) => {
+      return await ctx.db.get(productId)
+    })
+    expect(product?.createdAt).toBe(backdatedMs)
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "product_create"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    const description = JSON.parse(logs[0].description)
+    expect(description.details.transactionDate).toBe(backdatedMs)
+    expect(description.summary).toContain("backdated to")
+  })
+
   // ── Archive ────────────────────────────────────────────────
 
   it("rejects unauthenticated archive", async () => {

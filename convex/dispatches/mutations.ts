@@ -2,6 +2,8 @@ import { internal } from "../_generated/api"
 import type { Id } from "../_generated/dataModel"
 import { requireActive } from "../auth/guards"
 import { DISPATCH_UOM_BY_CATEGORY, INTEGER_UOMS } from "../lib/constants"
+import { resolveBusinessTime } from "../lib/backdate"
+import { formatBackdate } from "../lib/dates"
 import { nextOrNumber } from "../lib/orNumber"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
@@ -19,7 +21,7 @@ import { submitDispatchArgs } from "./validators"
  */
 export const submit = zMutation({
   args: submitDispatchArgs,
-  handler: async (ctx, { customerReference, items, userAgent }) => {
+  handler: async (ctx, { customerReference, items, createdAt, userAgent }) => {
     const callerId = await requireActive(ctx)
     const caller = await ctx.db.get(callerId)
 
@@ -28,8 +30,21 @@ export const submit = zMutation({
       globalLimit(ctx, "globalMutations"),
     ])
 
-    const timestampMs = Date.now()
-    const orNumber = await nextOrNumber(ctx, timestampMs)
+    // Business time ("when it happened"), shared by the dispatch and all its
+    // items so one dispatch never straddles a date-window edge.
+    // Submit is staff-allowed, but moving events in time is owner-only: an
+    // operator who can backdate can make the books balance around missing
+    // goods. Staff omitting the override are unaffected (stamps now).
+    const nowMs = Date.now()
+    const { eventMs: timestampMs, wasBackdated } = resolveBusinessTime({
+      createdAt,
+      isOwner: caller?.role === "owner",
+      nowMs,
+    })
+    // The OR is a receipt: its date part is the issue date (record time), not
+    // the business date. A backdated dispatch must not mint an OR dated before
+    // already-issued receipts, which would read as faked sequence.
+    const orNumber = await nextOrNumber(ctx, nowMs)
 
     const dispatchId = await ctx.db.insert("dispatches", {
       userId: callerId,
@@ -127,10 +142,9 @@ export const submit = zMutation({
             dispatchQuantity: dispatchQty,
             quantityDeducted: deducted,
             unitCost: batch.unitCost,
-            // Required for the `by_createdAt` index range that lets the reports
-            // exports read a date window in one pass instead of one range per
-            // dispatch. Legacy rows are backfilled by
-            // `backfillDispatchItemCreatedAt`.
+            // Inherits the parent dispatch's business time (not its own insert
+            // time) so the reports window read stays atomic per dispatch.
+            // Legacy rows are backfilled by `backfillDispatchItemCreatedAt`.
             createdAt: timestampMs,
           }),
           ctx.db.patch(batch._id, {
@@ -171,11 +185,16 @@ export const submit = zMutation({
       )
     }
 
+    // The audit row pairs record time (the log's own timestamp) with business
+    // time, but only when they differ — otherwise the extra row is noise.
+    const backdateSuffix = wasBackdated
+      ? ` (backdated to ${formatBackdate(timestampMs)})`
+      : ""
     await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "dispatch_submit",
       description: JSON.stringify({
-        summary: `Dispatched ${items.length} product(s) across ${totalDispatchItems} batch(es)${customerReference ? ` to ${customerReference}` : ""}`,
+        summary: `Dispatched ${items.length} product(s) across ${totalDispatchItems} batch(es)${customerReference ? ` to ${customerReference}` : ""}${backdateSuffix}`,
         details: {
           orNumber,
           customerReference: customerReference ?? "—",
@@ -183,6 +202,7 @@ export const submit = zMutation({
           totalBatches: totalDispatchItems,
           totalCost: totalCostDeducted.toFixed(2),
           items: itemSummaries.join("; "),
+          ...(wasBackdated ? { transactionDate: timestampMs } : {}),
         },
         changes: batchChanges,
       }),

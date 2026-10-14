@@ -53,10 +53,12 @@ export async function capRead<T>(
 /**
  * Fetch dispatches within a date range.
  *
- * Reads a single `by_createdAt` index range. `createdAt` is written by the
- * production `submit` mutation, by the seed data, and is backfilled by
- * `backfillDispatchCreatedAt` for any older records, so every dispatch is
- * addressable through this index.
+ * Reads a single `by_createdAt` index range. `createdAt` is business time
+ * ("when it happened", defaulting to now, backdatable by the operator),
+ * written by the production `submit` mutation, by the seed data, and
+ * backfilled by `backfillDispatchCreatedAt` for any older records, so every
+ * dispatch is addressable through this index. `_creationTime` remains the
+ * record time.
  *
  * `order` defaults to `"asc"` because most callers aggregate (bucketing by day
  * or summing per product), where row order cannot affect the result. Callers

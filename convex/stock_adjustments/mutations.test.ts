@@ -486,6 +486,45 @@ describe("stock adjustment mutations", () => {
         qty_remaining: { old: 100, new: 115 },
       },
     })
+    // Not backdated: no transactionDate row, no suffix.
+    expect(description.details.transactionDate).toBeUndefined()
+    expect(description.summary).not.toContain("backdated")
+  })
+
+  it("records the transaction date in the audit log when backdated", async () => {
+    const t = makeTest()
+    const ownerId = await createOwner(t)
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const { batchId, productId } = await seedData(t, ownerId)
+
+    const backdatedMs = Date.now() - 2 * 24 * 60 * 60 * 1000
+    await t.mutation(api.stock_adjustments.mutations.create, {
+      batchId,
+      productId,
+      direction: "deduct",
+      quantity: 10,
+      reason: "damaged",
+      createdAt: backdatedMs,
+    })
+
+    const adjustments = await t.run(async (ctx) => {
+      return await ctx.db.query("stockAdjustments").collect()
+    })
+    expect(adjustments).toHaveLength(1)
+    expect(adjustments[0].createdAt).toBe(backdatedMs)
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "stock_adjustment"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    const description = JSON.parse(logs[0].description)
+    expect(description.details.transactionDate).toBe(backdatedMs)
+    expect(description.summary).toContain("backdated to")
   })
 
   it("rejects stock adjustment for deactivated owner", async () => {

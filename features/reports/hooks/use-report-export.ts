@@ -209,7 +209,15 @@ export function useReportExport(entity: ExportEntity | null) {
     )
 
     // A silent cap is indistinguishable from a complete export once the file
-    // leaves the app, so the truncation travels inside the file too.
+    // leaves the app, so the truncation travels inside the file too. The
+    // generated-at row pins point-in-time semantics: entries are attributed
+    // to their transaction date, so a later re-run can differ if backdated
+    // entries were recorded after generation.
+    const footerRows: Array<Array<string>> = [
+      [
+        `# GENERATED: ${formatTimestamp(Date.now())} — figures reflect records as of generation time.`,
+      ],
+    ]
     const csvContent = formatCsv(
       headers,
       truncated
@@ -218,8 +226,9 @@ export function useReportExport(entity: ExportEntity | null) {
             [
               `# TRUNCATED: ${recordCount} of more than ${limit} matching records. Narrow the date range or split the export.`,
             ],
+            ...footerRows,
           ]
-        : rows
+        : [...rows, ...footerRows]
     )
     const today = new Date().toISOString().slice(0, 10)
     downloadCsv(csvContent, `${entity}-${today}.csv`)

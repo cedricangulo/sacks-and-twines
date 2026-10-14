@@ -54,6 +54,14 @@ export function CoverPage({ monthLabel, generatedDate }: CoverPageProps) {
           color: "#6b7280",
           marginTop: 40,
         },
+        pointInTime: {
+          fontSize: 10,
+          fontFamily: "Helvetica",
+          textAlign: "center",
+          color: "#9ca3af",
+          marginTop: 8,
+          paddingHorizontal: 48,
+        },
       }),
     [StyleSheet]
   )
@@ -65,6 +73,11 @@ export function CoverPage({ monthLabel, generatedDate }: CoverPageProps) {
       <Text style={styles.subtitle}>Monthly Operations Report</Text>
       <Text style={styles.date}>{monthLabel}</Text>
       <Text style={styles.companyName}>Generated on {generatedDate}</Text>
+      <Text style={styles.pointInTime}>
+        Figures reflect records as of generation time. Entries are attributed
+        to their transaction date, so re-running this report later can differ
+        if backdated entries were recorded after generation.
+      </Text>
     </Page>
   )
 }

@@ -4,9 +4,13 @@ import { useQuery } from "convex-helpers/react/cache"
 import type { SubmitEvent } from "react"
 import { useCallback, useMemo, useState } from "react"
 import { api } from "@/convex/_generated/api"
-import { DEFAULT_CONVERSION_FACTOR } from "@/convex/lib/constants"
+import {
+  BACKDATE_WINDOW_MS,
+  DEFAULT_CONVERSION_FACTOR,
+} from "@/convex/lib/constants"
 import { useCurrentUser } from "@/features/auth/components/current-user-provider"
 import { useImageUpload } from "@/lib/hooks/use-image-upload"
+import { dateTimeToMs } from "@/lib/form-primitives"
 import { type StockInFieldErrors, validateStockIn } from "../validation"
 import { useCreateStockIn } from "./use-create-stock-in"
 
@@ -91,6 +95,10 @@ export function useInventoryDialog() {
   const [draftBatch, setDraftBatch] = useState("")
   const [locked, setLocked] = useState<FieldLockState>(INITIAL_LOCKED_STATE)
   const [fields, setFields] = useState<FieldValues>(EMPTY_FIELDS)
+  // Business-time override, controlled so the calendar-popover and native
+  // branches share one source of truth. Empty date means "now".
+  const [receivedDate, setReceivedDate] = useState<Date | undefined>(undefined)
+  const [receivedTime, setReceivedTime] = useState("")
 
   const selectedProduct = useMemo(
     () => products?.find((p) => p._id === selectedProductId) ?? null,
@@ -115,6 +123,8 @@ export function useInventoryDialog() {
         setSelectedProductId(null)
         setLocked(INITIAL_LOCKED_STATE)
         resetControlledFields()
+        setReceivedDate(undefined)
+        setReceivedTime("")
         refreshDraftCodes()
         image.reset()
       }
@@ -275,6 +285,7 @@ export function useInventoryDialog() {
             : undefined,
         imageStorageId: imageStorageId ?? undefined,
         keywords,
+        createdAt: dateTimeToMs(receivedDate, receivedTime),
       }
 
       const result = validateStockIn(payload)
@@ -284,10 +295,22 @@ export function useInventoryDialog() {
         return
       }
 
+      if (result.data.createdAt !== undefined && result.data.createdAt > Date.now()) {
+        setErrors({ createdAt: "Date cannot be in the future" })
+        return
+      }
+      if (
+        result.data.createdAt !== undefined &&
+        result.data.createdAt < Date.now() - BACKDATE_WINDOW_MS
+      ) {
+        setErrors({ createdAt: "Date cannot be more than 30 days in the past" })
+        return
+      }
+
       setOpen(false)
       return await create.submit(result.data)
     },
-    [image, mode, selectedProductId, locked, fields, create]
+    [image, mode, selectedProductId, locked, fields, receivedDate, receivedTime, create]
   )
 
   return {
@@ -301,6 +324,10 @@ export function useInventoryDialog() {
     draftBatch,
     locked,
     fields,
+    receivedDate,
+    receivedTime,
+    setReceivedDate,
+    setReceivedTime,
     supplierOptions,
     imageState: image.state,
     handleSelectImage: image.selectFile,

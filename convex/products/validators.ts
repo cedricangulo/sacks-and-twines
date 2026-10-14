@@ -39,6 +39,8 @@ export const createProductArgs = {
       .max(MAX_QUANTITY, NUMERIC_MESSAGES.quantityTooLarge)
   ),
   keywords: keywordsSchema,
+  // Business time ("when it happened") for imported catalog rows.
+  createdAt: z.optional(z.number().int().positive().finite()),
   ...auditMeta,
 }
 

@@ -26,6 +26,15 @@ export const CUSTOMER_REFERENCE_MAX = 50
 export const ROLES = ["owner", "staff"] as const
 export const STATUSES = ["active", "archived", "depleted", "voided"] as const
 
+// ─── Backdating Rules (confirmed) ───────────────────────────────────────────
+// `createdAt` overrides ("when it happened") are owner-only even where the
+// action itself is staff-allowed (dispatch submit). The window covers
+// "yesterday's delivery recorded today", not history rewrites — go-live
+// imports use the seed script, not the UI. The grace absorbs client/server
+// clock skew so a legitimate "just now" entry is never rejected.
+export const BACKDATE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000
+export const BACKDATE_GRACE_MS = 5 * 60 * 1000
+
 // ─── Audit Log Actions ──────────────────────────────────────────────────────
 // Canonical set of every `action` string the audit log can contain. Kept here so
 // the audit-log filter dropdown does not have to scan the table to discover it —

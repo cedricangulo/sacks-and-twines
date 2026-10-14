@@ -66,6 +66,10 @@ export const stockInArgs = {
   lowStockThreshold: z.optional(nonNegativeQuantity),
   imageStorageId: z.optional(z.string()),
   keywords: keywordsSchema,
+  // Business time ("when it happened"), not record time. Optional so callers
+  // that don't backdate get `Date.now()` in the mutation. Lets operators
+  // record yesterday's delivery today or import existing stock at go-live.
+  createdAt: z.optional(z.number().int().positive().finite()),
   ...auditMeta,
 }
 

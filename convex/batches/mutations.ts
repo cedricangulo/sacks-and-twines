@@ -2,6 +2,8 @@ import { internal } from "../_generated/api"
 import { Doc } from "../_generated/dataModel"
 import { requireOwner } from "../auth/guards"
 import { DEFAULT_CONVERSION_FACTOR } from "../lib/constants"
+import { resolveBusinessTime } from "../lib/backdate"
+import { formatBackdate } from "../lib/dates"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { normalizeKeywords } from "../validators/helpers"
@@ -63,6 +65,7 @@ export const stockIn = zMutation({
       imageStorageId,
       keywords,
       userAgent,
+      createdAt,
     }
   ) => {
     const callerId = await requireOwner(ctx)
@@ -71,6 +74,15 @@ export const stockIn = zMutation({
       perUserLimit(ctx, "createBatch", callerId),
       globalLimit(ctx, "globalCreateSupplier"),
     ])
+
+    // `createdAt` is business time ("when it happened"), defaulting to now.
+    // `_creationTime` stays the record time. Backdating lets operators record
+    // yesterday's delivery today or import existing stock at go-live.
+    // `stockIn` is owner-only, so the override needs no further role check.
+    const { eventMs, wasBackdated } = resolveBusinessTime({
+      createdAt,
+      isOwner: true,
+    })
 
     const normalizedKeywords = normalizeKeywords(keywords)
 
@@ -125,6 +137,9 @@ export const stockIn = zMutation({
         lowStockThreshold: lowStockThreshold ?? 0,
         status: "active",
         imagePath: imageStorageId,
+        // New products share the batch's business time so a backdated
+        // stock-in doesn't leave its product dated today.
+        createdAt: eventMs,
         ...(normalizedKeywords ? { keywords: normalizedKeywords } : {}),
       })
     }
@@ -167,9 +182,9 @@ export const stockIn = zMutation({
       quantityReceived,
       quantityRemaining: quantityReceived,
       status: "active",
-      // Required for the `by_createdAt` / `by_supplier_createdAt` index ranges.
+      // `createdAt` is business time ("when it happened"), defaulting to now.
       // Legacy rows are backfilled by `backfillBatchCreatedAt`.
-      createdAt: Date.now(),
+      createdAt: eventMs,
       // Denormalized display fields — see schema comment and
       // `backfillBatchDenorm`. Optional, so pre-backfill rows stay valid and
       // reads fall back to the live documents. `receivedBy` falls back to the
@@ -201,14 +216,19 @@ export const stockIn = zMutation({
       await ctx.db.patch(resolvedProductId, patch)
     }
 
+    // The audit row pairs record time (the log's own timestamp) with business
+    // time, but only when they differ — otherwise the extra row is noise.
+    const backdateSuffix = wasBackdated
+      ? ` (backdated to ${formatBackdate(eventMs)})`
+      : ""
     await ctx.runMutation(internal.auditLogs.mutations.log, {
       userId: callerId,
       action: "stock_in",
       description: JSON.stringify({
         summary:
           mode === "existing"
-            ? `Stocked in ${quantityReceived} units of ${product?.name} (${batchCode})`
-            : `Created product ${name} and stocked in ${quantityReceived} units (${batchCode})`,
+            ? `Stocked in ${quantityReceived} units of ${product?.name} (${batchCode})${backdateSuffix}`
+            : `Created product ${name} and stocked in ${quantityReceived} units (${batchCode})${backdateSuffix}`,
         details: {
           product: mode === "existing" ? (product?.name ?? "—") : (name ?? "—"),
           batchCode,
@@ -217,6 +237,7 @@ export const stockIn = zMutation({
           totalCost: totalProcurementCost,
           unitCost,
           ...(mode === "new" ? { keywords: normalizedKeywords ?? [] } : {}),
+          ...(wasBackdated ? { transactionDate: eventMs } : {}),
         },
       }),
       resourceType: "batch",

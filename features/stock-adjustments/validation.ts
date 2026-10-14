@@ -19,6 +19,8 @@ const StockAdjustmentSchema = z.object({
     z.literal("recount"),
     z.literal("system_reversal"),
   ]),
+  // Business time override; undefined means "now".
+  createdAt: z.optional(z.number().int().positive().finite()),
 })
 
 const WholeUnitStockAdjustmentSchema = StockAdjustmentSchema.extend({

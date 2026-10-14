@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { formatDateTime } from "@/lib/formatters"
 import { parseDescription } from "./parse-description"
 
 describe("parseDescription", () => {
@@ -133,5 +134,34 @@ describe("parseDescription", () => {
     expect(result.details).toBeNull()
     expect(result.changes).toBeNull()
     expect(result.isFlat).toBe(true)
+  })
+
+  it("formats a transactionDate millis detail like the Timestamp row", () => {
+    // Nov 12, 2025 14:35 Asia/Manila — comfortably mid-month mid-day so no
+    // zone renders it on an adjacent day.
+    const ms = Date.UTC(2025, 10, 12, 6, 35, 0)
+    const result = parseDescription(
+      JSON.stringify({
+        summary: "Dispatched 1 product(s) across 1 batch(es)",
+        details: { orNumber: "OR-20251112-1234", transactionDate: ms },
+      })
+    )
+
+    expect(result.details?.orNumber).toBe("OR-20251112-1234")
+    expect(result.details?.transactionDate).toBe(
+      formatDateTime(ms, { timeZone: "Asia/Manila" })
+    )
+    expect(result.details?.transactionDate).toContain("2025")
+  })
+
+  it("stringifies a non-numeric transactionDate untouched", () => {
+    const result = parseDescription(
+      JSON.stringify({
+        summary: "Dispatched 1 product(s)",
+        details: { transactionDate: "yesterday" },
+      })
+    )
+
+    expect(result.details?.transactionDate).toBe("yesterday")
   })
 })

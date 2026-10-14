@@ -5,6 +5,7 @@ import { Tag, TagInput } from "emblor"
 import dynamic from "next/dynamic"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { DateTimePicker } from "@/components/ui/date-time-picker"
 import {
   Dialog,
   DialogContent,
@@ -77,6 +78,10 @@ export default function AddInventoryDialog() {
     draftBatch,
     locked,
     fields,
+    receivedDate,
+    receivedTime,
+    setReceivedDate,
+    setReceivedTime,
     supplierOptions,
     imageState,
     handleSelectImage,
@@ -279,6 +284,19 @@ export default function AddInventoryDialog() {
                   </Button>
                 </div>
               ) : null}
+
+              <DateTimePicker
+                idPrefix="received"
+                label="Date Received"
+                value={{ date: receivedDate, time: receivedTime }}
+                onChange={({ date, time }) => {
+                  setReceivedDate(date)
+                  setReceivedTime(time)
+                  clearFieldError("createdAt")
+                }}
+                error={errors.createdAt}
+                hint="Backdate when recording yesterday's delivery today."
+              />
             </div>
 
             {/* Right column: field card */}

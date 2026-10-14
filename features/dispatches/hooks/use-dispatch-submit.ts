@@ -6,7 +6,9 @@ import { useState } from "react"
 import { sileo } from "sileo"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { BACKDATE_WINDOW_MS } from "@/convex/lib/constants"
 import { handleConvexError } from "@/lib/error-handler"
+import { dateTimeToMs } from "@/lib/form-primitives"
 import {
   type DispatchSubmitFieldErrors,
   validateDispatchSubmit,
@@ -19,6 +21,8 @@ export function useDispatchSubmit(onSuccess?: () => void) {
     useDispatchQueueContext()
   const submitDispatch = useMutation(api.dispatches.mutations.submit)
   const [customerReference, setCustomerReference] = useState("")
+  const [dispatchDate, setDispatchDate] = useState<Date | undefined>(undefined)
+  const [dispatchTime, setDispatchTime] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<DispatchSubmitFieldErrors>({})
 
@@ -29,6 +33,7 @@ export function useDispatchSubmit(onSuccess?: () => void) {
     // on the field instead of failing server-side with the queue still full.
     const payload = {
       customerReference,
+      createdAt: dateTimeToMs(dispatchDate, dispatchTime),
       items: items.map((item) => ({
         productId: item.productId as Id<"products">,
         quantity: item.quantity,
@@ -55,6 +60,20 @@ export function useDispatchSubmit(onSuccess?: () => void) {
       }
       return
     }
+    if (
+      result.data.createdAt !== undefined &&
+      result.data.createdAt > Date.now()
+    ) {
+      setErrors({ createdAt: "Date cannot be in the future" })
+      return
+    }
+    if (
+      result.data.createdAt !== undefined &&
+      result.data.createdAt < Date.now() - BACKDATE_WINDOW_MS
+    ) {
+      setErrors({ createdAt: "Date cannot be more than 30 days in the past" })
+      return
+    }
     setErrors({})
 
     setIsSubmitting(true)
@@ -64,6 +83,7 @@ export function useDispatchSubmit(onSuccess?: () => void) {
       .promise(
         submitDispatch({
           customerReference: result.data.customerReference,
+          createdAt: result.data.createdAt,
           items: result.data.items,
           userAgent: navigator.userAgent,
         }),
@@ -76,6 +96,8 @@ export function useDispatchSubmit(onSuccess?: () => void) {
       .then(() => {
         clearQueue()
         setCustomerReference("")
+        setDispatchDate(undefined)
+        setDispatchTime("")
         onSuccess?.()
       })
       .then(() => play("success"))
@@ -98,6 +120,10 @@ export function useDispatchSubmit(onSuccess?: () => void) {
     itemCount,
     customerReference,
     setCustomerReference,
+    dispatchDate,
+    setDispatchDate,
+    dispatchTime,
+    setDispatchTime,
     isSubmitting,
     errors,
     handleSubmit,

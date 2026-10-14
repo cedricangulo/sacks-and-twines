@@ -1,6 +1,8 @@
 import { internal } from "../_generated/api"
 import { Doc } from "../_generated/dataModel"
 import { requireOwner } from "../auth/guards"
+import { resolveBusinessTime } from "../lib/backdate"
+import { formatBackdate } from "../lib/dates"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
 import { createStockAdjustmentArgs } from "./validators"
@@ -22,7 +24,7 @@ export const create = zMutation({
   args: createStockAdjustmentArgs,
   handler: async (
     ctx,
-    { batchId, productId, direction, quantity, reason, userAgent }
+    { batchId, productId, direction, quantity, reason, createdAt, userAgent }
   ) => {
     const callerId = await requireOwner(ctx)
 
@@ -53,6 +55,13 @@ export const create = zMutation({
     const quantityAdjusted = direction === "add" ? quantity : -quantity
     const costDelta = quantityAdjusted * batch.unitCost
 
+    // Business time ("when it happened"), defaulting to now. Owner-only
+    // endpoint, so the override needs no further role check.
+    const { eventMs, wasBackdated } = resolveBusinessTime({
+      createdAt,
+      isOwner: true,
+    })
+
     await ctx.db.insert("stockAdjustments", {
       batchId,
       productId,
@@ -60,7 +69,7 @@ export const create = zMutation({
       quantityAdjusted,
       reason,
       status: "applied",
-      createdAt: Date.now(),
+      createdAt: eventMs,
     })
 
     const newRemaining = Math.max(0, batch.quantityRemaining + quantityAdjusted)
@@ -81,13 +90,14 @@ export const create = zMutation({
         userId: callerId,
         action: "stock_adjustment",
         description: JSON.stringify({
-          summary: `Stock ${direction === "add" ? "added to" : "deducted from"} ${product.name} (${reason})`,
+          summary: `Stock ${direction === "add" ? "added to" : "deducted from"} ${product.name} (${reason})${wasBackdated ? ` (backdated to ${formatBackdate(eventMs)})` : ""}`,
           details: {
             batchCode: batch.batchCode,
             productName: product.name,
             quantityAdjusted,
             reason,
             direction,
+            ...(wasBackdated ? { transactionDate: eventMs } : {}),
           },
           changes: {
             qty_remaining: {

@@ -21,5 +21,7 @@ export const createStockAdjustmentArgs = {
     z.literal("recount"),
     z.literal("system_reversal"),
   ]),
+  // Business time ("when it happened") for backdated recount corrections.
+  createdAt: z.optional(z.number().int().positive().finite()),
   userAgent: z.optional(z.string()),
 }

@@ -1116,6 +1116,85 @@ describe("batch mutations", () => {
         unitCost: 500,
       },
     })
+    // Not backdated: no transactionDate row, no suffix.
+    expect(description.details.transactionDate).toBeUndefined()
+    expect(description.summary).not.toContain("backdated")
+  })
+
+  it("stock_in records the transaction date in the audit log when backdated", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Backdate Product"),
+      createSupplier(t, "Backdate Supplier"),
+    ])
+
+    const backdatedMs = Date.now() - 2 * 24 * 60 * 60 * 1000
+    const result = await t.mutation(api.batches.mutations.stockIn, {
+      mode: "existing",
+      productId,
+      supplierId,
+      quantityReceived: 100,
+      totalProcurementCost: 50000,
+      createdAt: backdatedMs,
+    })
+
+    // The batch itself carries the business time.
+    await t.run(async (ctx) => {
+      const batches = await ctx.db
+        .query("batches")
+        .withIndex("by_product", (q) => q.eq("productId", productId))
+        .collect()
+      expect(batches).toHaveLength(1)
+      expect(batches[0].createdAt).toBe(backdatedMs)
+    })
+
+    const logs = await t.run(async (ctx) => {
+      return await ctx.db
+        .query("auditLogs")
+        .filter((q) => q.eq(q.field("action"), "stock_in"))
+        .collect()
+    })
+
+    expect(logs).toHaveLength(1)
+    const description = JSON.parse(logs[0].description)
+    expect(description.details.transactionDate).toBe(backdatedMs)
+    expect(description.summary).toContain("backdated to")
+    expect(description.summary).toContain(result.batchCode)
+  })
+
+  it("rejects stockIn backdated beyond the window", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, {
+      email: "owner@test.com",
+      name: "Owner",
+      role: "owner",
+      status: "active",
+    })
+    authMocks.getAuthUserId.mockImplementation(async () => ownerId)
+
+    const [productId, supplierId] = await Promise.all([
+      createProduct(t, "Old Product"),
+      createSupplier(t, "Old Supplier"),
+    ])
+
+    await expect(
+      t.mutation(api.batches.mutations.stockIn, {
+        mode: "existing",
+        productId,
+        supplierId,
+        quantityReceived: 100,
+        totalProcurementCost: 50000,
+        createdAt: Date.now() - 31 * 24 * 60 * 60 * 1000,
+      })
+    ).rejects.toThrowError("more than 30 days in the past")
   })
 
   it("batch_update creates structured audit log with changes", async () => {

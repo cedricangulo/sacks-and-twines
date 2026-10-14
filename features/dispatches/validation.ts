@@ -35,6 +35,8 @@ const DispatchSubmitSchema = z.object({
     REFERENCE_ALLOWED,
     "Customer reference contains invalid characters"
   ),
+  // Business time override; undefined means "now".
+  createdAt: z.optional(z.number().int().positive().finite()),
   items: z
     .array(
       z.object({

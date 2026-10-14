@@ -88,6 +88,8 @@ const StockInSchema = z.object({
   lowStockThreshold: z.optional(nonNegativeAmount),
   imageStorageId: z.optional(z.string().max(255)),
   keywords: keywordsField,
+  // Business time override; undefined means "now".
+  createdAt: z.optional(z.number().int().positive().finite()),
 })
 
 export type StockInFormData = z.infer<typeof StockInSchema>
