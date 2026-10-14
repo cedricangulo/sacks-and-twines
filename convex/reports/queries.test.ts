@@ -950,6 +950,92 @@ describe("exportDispatchItems", () => {
   })
 })
 
+describe("exportDispatchReport", () => {
+  function makeTest() {
+    return convexTest({ schema, modules })
+  }
+
+  beforeEach(() => {
+    authMocks.getAuthUserId.mockReset()
+  })
+
+  it("rejects unauthenticated", async () => {
+    const t = makeTest()
+    authMocks.getAuthUserId.mockResolvedValueOnce(null)
+    await expect(
+      t.query(api.reports.queries.exportDispatchReport, {
+        startMs: 0,
+        endMs: Date.now(),
+      })
+    ).rejects.toThrowError("Unauthorized")
+  })
+
+  it("returns headers and lines in one snapshot", async () => {
+    const t = makeTest()
+    const ownerId = await createUser(t, { name: "Dispatcher" })
+    const productId = await createProduct(t, { name: "Product X" })
+    const supplierId = await createSupplier(t)
+    const batchId = await createBatch(t, {
+      productId,
+      supplierId,
+      userId: ownerId,
+      batchCode: "BATCH-123",
+    })
+
+    const now = Date.now()
+
+    const dispatchId = await createDispatch(t, {
+      userId: ownerId,
+      customerReference: "REF-002",
+      status: "completed",
+      userName: "Dispatcher",
+      createdAt: now,
+    })
+
+    await createDispatchItem(t, {
+      dispatchId,
+      batchId,
+      productId,
+      dispatchUom: "meter",
+      dispatchQuantity: 20,
+      quantityDeducted: 20,
+      unitCost: 15,
+      createdAt: now,
+    })
+
+    authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
+
+    const result = await t.query(api.reports.queries.exportDispatchReport, {
+      startMs: now - 86_400_000,
+      endMs: now + 86_400_000,
+    })
+
+    expect(result.truncated).toBe(false)
+    expect(result.dispatches).toHaveLength(1)
+    expect(result.dispatches[0]).toMatchObject({
+      customerRef: "REF-002",
+      dispatchedBy: "Dispatcher",
+      itemCount: 1,
+      totalQuantity: 20,
+      totalValue: 300,
+    })
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]).toMatchObject({
+      dispatchId,
+      orNumber: "",
+      customerRef: "REF-002",
+      dispatchedBy: "Dispatcher",
+      product: "Product X",
+      batchCode: "BATCH-123",
+      dispatchUom: "meter",
+      dispatchQty: 20,
+      qtyDeducted: 20,
+      unitCost: 15,
+      lineTotal: 300,
+    })
+  })
+})
+
 describe("exportAdjustments", () => {
   function makeTest() {
     return convexTest({ schema, modules })

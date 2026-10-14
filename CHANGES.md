@@ -1,5 +1,18 @@
 # What's new (October 14)
 
+## Dispatch report downloads
+- The reports page can download dispatches again, as Excel or PDF. Pick a
+  day, a week, or a month — no time fields to fill in.
+- The Excel file has two sheets: one row per dispatch with its totals, plus
+  an items sheet linked by OR number so multi-item dispatches stay readable.
+  Both sheets have filters, frozen headers, and a totals row, and print
+  cleanly in landscape.
+- The PDF opens with the totals at a glance (dispatch count, items out,
+  total value), then lists each dispatch with its items underneath.
+- Peso amounts print with the ₱ sign in both files.
+- Very large periods are capped so a download can't silently drop rows — if
+  that happens the file says so and suggests narrowing the range.
+
 ## Recording past dates
 - Stock-in, dispatch, and stock-adjustment windows now have an optional date
   and time. Leave them empty for "right now", or fill them in when recording

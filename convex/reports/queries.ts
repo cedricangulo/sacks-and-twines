@@ -199,9 +199,7 @@ async function loadBatchCodes(
  * The timestamps used to come from a separate `calendarSummary` query. Both were
  * mounted simultaneously with the same `startMs`/`endMs`, so the
  * `stockAdjustments.by_createdAt` month range was read **twice** per reports
- * load and the dispatch month range twice more via two different indexes —
- * separate function references, so the shared query cache cannot dedupe them.
- * Folding them together takes `/reports` from 3 invocations to 2.
+ * load. Folding them together takes `/reports` from 3 invocations to 2.
  *
  * The frontend buckets by day using its local timezone.
  * @param startMs - Start of the date range in milliseconds.
@@ -617,6 +615,105 @@ export const exportDispatchItems = query({
 
     return {
       records: rows,
+      truncated,
+      limit: UNBOUNDED_RANGE_LIMIT,
+    }
+  },
+})
+
+/**
+ * Dispatches-only export backing the simplified Excel (2 sheets) and PDF
+ * (compact grouped) downloads.
+ *
+ * Returns headers and lines in ONE consistent snapshot so the two Excel
+ * sheets (or the PDF groups) cannot straddle a write. Reuses the same
+ * `fetchDispatches` + `fetchItemsByDispatch` fast path as
+ * `exportDispatchItems`, so multi-dispatch exports cost one window range
+ * instead of one `by_dispatch` range per dispatch. See P9.
+ */
+export const exportDispatchReport = query({
+  args: {
+    startMs: v.number(),
+    endMs: v.number(),
+  },
+  handler: async (ctx, { startMs, endMs }) => {
+    const userId = await getAuthUserId(ctx)
+    if (userId === null) throw new Error("Unauthorized")
+    const caller = await ctx.db.get(userId)
+    if (!caller || caller.role !== "owner") throw new Error("Unauthorized")
+
+    // `"desc"` so a capped export keeps the newest dispatches rather than the
+    // oldest. The files carry a truncation notice, but a truncated export that
+    // silently dropped the most recent rows would be actively misleading.
+    const { docs: merged, truncated } = await fetchDispatches(
+      ctx,
+      startMs,
+      endMs,
+      undefined,
+      UNBOUNDED_RANGE_LIMIT,
+      "desc"
+    )
+
+    const itemsByDispatch = await fetchItemsByDispatch(ctx, merged, {
+      startMs,
+      endMs,
+    })
+
+    const allItems = itemsByDispatch.flat()
+    const [productNames, batchCodes, dispatcherNames] = await Promise.all([
+      loadProductNames(ctx, [...new Set(allItems.map((i) => i.productId))]),
+      loadBatchCodes(ctx, [...new Set(allItems.map((i) => i.batchId))]),
+      // One read per *distinct* dispatcher that predates the denormalized
+      // `dispatches.userName`, instead of one sequential read per dispatch row.
+      loadUsers(ctx, [
+        ...new Set(merged.filter((d) => !d.userName).map((d) => d.userId)),
+      ]),
+    ])
+
+    const dispatches = merged.map((d, index) => {
+      const items = itemsByDispatch[index]
+      const userName = d.userName ?? dispatcherNames.get(d.userId)?.name ?? ""
+      const itemCount = d.itemCount ?? items.length
+      const totalQuantity =
+        d.totalQuantity ?? items.reduce((sum, i) => sum + i.dispatchQuantity, 0)
+      const totalValue =
+        d.totalValue ??
+        items.reduce((sum, i) => sum + i.quantityDeducted * i.unitCost, 0)
+      return {
+        _id: d._id,
+        date: d.createdAt ?? d._creationTime,
+        status: d.status,
+        orNumber: d.orNumber ?? "",
+        customerRef: d.customerReference ?? "",
+        dispatchedBy: userName,
+        itemCount,
+        totalQuantity,
+        totalValue,
+      }
+    })
+
+    const items = merged.flatMap((d, index) => {
+      const userName = d.userName ?? dispatcherNames.get(d.userId)?.name ?? ""
+      return itemsByDispatch[index].map((item) => ({
+        dispatchId: d._id,
+        date: d.createdAt ?? d._creationTime,
+        status: d.status,
+        orNumber: d.orNumber ?? "",
+        customerRef: d.customerReference ?? "",
+        dispatchedBy: userName,
+        product: productNames.get(item.productId) ?? "",
+        batchCode: batchCodes.get(item.batchId) ?? "",
+        dispatchUom: item.dispatchUom,
+        dispatchQty: item.dispatchQuantity,
+        qtyDeducted: item.quantityDeducted,
+        unitCost: item.unitCost,
+        lineTotal: item.quantityDeducted * item.unitCost,
+      }))
+    })
+
+    return {
+      dispatches,
+      items,
       truncated,
       limit: UNBOUNDED_RANGE_LIMIT,
     }
