@@ -35,7 +35,7 @@ function randDate(start: Date, end: Date): Date {
   const year = localDate.getUTCFullYear()
   const month = localDate.getUTCMonth()
   const day = localDate.getUTCDate()
-  const hour = rndInt(8, 17)
+  const hour = rndInt(8, 18)
   const minute = rndInt(0, 59)
   const second = rndInt(0, 59)
   return new Date(Date.UTC(year, month, day, hour - 8, minute, second))
@@ -48,20 +48,30 @@ function toFloat(n: number, decimals = 2): number {
 const DATE_BASE = new Date(`${SEED_DATE_START}T00:00:00+08:00`)
 const DATE_END = new Date(`${SEED_DATE_END}T00:00:00+08:00`)
 
+/** PHT calendar parts of `DATE_END` for generated codes (`SKU-YYYYMMDD-*`). */
+function phtParts(d: Date): { ymd: string; year: string } {
+  const offset = 8 * 60 * 60 * 1000
+  const local = new Date(d.getTime() + offset)
+  const y = local.getUTCFullYear()
+  const m = String(local.getUTCMonth() + 1).padStart(2, "0")
+  const day = String(local.getUTCDate()).padStart(2, "0")
+  return { ymd: `${y}${m}${day}`, year: String(y) }
+}
+
+const SEED_DS = phtParts(DATE_END)
+
 let skuCounter = 0
 function nextSkuCode(): string {
   skuCounter++
-  const ds = "20260501"
   const suffix = String(skuCounter).padStart(4, "0")
-  return `SKU-${ds}-${suffix}`
+  return `SKU-${SEED_DS.ymd}-${suffix}`
 }
 
 let batchCounter = 0
 function nextBatchCode(): string {
   batchCounter++
-  const ds = "20260501"
   const suffix = String(batchCounter).padStart(4, "0")
-  return `BAT-${ds}-${suffix}`
+  return `BAT-${SEED_DS.ymd}-${suffix}`
 }
 
 // ─── Supplier definitions ──────────────────────────────────────────────────
@@ -86,6 +96,29 @@ const SUPPLIER_DEFS = [
     address: "Manila, Metro Manila",
   },
 ]
+
+const ARCHIVED_SUPPLIER_DEF = {
+  companyName: "Laguna Sack & Twine Supply",
+  contactPerson: "Jose Reyes",
+  contactNumber: "0918-234-5678",
+  address: "Santa Cruz, Laguna",
+}
+
+// ─── Demo role assignments (seedAll) ─────────────────────────────────────────
+// Fixed products play fixed demo roles so every inventory state is guaranteed
+// no matter the random draws. All four are sacks (piece, threshold 100).
+// - OUT_OF_STOCK: tiny early batches drain naturally through dispatches.
+// - LOW_STOCK: tiny early batches drain, then one small restock batch arrives
+//   near DATE_END (inserted post-dispatches by `writeEdgeCases`).
+// - ARCHIVED: normal batches, archived at the end (history stays valid —
+//   archiving has no history check, unlike supplier archiving).
+// - VOID_BATCH: one batch pre-marked `voided` before any dispatch runs.
+//   Production `voidBatch` rejects batches with dispatch history, so the voided
+//   fixture must never be dispatch-eligible.
+const OUT_OF_STOCK_PRODUCT_NAME = "Red bag"
+const LOW_STOCK_PRODUCT_NAME = "Sand bag"
+const ARCHIVED_PRODUCT_NAME = "Assorted Sack"
+const VOID_BATCH_PRODUCT_NAME = "Laminated Sack"
 
 // ─── Product definitions ───────────────────────────────────────────────────
 
@@ -224,6 +257,7 @@ interface SeedBatchInfo {
   batchCode: string
   createdDate: number
   quantityRemaining: number
+  status: "active" | "depleted" | "voided"
 }
 
 interface SeedDispatchPlan {
@@ -267,6 +301,11 @@ const seedBatchInfoValidator = v.object({
   batchCode: v.string(),
   createdDate: v.number(),
   quantityRemaining: v.number(),
+  status: v.union(
+    v.literal("active"),
+    v.literal("depleted"),
+    v.literal("voided")
+  ),
 })
 
 const seedPlanValidator = v.object({
@@ -292,7 +331,7 @@ function businessHourTimestamp(dayStartMs: number): number {
   const year = local.getUTCFullYear()
   const month = local.getUTCMonth()
   const day = local.getUTCDate()
-  const hour = rndInt(8, 17)
+  const hour = rndInt(8, 18)
   const minute = rndInt(0, 59)
   const second = rndInt(0, 59)
   return Date.UTC(year, month, day, hour - 8, minute, second)
@@ -303,7 +342,7 @@ function nextCustomerReference(): string | undefined {
     null,
     null,
     null,
-    `PO-2025-${rndInt(1000, 9999)}`,
+    `PO-${SEED_DS.year}-${rndInt(1000, 9999)}`,
     `SO-${rndInt(100, 999)}`,
     `DR-${rndInt(1000, 9999)}`,
   ]
@@ -344,6 +383,7 @@ function buildDispatchSpec(
     const productBatches = batches.filter(
       (b) =>
         b.productId === product.id &&
+        b.status === "active" &&
         b.createdDate <= createdDate &&
         b.quantityRemaining > 0
     )
@@ -524,8 +564,12 @@ export const writeBase = internalMutation({
     // so the concurrent inserts below keep deterministic SKU order. Supplier
     // and product inserts are independent, so they race in one `Promise.all`.
     const skuCodes = PRODUCT_DEFS.map(() => nextSkuCode())
-    const [supplierIds, productResults] = await Promise.all([
-      Promise.all(SUPPLIER_DEFS.map((def) => ctx.db.insert("suppliers", def))),
+    const [allSupplierIds, productResults] = await Promise.all([
+      Promise.all(
+        [...SUPPLIER_DEFS, ARCHIVED_SUPPLIER_DEF].map((def) =>
+          ctx.db.insert("suppliers", def)
+        )
+      ),
       Promise.all(
         PRODUCT_DEFS.map(async (def, index) => {
           const productCreatedAt = randDate(DATE_BASE, DATE_END)
@@ -547,6 +591,23 @@ export const writeBase = internalMutation({
         })
       ),
     ])
+
+    // The archived supplier fixture must hold zero batches: production archive
+    // blocks suppliers with batch records, so archive it here before any batch
+    // references a supplier. Active batches only draw from `supplierIds`.
+    const archivedSupplierId = allSupplierIds[allSupplierIds.length - 1]
+    const supplierIds = allSupplierIds.slice(0, -1)
+    await ctx.db.patch(archivedSupplierId, { archivedAt: Date.now() })
+    await ctx.db.insert("auditLogs", {
+      userId: ownerId,
+      action: "supplier_archive",
+      description: `Archived supplier ${ARCHIVED_SUPPLIER_DEF.companyName}`,
+      resourceType: "supplier",
+      resourceId: archivedSupplierId,
+      ipAddress: "127.0.0.1",
+      userAgent: "Convex Seed",
+      createdAt: DATE_END.getTime(),
+    })
 
     const productMap: Record<string, { id: Id<"products">; def: ProductDef }> =
       {}
@@ -570,6 +631,7 @@ export const writeBase = internalMutation({
       createdAt: number
       productName: string
       productUom: ProductDef["baseUom"]
+      status: "active" | "voided"
     }> = []
     const stockInLogs: Array<{
       userId: Id<"users">
@@ -583,11 +645,18 @@ export const writeBase = internalMutation({
     // only concurrent work: each plan is already fully specified.
     for (const { id: pId, def } of productList) {
       const numBatches = rndInt(6, 8)
+      // Drain-role products (out-of-stock + low-stock) get tiny early batches
+      // so the ~2k-dispatch pipeline genuinely consumes them to zero. Normal
+      // demand per product is ~15k piece-units; ~900 units cannot survive it.
+      const isDrainRole =
+        def.name === OUT_OF_STOCK_PRODUCT_NAME ||
+        def.name === LOW_STOCK_PRODUCT_NAME
       for (let i = 0; i < numBatches; i++) {
         // Every product gets one batch before the dense window so it always
-        // has eligible stock from the very first dense day onward.
+        // has eligible stock from the very first dense day onward. Drain-role
+        // products date every batch early so nothing escapes consumption.
         const batchDate =
-          i === 0
+          i === 0 || isDrainRole
             ? randDate(DATE_BASE, DENSE_START)
             : new Date(
                 DATE_BASE.getTime() +
@@ -608,12 +677,22 @@ export const writeBase = internalMutation({
               ? toFloat(rndInt(80, 200) + Math.random())
               : toFloat(rndInt(120, 280) + Math.random())
 
-        const qty =
-          def.baseUom === "piece"
+        const qty = isDrainRole
+          ? def.baseUom === "piece"
+            ? rndInt(100, 200)
+            : def.baseUom === "roll"
+              ? rndInt(20, 40)
+              : toFloat(rndInt(100, 200) + Math.random())
+          : def.baseUom === "piece"
             ? rndInt(1500, 4500)
             : def.baseUom === "roll"
               ? rndInt(300, 700)
               : toFloat(rndInt(800, 2000) + Math.random())
+
+        // One batch is voided before any dispatch runs, so it is never
+        // dispatch-eligible — matching the production rule that voiding
+        // rejects batches with dispatch history.
+        const isVoided = def.name === VOID_BATCH_PRODUCT_NAME && i === 0
 
         batchPlans.push({
           productId: pId,
@@ -626,6 +705,7 @@ export const writeBase = internalMutation({
           createdAt: batchDate.getTime(),
           productName: def.name,
           productUom: def.baseUom,
+          status: isVoided ? "voided" : "active",
         })
       }
       productBatchCounts.push({ id: pId, count: numBatches })
@@ -642,12 +722,14 @@ export const writeBase = internalMutation({
           unitCost: plan.unitCost,
           quantityReceived: plan.quantity,
           quantityRemaining: plan.quantity,
-          status: "active",
+          status: plan.status,
           createdAt: plan.createdAt,
         })
       )
     )
 
+    let batchVoidLogCount = 0
+    const voidLogPromises: Array<Promise<unknown>> = []
     batchPlans.forEach((plan, index) => {
       const batchId = batchIds[index]
       batches.push({
@@ -658,6 +740,7 @@ export const writeBase = internalMutation({
         batchCode: plan.batchCode,
         createdDate: plan.createdAt,
         quantityRemaining: plan.quantity,
+        status: plan.status,
       })
 
       stockInLogs.push({
@@ -674,7 +757,37 @@ export const writeBase = internalMutation({
         resourceId: batchId,
         createdAt: plan.createdAt,
       })
+
+      if (plan.status === "voided") {
+        batchVoidLogCount++
+        // Voided after its stock-in, before any dispatch could touch it.
+        voidLogPromises.push(
+          ctx.db.insert("auditLogs", {
+            userId: ownerId,
+            action: "batch_void",
+            description: JSON.stringify({
+              summary: `Voided batch ${plan.batchCode} — removed ${toFloat(plan.quantity)} units from ${plan.productName}`,
+              details: {
+                batchCode: plan.batchCode,
+                product: plan.productName,
+                unitsRemoved: toFloat(plan.quantity),
+                costRemoved: plan.totalProcurementCost,
+                voidedAdjustments: 0,
+                reason: "Seed fixture: damaged on arrival",
+              },
+            }),
+            resourceType: "batch",
+            resourceId: batchId,
+            ipAddress: "127.0.0.1",
+            userAgent: "Convex Seed",
+            // Voided the day after stock-in, before any dispatch could
+            // touch it (`+ DAY_MS` keeps the log after the batch date).
+            createdAt: businessHourTimestamp(plan.createdAt + DAY_MS),
+          })
+        )
+      }
     })
+    await Promise.all(voidLogPromises)
 
     await Promise.all(
       productBatchCounts.map(({ id, count }) =>
@@ -704,8 +817,8 @@ export const writeBase = internalMutation({
         baseUom: def.baseUom,
       })),
       batches,
-      supplierCount: supplierIds.length,
-      auditLogCount: stockInLogs.length,
+      supplierCount: allSupplierIds.length,
+      auditLogCount: stockInLogs.length + 1 + batchVoidLogCount,
     }
   },
 })
@@ -724,7 +837,9 @@ export const writeBaselineDispatches = internalMutation({
     userNameMap: seedUserNameMapValidator,
   },
   handler: async (ctx, { plan, userIds, userNameMap }) => {
-    const baselinePeakStart = new Date("2025-09-01T00:00:00+08:00")
+    // Peak window trails the dense window by a year so baseline density stays
+    // stable as DATE_END rolls forward (a fixed date would thin out over time).
+    const baselinePeakStart = new Date(DENSE_START.getTime() - 365 * DAY_MS)
     const dates: number[] = []
     for (let i = 0; i < NUM_BASELINE_DISPATCHES; i++) {
       const isPeak = Math.random() < 0.85
@@ -792,6 +907,31 @@ export const writeAdjustments = internalMutation({
       "system_reversal",
     ]
 
+    const describeAdjustment = (
+      productName: string,
+      qty: number,
+      reason: (typeof reasons)[number],
+      batchCode: string,
+      beforeRemaining: number
+    ): string =>
+      JSON.stringify({
+        summary: `Adjusted stock for ${productName} (${reason === "damaged" || reason === "lost" ? "deduct" : "add"}, ${reason})`,
+        details: {
+          productName,
+          quantityAdjusted: qty,
+          reason,
+          direction:
+            reason === "damaged" || reason === "lost" ? "deduct" : "add",
+          batchCode,
+        },
+        changes: {
+          quantity_remaining: {
+            old: beforeRemaining,
+            new: Math.max(0, beforeRemaining - qty),
+          },
+        },
+      })
+
     const adjRows: Array<{
       batchId: Id<"batches">
       productId: Id<"products">
@@ -811,8 +951,13 @@ export const writeAdjustments = internalMutation({
     for (const product of plan.products) {
       const numAdjustments = rndInt(3, 5)
       for (let i = 0; i < numAdjustments; i++) {
+        // Voided batches are excluded: their stock is already reversed and
+        // production treats their adjustments as voided too.
         const activeBatches = batches.filter(
-          (b) => b.productId === product.id && b.quantityRemaining > 0
+          (b) =>
+            b.productId === product.id &&
+            b.status === "active" &&
+            b.quantityRemaining > 0
         )
         if (activeBatches.length === 0) continue
 
@@ -839,23 +984,13 @@ export const writeAdjustments = internalMutation({
 
         logRows.push({
           userId: ownerId,
-          description: JSON.stringify({
-            summary: `Adjusted stock for ${productNameById[product.id]} (${reason === "damaged" || reason === "lost" ? "deduct" : "add"}, ${reason})`,
-            details: {
-              productName: productNameById[product.id],
-              quantityAdjusted: qty,
-              reason,
-              direction:
-                reason === "damaged" || reason === "lost" ? "deduct" : "add",
-              batchCode: batch.batchCode,
-            },
-            changes: {
-              quantity_remaining: {
-                old: beforeRemaining,
-                new: Math.max(0, beforeRemaining - qty),
-              },
-            },
-          }),
+          description: describeAdjustment(
+            productNameById[product.id] ?? "Unknown",
+            qty,
+            reason,
+            batch.batchCode,
+            beforeRemaining
+          ),
           resourceId: batch.id,
           createdAt: adjDate.getTime(),
         })
@@ -867,6 +1002,65 @@ export const writeAdjustments = internalMutation({
               : Math.max(0, batch.quantityRemaining - qty)
         }
       }
+    }
+
+    // Guarantees so every adjustment state has demo data: at least one voided
+    // row (the ~10% draw can miss) and at least one of each reason. Log
+    // descriptions carry no status, so flipping the last row to voided keeps
+    // its log valid; missing reasons are appended as small applied rows.
+    if (!adjRows.some((r) => r.status === "voided") && adjRows.length > 0) {
+      const last = adjRows[adjRows.length - 1]
+      last.status = "voided"
+      const batch = batches.find((b) => b.id === last.batchId)
+      if (batch) {
+        const product = plan.products.find((p) => p.id === last.productId)
+        batch.quantityRemaining =
+          product?.baseUom === "meter"
+            ? toFloat(batch.quantityRemaining + last.quantityAdjusted)
+            : batch.quantityRemaining + last.quantityAdjusted
+      }
+    }
+    const seenReasons = new Set(adjRows.map((r) => r.reason))
+    for (const reason of reasons) {
+      if (seenReasons.has(reason)) continue
+      const target = batches.find(
+        (b) => b.status === "active" && b.quantityRemaining > 10
+      )
+      if (!target) continue
+      const targetProduct = plan.products.find((p) => p.id === target.productId)
+      if (!targetProduct) continue
+      const reasonQty =
+        targetProduct.baseUom === "meter"
+          ? toFloat(rndInt(1, 20) + Math.random())
+          : rndInt(1, 20)
+      const reasonDate = randDate(DATE_BASE, DATE_END)
+      const reasonBefore = target.quantityRemaining
+      adjRows.push({
+        batchId: target.id,
+        productId: target.productId,
+        userId: rnd(userIds),
+        quantityAdjusted: reasonQty,
+        reason,
+        status: "applied",
+        createdAt: reasonDate.getTime(),
+      })
+      logRows.push({
+        userId: ownerId,
+        description: describeAdjustment(
+          productNameById[target.productId] ?? "Unknown",
+          reasonQty,
+          reason,
+          target.batchCode,
+          reasonBefore
+        ),
+        resourceId: target.id,
+        createdAt: reasonDate.getTime(),
+      })
+      target.quantityRemaining =
+        targetProduct.baseUom === "meter"
+          ? Math.max(0, toFloat(target.quantityRemaining - reasonQty))
+          : Math.max(0, target.quantityRemaining - reasonQty)
+      seenReasons.add(reason)
     }
 
     await Promise.all(
@@ -910,17 +1104,30 @@ export const finalizeQuantities = internalMutation({
     await Promise.all(
       plan.batches.map((b) => {
         const remaining = Math.max(0, b.quantityRemaining)
+        // Voided batches keep their status: voiding already reversed their
+        // stock, and re-marking them active would resurrect phantom quantity.
+        const status =
+          b.status === "voided"
+            ? ("voided" as const)
+            : remaining <= 0
+              ? ("depleted" as const)
+              : ("active" as const)
         return ctx.db.patch(b.id, {
           quantityRemaining: remaining,
-          status: remaining <= 0 ? ("depleted" as const) : ("active" as const),
+          status,
         })
       })
     )
 
     await Promise.all(
       plan.products.map(async (p) => {
+        // Voided batches hold no sellable stock — exclude them the same way
+        // production voiding subtracts their remaining from the product.
         const activeBatches = plan.batches.filter(
-          (b) => b.productId === p.id && b.quantityRemaining > 0
+          (b) =>
+            b.productId === p.id &&
+            b.status !== "voided" &&
+            b.quantityRemaining > 0
         )
         const totalQty = activeBatches.reduce(
           (sum, b) => sum + b.quantityRemaining,
@@ -942,6 +1149,185 @@ export const finalizeQuantities = internalMutation({
     )
 
     return {}
+  },
+})
+
+// ─── Internal Mutation: writeEdgeCases ─────────────────────────────────────
+
+/**
+ * Carves the remaining guaranteed demo states after `finalizeQuantities`:
+ * archives one product, restocks the drained low-stock product with one small
+ * late batch, and safety-drains the out-of-stock product if the dispatch
+ * pipeline somehow left stock behind. Runs after dispatches so the restock
+ * batch (dated today) is never consumed by seeded dispatches.
+ * Internal — called by `seedAll`.
+ */
+export const writeEdgeCases = internalMutation({
+  args: {
+    plan: seedPlanValidator,
+    ownerId: v.id("users"),
+  },
+  handler: async (ctx, { plan, ownerId }) => {
+    let auditLogCount = 0
+    const productByName = new Map(plan.products.map((p) => [p.name, p]))
+
+    // ── 1. Archive one product (history stays valid) ───────────────────
+    const archived = productByName.get(ARCHIVED_PRODUCT_NAME)
+    if (archived) {
+      const doc = await ctx.db.get(archived.id)
+      if (doc && doc.status !== "archived") {
+        await ctx.db.patch(archived.id, { status: "archived" })
+        await ctx.db.insert("auditLogs", {
+          userId: ownerId,
+          action: "product_archive",
+          description: `Archived product ${doc.name} (${doc.skuCode})`,
+          resourceType: "product",
+          resourceId: archived.id,
+          ipAddress: "127.0.0.1",
+          userAgent: "Convex Seed",
+          createdAt: DATE_END.getTime(),
+        })
+        auditLogCount++
+      }
+    }
+
+    // ── 2. Restock the low-stock product with one small late batch ─────
+    // Its writeBase batches were sized to drain to zero; this arrival near
+    // DATE_END leaves it just under its low-stock threshold.
+    const lowStock = productByName.get(LOW_STOCK_PRODUCT_NAME)
+    if (lowStock) {
+      const [lowDoc, lowBatches] = await Promise.all([
+        ctx.db.get(lowStock.id),
+        ctx.db
+          .query("batches")
+          .withIndex("by_product", (q) => q.eq("productId", lowStock.id))
+          .collect(),
+      ])
+      if (lowDoc) {
+        const threshold = lowDoc.lowStockThreshold
+        const restockQty = Math.max(1, Math.floor(threshold - 10))
+        const latest = lowBatches.reduce<Doc<"batches"> | null>(
+          (a, b) => (a && a.createdAt! > b.createdAt! ? a : b),
+          null
+        )
+        const supplier = await ctx.db.query("suppliers").first()
+        if (latest && supplier) {
+          const batchCode = nextBatchCode()
+          const restockAt = businessHourTimestamp(DATE_END.getTime())
+          const restockId = await ctx.db.insert("batches", {
+            productId: lowStock.id,
+            supplierId: supplier._id,
+            userId: ownerId,
+            batchCode,
+            totalProcurementCost: toFloat(latest.unitCost * restockQty),
+            unitCost: latest.unitCost,
+            quantityReceived: restockQty,
+            quantityRemaining: restockQty,
+            status: "active",
+            createdAt: restockAt,
+          })
+          await ctx.db.insert("auditLogs", {
+            userId: ownerId,
+            action: "stock_in",
+            description: JSON.stringify({
+              summary: `Stocked in ${toFloat(restockQty)} units of ${lowDoc.name} (${batchCode})`,
+              details: {
+                product: lowDoc.name,
+                batchCode,
+                quantity: toFloat(restockQty),
+                uom: lowStock.baseUom,
+              },
+            }),
+            resourceType: "batch",
+            resourceId: restockId,
+            ipAddress: "127.0.0.1",
+            userAgent: "Convex Seed",
+            createdAt: restockAt,
+          })
+          auditLogCount++
+          const currentQuantity =
+            lowStock.baseUom === "meter"
+              ? toFloat(restockQty)
+              : Math.round(restockQty)
+          await ctx.db.patch(lowStock.id, {
+            currentQuantity,
+            totalAssetValue: toFloat(currentQuantity * latest.unitCost),
+            batchCount: (lowDoc.batchCount ?? lowBatches.length) + 1,
+          })
+        }
+      }
+    }
+
+    // ── 3. Safety-drain the out-of-stock product (fallback) ────────────
+    // The tiny early batches should already be fully consumed; this only
+    // fires if random dispatch draws somehow left stock behind.
+    const outOfStock = productByName.get(OUT_OF_STOCK_PRODUCT_NAME)
+    if (outOfStock) {
+      const outBatches = await ctx.db
+        .query("batches")
+        .withIndex("by_product", (q) => q.eq("productId", outOfStock.id))
+        .collect()
+      const live = outBatches.filter(
+        (b) => b.status === "active" && b.quantityRemaining > 0
+      )
+      const drained = live.reduce((sum, b) => sum + b.quantityRemaining, 0)
+      if (drained > 0) {
+        const target = live.reduce((a, b) =>
+          a.quantityRemaining > b.quantityRemaining ? a : b
+        )
+        const adjDate = businessHourTimestamp(DATE_END.getTime())
+        await ctx.db.insert("stockAdjustments", {
+          batchId: target._id,
+          productId: outOfStock.id,
+          userId: ownerId,
+          quantityAdjusted: target.quantityRemaining,
+          reason: "recount",
+          status: "applied",
+          createdAt: adjDate,
+        })
+        await ctx.db.insert("auditLogs", {
+          userId: ownerId,
+          action: "stock_adjustment",
+          description: JSON.stringify({
+            summary: `Adjusted stock for ${OUT_OF_STOCK_PRODUCT_NAME} (deduct, recount)`,
+            details: {
+              productName: OUT_OF_STOCK_PRODUCT_NAME,
+              quantityAdjusted: target.quantityRemaining,
+              reason: "recount",
+              direction: "deduct",
+              batchCode: target.batchCode,
+            },
+            changes: {
+              quantity_remaining: {
+                old: target.quantityRemaining,
+                new: 0,
+              },
+            },
+          }),
+          resourceType: "batch",
+          resourceId: target._id,
+          ipAddress: "127.0.0.1",
+          userAgent: "Convex Seed",
+          createdAt: adjDate,
+        })
+        auditLogCount++
+        await ctx.db.patch(target._id, {
+          quantityRemaining: 0,
+          status: "depleted",
+        })
+        const outDoc = await ctx.db.get(outOfStock.id)
+        if (outDoc) {
+          const remaining = Math.max(0, outDoc.currentQuantity - drained)
+          await ctx.db.patch(outOfStock.id, {
+            currentQuantity: remaining,
+            totalAssetValue:
+              remaining === 0 ? 0 : toFloat(remaining * target.unitCost),
+          })
+        }
+      }
+    }
+
+    return { auditLogCount }
   },
 })
 

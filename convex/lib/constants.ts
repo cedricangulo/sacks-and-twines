@@ -82,9 +82,16 @@ export const DEFAULT_CONVERSION_FACTOR = {
 } as const
 
 // ─── Seed Config ────────────────────────────────────────────────────────────
-export const SUPPLIER_COUNT = 3
-export const SEED_DATE_START = "2026-06-01"
-export const SEED_DATE_END = "2026-10-05"
+// Demo seed (`seedAll`) writes 4 suppliers (3 active + 1 archived with zero
+// batches — archive blocks suppliers that have batch records) and 11 products.
+//
+// `SEED_DATE_START` anchors history. Both seed dates are static and live here
+// side by side. Bumping `SEED_DATE_END` requires `pnpm seed:reset` to take
+// effect (`seedAll` no-ops when data exists), and demo charts go stale as the
+// end date ages.
+export const SUPPLIER_COUNT = 4
+export const SEED_DATE_START = "2026-07-01"
+export const SEED_DATE_END = "2026-10-14"
 
 // ─── Dense dispatch seed (every calendar day ≥ 20 dispatches) ──────────────
 export const DENSE_DAYS = 90

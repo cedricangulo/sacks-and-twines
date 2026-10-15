@@ -31,6 +31,7 @@ type SeedPlan = {
     batchCode: string
     createdDate: number
     quantityRemaining: number
+    status: "active" | "depleted" | "voided"
   }>
 }
 
@@ -40,7 +41,7 @@ type SeedPlan = {
  * Full database seed action. Creates a staff user (if not exists), finds the
  * owner user, clears all domain data in chunks, then runs the bounded seed
  * pipeline: base records → baseline dispatches → dense dispatch chunks →
- * adjustments → quantity finalization → auth logs.
+ * adjustments → quantity finalization → edge cases → auth logs.
  */
 export const seedAll = internalAction({
   args: {},
@@ -192,6 +193,12 @@ export const seedAll = internalAction({
 
     await ctx.runMutation(internal.seed.finalizeQuantities, { plan })
 
+    const edge = await ctx.runMutation(internal.seed.writeEdgeCases, {
+      plan,
+      ownerId: ownerId as never,
+    })
+    auditLogCount += edge.auditLogCount
+
     const authLogs = await ctx.runMutation(internal.seed.writeAuthLogs, {
       ownerId: ownerId as never,
     })
@@ -208,12 +215,20 @@ export const seedAll = internalAction({
     }
 
     console.log("\n  ✓ Seed complete!")
-    console.log(`    • ${result.supplierCount} suppliers`)
-    console.log(`    • ${result.productCount} products`)
-    console.log(`    • ${result.batchCount} batches`)
-    console.log(`    • ${result.dispatchCount} dispatches`)
+    console.log(
+      `    • ${result.supplierCount} suppliers (3 active + 1 archived)`
+    )
+    console.log(
+      `    • ${result.productCount} products (10 active + 1 archived)`
+    )
+    console.log(
+      `    • ${result.batchCount} batches (active + depleted + voided, +1 low-stock restock)`
+    )
+    console.log(`    • ${result.dispatchCount} dispatches (completed)`)
     console.log(`    • ${result.dispatchItemCount} dispatch items`)
-    console.log(`    • ${result.adjustmentCount} stock adjustments`)
+    console.log(
+      `    • ${result.adjustmentCount} stock adjustments (applied + voided)`
+    )
     console.log(`    • ${result.auditLogCount} audit logs`)
 
     return result
@@ -384,7 +399,7 @@ export const seedTest = internalAction({
     console.log(
       `    • ${result.batchCount} batches (active + depleted + voided)`
     )
-    console.log(`    • ${result.dispatchCount} dispatches (completed + voided)`)
+    console.log(`    • ${result.dispatchCount} dispatches (completed)`)
     console.log(`    • ${result.dispatchItemCount} dispatch items`)
     console.log(
       `    • ${result.adjustmentCount} stock adjustments (applied + voided)`
