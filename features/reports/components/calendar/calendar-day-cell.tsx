@@ -12,7 +12,7 @@ interface CalendarDayCellProps {
   dispatchCount: number
   adjustmentCount: number
   hasActivity: boolean
-  onClick: () => void
+  onSelect: (day: number) => void
   isSelected?: boolean
   isLoading?: boolean
 }
@@ -23,7 +23,7 @@ const CalendarDayCellImpl = ({
   dispatchCount,
   adjustmentCount,
   hasActivity,
-  onClick,
+  onSelect,
   isSelected,
   isLoading,
 }: CalendarDayCellProps) => {
@@ -38,7 +38,7 @@ const CalendarDayCellImpl = ({
           : "cursor-not-allowed! text-muted-foreground",
         isSelected ? "bg-primary/30" : ""
       )}
-      onClick={hasActivity ? onClick : undefined}
+      onClick={hasActivity ? () => onSelect(day) : undefined}
       variant="ghost"
     >
       <span className="absolute font-medium top-1 right-1">{day}</span>
@@ -114,13 +114,4 @@ function ActivityBadge({
 }
 
 // Memoized version of the CalendarDayCell to prevent unnecessary re-renders
-export const CalendarDayCell = memo(
-  CalendarDayCellImpl,
-  (prev, next) =>
-    prev.day === next.day &&
-    prev.dispatchCount === next.dispatchCount &&
-    prev.adjustmentCount === next.adjustmentCount &&
-    prev.hasActivity === next.hasActivity &&
-    prev.isSelected === next.isSelected &&
-    prev.isLoading === next.isLoading
-)
+export const CalendarDayCell = memo(CalendarDayCellImpl)

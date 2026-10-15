@@ -25,6 +25,8 @@ export default function CalendarDetailPanel() {
   const [activeTab, setActiveTab] = useState("dispatches")
   const {
     selectedDay,
+    month,
+    year,
     selectedDayStartMs,
     selectedDayEndMs,
     formattedDate,
@@ -55,8 +57,8 @@ export default function CalendarDetailPanel() {
 
   const handleTabChange = (value: string) => {
     setActiveTab(value)
-    // Skip the nuqs write when already on page 1 — it would still round-trip
-    // through the filters context and re-render every consumer for no change.
+    // Skip the nuqs write when already on page 1 — it round-trips through the
+    // App Router (OuterLayoutRouter rerenders per Scan) for no state change.
     if (page !== 1) setPageValue(1)
   }
 
@@ -70,12 +72,23 @@ export default function CalendarDetailPanel() {
     [adjustmentPagination, adjustments]
   )
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: formattedDate triggers scroll on day change
+  const previousSelection = useRef({ year, month, selectedDay })
+
   useEffect(() => {
-    if (panelRef.current) {
-      panelRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+    const previous = previousSelection.current
+    previousSelection.current = { year, month, selectedDay }
+
+    // Month paging may clamp the day (31 -> 28). Only a day change within the
+    // same month should scroll the detail panel into view.
+    if (
+      selectedDay !== null &&
+      selectedDay !== previous.selectedDay &&
+      month === previous.month &&
+      year === previous.year
+    ) {
+      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
     }
-  }, [formattedDate])
+  }, [year, month, selectedDay])
 
   if (selectedDay === null || !formattedDate) return null
 
@@ -100,51 +113,56 @@ export default function CalendarDetailPanel() {
         </div>
 
         <TabsContent value="dispatches" className="space-y-4 h-80">
-          {isLoadingDispatches ? (
-            <Skeleton className="w-full h-80" />
-          ) : dispatches.length === 0 ? (
-            <div className="flex items-start justify-center h-80">
-              <Empty>
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <PackageIcon weight="fill" />
-                  </EmptyMedia>
-                  <EmptyTitle>
-                    There are no dispatches scheduled for this day.
-                  </EmptyTitle>
-                </EmptyHeader>
-              </Empty>
-            </div>
-          ) : (
-            <div className="overflow-y-auto h-80">
-              <ReportDispatchTableContainer dispatches={paginatedDispatches} />
-            </div>
-          )}
+          {/* Avoid constructing table content for the inactive tab. */}
+          {activeTab === "dispatches" &&
+            (isLoadingDispatches ? (
+              <Skeleton className="w-full h-80" />
+            ) : dispatches.length === 0 ? (
+              <div className="flex items-start justify-center h-80">
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <PackageIcon weight="fill" />
+                    </EmptyMedia>
+                    <EmptyTitle>
+                      There are no dispatches scheduled for this day.
+                    </EmptyTitle>
+                  </EmptyHeader>
+                </Empty>
+              </div>
+            ) : (
+              <div className="overflow-y-auto h-80">
+                <ReportDispatchTableContainer
+                  dispatches={paginatedDispatches}
+                />
+              </div>
+            ))}
         </TabsContent>
 
         <TabsContent value="adjustments" className="space-y-4 h-80">
-          {isLoadingAdjustments ? (
-            <Skeleton className="w-full h-80" />
-          ) : adjustments.length === 0 ? (
-            <div className="flex items-start justify-center h-80">
-              <Empty>
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <PackageIcon weight="fill" />
-                  </EmptyMedia>
-                  <EmptyTitle>
-                    There are no stock adjustments for this day.
-                  </EmptyTitle>
-                </EmptyHeader>
-              </Empty>
-            </div>
-          ) : (
-            <div className="overflow-y-auto h-80">
-              <ReportAdjustmentTableContainer
-                adjustments={paginatedAdjustments}
-              />
-            </div>
-          )}
+          {activeTab === "adjustments" &&
+            (isLoadingAdjustments ? (
+              <Skeleton className="w-full h-80" />
+            ) : adjustments.length === 0 ? (
+              <div className="flex items-start justify-center h-80">
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <PackageIcon weight="fill" />
+                    </EmptyMedia>
+                    <EmptyTitle>
+                      There are no stock adjustments for this day.
+                    </EmptyTitle>
+                  </EmptyHeader>
+                </Empty>
+              </div>
+            ) : (
+              <div className="overflow-y-auto h-80">
+                <ReportAdjustmentTableContainer
+                  adjustments={paginatedAdjustments}
+                />
+              </div>
+            ))}
         </TabsContent>
       </Tabs>
     </div>

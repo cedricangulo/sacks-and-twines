@@ -91,7 +91,12 @@ export function DashboardShell({ children, initialRole }: Props) {
               "nav-back": "nav-back",
               default: "x-fade",
             }}
-            default="x-fade"
+            default="none"
+            update={{
+              "nav-forward": "nav-forward",
+              "nav-back": "nav-back",
+              default: "none",
+            }}
           >
             {/* `overflow-y-auto` implies `overflow-x: auto`, which put a second
                 horizontal scroller next to the one every table already owns
@@ -144,7 +149,12 @@ export function DashboardShell({ children, initialRole }: Props) {
                 "nav-back": "nav-back",
                 default: "x-fade",
               }}
-              default="x-fade"
+              default="none"
+              update={{
+                "nav-forward": "nav-forward",
+                "nav-back": "nav-back",
+                default: "none",
+              }}
             >
               {/* `overflow-x-clip` (not `hidden`) so the document still scrolls vertically
                 while no page can scroll horizontally — wide tables own their own

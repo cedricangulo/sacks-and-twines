@@ -7,7 +7,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { formatDateTime } from "@/lib/formatters"
 import type { ReportDispatch } from "../../hooks/use-report-dispatches"
 import ReportDispatchTable from "./report-dispatch-table"
@@ -114,9 +114,11 @@ export default function ReportDispatchTableContainer({
     getRowId: (row) => row._id,
   })
 
-  const toggleExpand = (id: string) => {
+  // Stable callback so rows don't see a new `onToggle` identity every render
+  // (Scan: 20 row + 145 cell rerenders per tab click from this alone).
+  const toggleExpand = useCallback((id: string) => {
     setExpandedDispatchId((prev) => (prev === id ? null : id))
-  }
+  }, [])
 
   return (
     <ReportDispatchTable

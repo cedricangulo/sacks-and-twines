@@ -116,9 +116,12 @@ export function useReportFilters() {
 
   const selectDay = useCallback(
     (target: number) => {
-      setQueries({ day: target === day ? null : target, page: 1 })
+      setQueries((current) => ({
+        day: target === current.day ? null : target,
+        page: 1,
+      }))
     },
-    [day, setQueries]
+    [setQueries]
   )
 
   const setMonthValue = useCallback(

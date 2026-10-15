@@ -184,7 +184,7 @@ export default function CalendarGrid() {
                 dispatchCount={dayInfo.dispatchCount}
                 adjustmentCount={dayInfo.adjustmentCount}
                 hasActivity={dayInfo.hasActivity}
-                onClick={() => selectDay(dayInfo.day)}
+                onSelect={selectDay}
               />
             ))}
           </div>

@@ -54,8 +54,10 @@ export function useAdjustmentsByDateRange(
     queryArgs
   ) as Array<Record<string, unknown>> | undefined
 
+  const hasRange = startMs !== null && endMs !== null
+
   return {
     data: (result ?? EMPTY) as unknown as ReportAdjustment[],
-    isLoading: result === undefined && startMs !== null && endMs !== null,
+    isLoading: result === undefined && hasRange,
   }
 }

@@ -26,6 +26,10 @@ export default function ReportAdjustmentTableContainer({
     { id: "createdAt", desc: true },
   ])
 
+  // Stable empty-array identity so the table `data` ref survives renders
+  // with no rows (mirrors the dispatch container).
+  const data = useMemo(() => adjustments ?? [], [adjustments])
+
   const columns = useMemo(
     () => [
       columnHelper.accessor("productName", {
@@ -83,7 +87,7 @@ export default function ReportAdjustmentTableContainer({
   )
 
   const table = useReactTable({
-    data: adjustments,
+    data,
     columns,
     state: { sorting },
     onSortingChange: setSorting,

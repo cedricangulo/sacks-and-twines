@@ -1,23 +1,19 @@
 "use client"
 
-import { createContext, use, useContext } from "react"
+import { createContext, use } from "react"
 import { useReportFilters } from "./use-report-filters"
 
 type ReportFiltersValue = ReturnType<typeof useReportFilters>
 
 const ReportFiltersContext = createContext<ReportFiltersValue | null>(null)
 
-// Provides report filter state to all child components.
-// When nested, the inner provider passes through the outer values
-// so teleported components (via PageHeaderSetter) don't lose context.
+// Owns the single URL-state subscription for the reports page.
 export function ReportFiltersProvider({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const outer = useContext(ReportFiltersContext)
-  const inner = useReportFilters()
-  const filters = outer ?? inner
+  const filters = useReportFilters()
   return (
     <ReportFiltersContext.Provider value={filters}>
       {children}

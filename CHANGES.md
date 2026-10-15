@@ -1,3 +1,15 @@
+# What's new (October 15)
+
+## Reports navigation
+- Month changes use the original loading placeholders while the requested
+  data loads, so previous-month activity never appears under new dates.
+- Calendar filters and pagination no longer trigger a whole-page fade.
+  Dashboard navigation keeps its existing animations.
+- Export is restored and opens with the displayed month's range.
+- Switching report tabs avoids unnecessary URL updates and hidden-table work.
+- Month changes preserve your scroll position, including when day 31 becomes
+  day 30 or 28. Selecting a different day still scrolls to its details.
+
 # What's new (October 14)
 
 ## Dispatch report downloads

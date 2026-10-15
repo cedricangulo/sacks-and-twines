@@ -3,12 +3,14 @@
 import { DownloadIcon } from "@phosphor-icons/react"
 import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { useReportFiltersContext } from "../../hooks/report-filters-context"
 import { useDispatchExport } from "../../hooks/use-dispatch-export"
 import DispatchExportDialog from "./dispatch-export-dialog"
 
-export default function ReportExportButton() {
-  const { monthStartMs } = useReportFiltersContext()
+export default function ReportExportButton({
+  monthStartMs,
+}: {
+  monthStartMs: number
+}) {
   const dispatchExport = useDispatchExport()
 
   const range = useMemo(

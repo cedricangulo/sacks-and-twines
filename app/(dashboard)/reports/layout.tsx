@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
-import { PageHeaderSetter } from "@/components/page-header-context"
-import ReportExportButton from "@/features/reports/components/export/report-export-button"
+import ReportsHeader from "@/features/reports/components/reports-header"
 import { ReportFiltersProvider } from "@/features/reports/hooks/report-filters-context"
 
 interface Props {
@@ -30,14 +29,7 @@ export const metadata: Metadata = {
 export default function ReportsLayout({ children }: Props) {
   return (
     <ReportFiltersProvider>
-      <PageHeaderSetter
-        title="Reports"
-        actions={
-          <ReportFiltersProvider>
-            <ReportExportButton />
-          </ReportFiltersProvider>
-        }
-      />
+      <ReportsHeader />
       <div className="px-6 pb-6 space-y-6">{children}</div>
     </ReportFiltersProvider>
   )
