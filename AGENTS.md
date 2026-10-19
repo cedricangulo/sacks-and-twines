@@ -51,8 +51,8 @@ backfills via the migration runner (`pnpm convex run migrations:run '{"fn":"migr
 the target deployment alongside the code deploy: `backfillDispatchCreatedAt`,
 `backfillStockAdjustmentCreatedAt`, `backfillAuditLogCreatedAt`,
 `backfillDispatchTotalQuantities`, `backfillDispatchTotalValues`, `backfillProductBatchCounts`,
-`backfillBatchCreatedAt`, `backfillProductCreatedAt`, `backfillBatchDenorm`,
-`backfillProductLastSupplierId`, `backfillDispatchItemCreatedAt`.
+`backfillBatchCreatedAt`, `backfillProductCreatedAt`,
+`backfillProductLastSupplierId`, `backfillSuppliers`, `backfillDispatchItemCreatedAt`.
 
 **Backfill ordering is not optional.** A document missing an optional field entirely
 does **not** match the index entry for that field (`undefined !== false`), so cutting
@@ -66,8 +66,11 @@ silently drops rows. Required order per deploy:
 See `docs/PERFORMANCE-AUDIT.md` (Phase 4) and
 `.agents/skills/convex-performance-audit/references/hot-path-rules.md` for the full
 rule. The write paths for `batches.createdAt`, `products.createdAt`,
-`batches.productName`/`supplierName`/`receivedBy` and `products.lastSupplierId` all
-land in step 1 — reads fall back to the live documents until step 2 completes.
+`products.lastSupplierId` and `suppliers.batchCount` all land in step 1. The read
+queries trust those denormalized fields directly (no live fallback), so step 2 must
+complete on the target deployment before step 3 ships. A fresh `pnpm seed` / `pnpm
+seed:test` already writes them, so only deployments carrying pre-existing data need
+the migration step.
 
 **Audit log actions are a constant, not a query.** The filter dropdown reads
 `AUDIT_LOG_ACTIONS` from `convex/lib/constants.ts`. When adding a new

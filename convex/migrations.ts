@@ -112,7 +112,9 @@ export const backfillSuppliers = migrations.define({
     if (supplier.batchCount !== undefined) return
     const batches = await ctx.db
       .query("batches")
-      .withIndex("by_supplier", (q) => q.eq("supplierId", supplier._id))
+      .withIndex("by_supplier_createdAt", (q) =>
+        q.eq("supplierId", supplier._id)
+      )
       .collect()
     await ctx.db.patch(supplier._id, { batchCount: batches.length })
   },
@@ -334,11 +336,10 @@ export const backfillProductCreatedAt = migrations.define({
  *
  * Prepares the `by_createdAt` index range that the reports exports need to read
  * a date window of items in one pass instead of one `by_dispatch` range per
- * dispatch. Until this has run on the target deployment, `exportDispatchItems`
- * and `exportMonthlyReport` must keep the per-dispatch read — a legacy item
- * with no `createdAt` will not match the index, so cutting over early would
- * silently drop rows. See docs/PERFORMANCE-AUDIT.md P9 and the rollout order in
- * `hot-path-rules.md`.
+ * dispatch. Until this has run on the target deployment, `exportDispatchReport`
+ * must keep the per-dispatch read — a legacy item with no `createdAt` will not
+ * match the index, so cutting over early would silently drop rows. See
+ * docs/PERFORMANCE-AUDIT.md P9 and the rollout order in `hot-path-rules.md`.
  */
 export const backfillDispatchItemCreatedAt = migrations.define({
   table: "dispatchItems",
@@ -347,47 +348,6 @@ export const backfillDispatchItemCreatedAt = migrations.define({
     const dispatch = await ctx.db.get(item.dispatchId)
     await ctx.db.patch(item._id, {
       createdAt: dispatch?.createdAt ?? item._creationTime,
-    })
-  },
-})
-
-/**
- * Backfills the denormalized display fields on `batches`
- * (`productName`, `productSku`, `supplierName`, `receivedBy`) from the live
- * documents.
- *
- * `batches.mutations.stockIn` now writes these, but reading the three source
- * documents once here is far cheaper than per-row joins in the
- * receiving-history list forever after.
- *
- * `receivedBy` writes the literal `"Unknown"` when the receiving user has no
- * `name`, matching the write path. Writing `undefined` instead would leave the
- * field permanently absent, so `listHistory`'s fallback check would re-read the
- * user document on every page that contains the row.
- */
-export const backfillBatchDenorm = migrations.define({
-  table: "batches",
-  migrateOne: async (ctx, batch) => {
-    if (
-      batch.productName !== undefined &&
-      batch.productSku !== undefined &&
-      batch.supplierName !== undefined &&
-      batch.receivedBy !== undefined
-    ) {
-      return
-    }
-
-    const [product, supplier, user] = await Promise.all([
-      ctx.db.get(batch.productId),
-      ctx.db.get(batch.supplierId),
-      ctx.db.get(batch.userId),
-    ])
-
-    await ctx.db.patch(batch._id, {
-      productName: product?.name,
-      productSku: product?.skuCode,
-      supplierName: supplier?.companyName,
-      receivedBy: user?.name ?? "Unknown",
     })
   },
 })

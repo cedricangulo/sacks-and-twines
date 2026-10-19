@@ -47,10 +47,16 @@ describe("batch queries", () => {
     })
   }
 
-  async function createProduct(t: ReturnType<typeof convexTest>, name: string) {
+  async function createProduct(
+    t: ReturnType<typeof convexTest>,
+    name: string,
+    skuCode?: string
+  ) {
     return await t.run(async (ctx) => {
       return await ctx.db.insert("products", {
-        skuCode: `SKU-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+        skuCode:
+          skuCode ??
+          `SKU-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
         name,
         category: "sacks",
         baseUom: "piece",
@@ -89,10 +95,6 @@ describe("batch queries", () => {
       quantityReceived: number
       quantityRemaining: number
       createdAt: number
-      productName: string
-      productSku: string
-      supplierName: string
-      receivedBy: string
     }>
   ) {
     return await t.run(async (ctx) => {
@@ -110,18 +112,6 @@ describe("batch queries", () => {
         status: overrides.status ?? "active",
         ...(overrides.createdAt !== undefined
           ? { createdAt: overrides.createdAt }
-          : {}),
-        ...(overrides.productName !== undefined
-          ? { productName: overrides.productName }
-          : {}),
-        ...(overrides.productSku !== undefined
-          ? { productSku: overrides.productSku }
-          : {}),
-        ...(overrides.supplierName !== undefined
-          ? { supplierName: overrides.supplierName }
-          : {}),
-        ...(overrides.receivedBy !== undefined
-          ? { receivedBy: overrides.receivedBy }
           : {}),
       })
     })
@@ -535,21 +525,19 @@ describe("batch queries", () => {
         }),
       ])
       const [productId, supplierA, supplierB] = await Promise.all([
-        createProduct(t, "Sack A"),
+        createProduct(t, "Sack A", "SKU-A"),
         createSupplier(t, "Supplier A"),
         createSupplier(t, "Supplier B"),
       ])
 
+      // No stored display fields — `listHistory` resolves them from the live
+      // product/supplier/user documents.
       // Inside the range, newest last so desc order is verifiable.
       const olderId = await createBatch(t, {
         productId,
         supplierId: supplierA,
         userId: ownerId,
         createdAt: NOW - 3 * DAY,
-        productName: "Sack A",
-        productSku: "SKU-A",
-        supplierName: "Supplier A",
-        receivedBy: "Owner",
       })
       const middleId = await createBatch(t, {
         productId,
@@ -557,20 +545,12 @@ describe("batch queries", () => {
         userId: staffId,
         createdAt: NOW - 2 * DAY,
         status: "depleted",
-        productName: "Sack A",
-        productSku: "SKU-A",
-        supplierName: "Supplier B",
-        receivedBy: "Staff",
       })
       const newerId = await createBatch(t, {
         productId,
         supplierId: supplierA,
         userId: ownerId,
         createdAt: NOW - 1 * DAY,
-        productName: "Sack A",
-        productSku: "SKU-A",
-        supplierName: "Supplier A",
-        receivedBy: "Owner",
       })
 
       // Outside the range on both sides.
@@ -579,20 +559,12 @@ describe("batch queries", () => {
         supplierId: supplierA,
         userId: ownerId,
         createdAt: NOW - 40 * DAY,
-        productName: "Sack A",
-        productSku: "SKU-A",
-        supplierName: "Supplier A",
-        receivedBy: "Owner",
       })
       await createBatch(t, {
         productId,
         supplierId: supplierA,
         userId: ownerId,
         createdAt: NOW + 5 * DAY,
-        productName: "Sack A",
-        productSku: "SKU-A",
-        supplierName: "Supplier A",
-        receivedBy: "Owner",
       })
 
       return {
@@ -721,7 +693,7 @@ describe("batch queries", () => {
       expect(result.page.map((b) => b._id)).toEqual([middleId])
     })
 
-    it("uses denormalized fields when present", async () => {
+    it("resolves names from the live product, supplier and user documents", async () => {
       const { t, ownerId } = await seedHistory()
       authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
@@ -736,7 +708,7 @@ describe("batch queries", () => {
       expect(result.page[0].receivedBy).toBe("Owner")
     })
 
-    it("falls back to live documents when denormalized fields are absent", async () => {
+    it("resolves names live even when the batch has no stored display fields", async () => {
       const t = makeTest()
       const ownerId = await createUser(t, {
         email: "owner@test.com",
@@ -749,8 +721,6 @@ describe("batch queries", () => {
         createSupplier(t, "Legacy Supplier"),
       ])
 
-      // A row with no denormalized fields — as it exists before
-      // `backfillBatchDenorm` runs.
       await createBatch(t, {
         productId,
         supplierId,
@@ -804,10 +774,6 @@ describe("batch queries", () => {
             userId: ownerId,
             createdAt: NOW - (i + 1) * 60_000,
             status: "active",
-            productName: "Bulk Sack",
-            productSku: "SKU-BULK",
-            supplierName: "Supplier A",
-            receivedBy: "Owner",
           })
         }
 
@@ -891,9 +857,9 @@ describe("batch queries", () => {
       })
     })
 
-    it('treats a nameless receiver as "Unknown" rather than un-backfilled', async () => {
-      // `users.name` is optional. A row written with the `"Unknown"` sentinel no
-      // longer trips the fallback read on every page it appears on.
+    it('resolves a nameless receiver to "Unknown"', async () => {
+      // `users.name` is optional. There is no stored sentinel any more — the
+      // live user document simply has no name, so the row resolves to "Unknown".
       const t = makeTest()
       const ownerId = await createUser(t, {
         email: "owner@test.com",
@@ -916,10 +882,6 @@ describe("batch queries", () => {
         supplierId,
         userId: namelessId,
         createdAt: NOW,
-        productName: "Sack",
-        productSku: "SKU",
-        supplierName: "Supplier",
-        receivedBy: "Unknown",
       })
 
       authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)

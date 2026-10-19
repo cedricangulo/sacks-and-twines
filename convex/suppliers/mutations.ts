@@ -172,7 +172,7 @@ export const archive = zMutation({
 
     const batch = await ctx.db
       .query("batches")
-      .withIndex("by_supplier", (q) => q.eq("supplierId", supplierId))
+      .withIndex("by_supplier_createdAt", (q) => q.eq("supplierId", supplierId))
       .first()
     if (batch !== null) {
       throw new Error(

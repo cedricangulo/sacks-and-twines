@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test"
 import { describe, expect, it } from "vitest"
 import { internal } from "./_generated/api"
-import type { Id } from "./_generated/dataModel"
+import type { Doc, Id } from "./_generated/dataModel"
 import { DENSE_DAYS, SEED_DATE_END } from "./lib/constants"
 import schema from "./schema"
 
@@ -48,7 +48,7 @@ async function createUsers(t: TestInstance) {
 /**
  * For every product, asserts that the denormalized `batchCount` equals the
  * real number of batches for that product. Uses `?? 0` so a product with zero
- * batches (no patch applied) is functionally 0, matching the fallback path in
+ * batches (no patch applied) is functionally 0, matching the read path in
  * `getEditDetail`. Counts all batch statuses, because `batchCount` means
  * "total batches ever", not "active batches".
  */
@@ -74,6 +74,48 @@ async function assertBatchCountsMatch(t: TestInstance) {
   })
 }
 
+/**
+ * Asserts the denormalized display fields match live data: each product's
+ * `lastSupplierId` is the supplier of its newest batch (by `_creationTime`),
+ * and each supplier's `batchCount` equals its total batch count. Mirrors the
+ * `backfillProductLastSupplierId` / `backfillSuppliers` migrations now that the
+ * read queries no longer have a live fallback.
+ */
+async function assertDenormalizedDisplayFields(t: TestInstance) {
+  await t.run(async (ctx) => {
+    const products = await ctx.db.query("products").collect()
+
+    for (const product of products) {
+      const batches = await ctx.db
+        .query("batches")
+        .withIndex("by_product", (q) => q.eq("productId", product._id))
+        .collect()
+      const newest = batches.reduce<Doc<"batches"> | null>(
+        (a, b) => (!a || b._creationTime > a._creationTime ? b : a),
+        null
+      )
+      expect(
+        product.lastSupplierId ?? null,
+        `lastSupplierId for ${product.name}`
+      ).toBe(newest?.supplierId ?? null)
+    }
+
+    const suppliers = await ctx.db.query("suppliers").collect()
+    for (const supplier of suppliers) {
+      const batches = await ctx.db
+        .query("batches")
+        .withIndex("by_supplier_createdAt", (q) =>
+          q.eq("supplierId", supplier._id)
+        )
+        .collect()
+      expect(
+        supplier.batchCount ?? 0,
+        `batchCount for ${supplier.companyName}`
+      ).toBe(batches.length)
+    }
+  })
+}
+
 describe("seed writeBase", () => {
   it("sets products.batchCount to the actual batch count", SLOW, async () => {
     const t = makeTest()
@@ -86,6 +128,22 @@ describe("seed writeBase", () => {
 
     await assertBatchCountsMatch(t)
   })
+
+  it(
+    "sets products.lastSupplierId and suppliers.batchCount to live values",
+    SLOW,
+    async () => {
+      const t = makeTest()
+      const { ownerId, staffId } = await createUsers(t)
+
+      await t.mutation(internal.seed.writeBase, {
+        ownerId,
+        staffId,
+      })
+
+      await assertDenormalizedDisplayFields(t)
+    }
+  )
 })
 
 describe("seed writeTest", () => {
@@ -149,6 +207,23 @@ describe("seed writeTest", () => {
       })
     }
   )
+
+  it(
+    "sets products.lastSupplierId and suppliers.batchCount to live values",
+    SLOW,
+    async () => {
+      const t = makeTest()
+      const { ownerId, staffId, deactivatedStaffId } = await createUsers(t)
+
+      await t.mutation(internal.seed.writeTest, {
+        ownerId,
+        staffId,
+        deactivatedStaffId,
+      })
+
+      await assertDenormalizedDisplayFields(t)
+    }
+  )
 })
 
 describe("seed writeBase demo fixtures", () => {
@@ -173,7 +248,9 @@ describe("seed writeBase demo fixtures", () => {
         for (const s of archived) {
           const batches = await ctx.db
             .query("batches")
-            .withIndex("by_supplier", (q) => q.eq("supplierId", s._id))
+            .withIndex("by_supplier_createdAt", (q) =>
+              q.eq("supplierId", s._id)
+            )
             .collect()
           // Production archive blocks suppliers with batch records.
           expect(batches).toHaveLength(0)

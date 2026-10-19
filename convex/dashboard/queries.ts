@@ -151,7 +151,7 @@ export const dailyDispatchVolume = query({
           totalQty = items.reduce((sum, item) => sum + item.quantityDeducted, 0)
         }
 
-        const ts = d.createdAt ?? d._creationTime
+        const ts = d.createdAt!
         const day = new Date(ts + tzOffset).getUTCDate()
 
         if (totalQty > 0) {
@@ -211,7 +211,7 @@ export const weeklyVelocity = query({
     const cellMap = new Map<string, number>()
 
     for (const d of dispatches) {
-      const ts = d.createdAt ?? d._creationTime
+      const ts = d.createdAt!
       const date = new Date(ts + tzOffset)
       const dayOfWeek = date.getUTCDay()
       const hour = date.getUTCHours()
@@ -355,7 +355,7 @@ export const weeklyDemand = query({
           totalQty = items.reduce((sum, item) => sum + item.quantityDeducted, 0)
         }
 
-        const ts = d.createdAt ?? d._creationTime
+        const ts = d.createdAt!
         const shifted = new Date(ts + tzOffset)
         const year = shifted.getUTCFullYear()
         const month = String(shifted.getUTCMonth() + 1).padStart(2, "0")

@@ -1,8 +1,8 @@
 import { internal } from "../_generated/api"
 import { Doc } from "../_generated/dataModel"
 import { requireOwner } from "../auth/guards"
-import { DEFAULT_CONVERSION_FACTOR } from "../lib/constants"
 import { resolveBusinessTime } from "../lib/backdate"
+import { DEFAULT_CONVERSION_FACTOR } from "../lib/constants"
 import { formatBackdate } from "../lib/dates"
 import { globalLimit, perUserLimit } from "../rate_limiter"
 import { zMutation } from "../server"
@@ -144,15 +144,13 @@ export const stockIn = zMutation({
       })
     }
 
-    // Read product + supplier + caller up front: all three are needed for the
-    // denormalized display fields on the batch, and the supplier doc is also
-    // required for the `batchCount` patch below. One concurrent read, three
-    // consumers. Convex has no foreign-key constraints, so reading before the
-    // insert is safe.
-    const [product, supplierDoc, callerDoc] = await Promise.all([
+    // Read product + supplier up front: the supplier doc feeds the `batchCount`
+    // patch and the product the derived-quantity patch below. One concurrent
+    // read, two consumers. Convex has no foreign-key constraints, so reading
+    // before the insert is safe.
+    const [product, supplierDoc] = await Promise.all([
       ctx.db.get(resolvedProductId),
       ctx.db.get(supplierId),
-      ctx.db.get(callerId),
     ])
 
     const unitCost = totalProcurementCost / quantityReceived
@@ -185,16 +183,6 @@ export const stockIn = zMutation({
       // `createdAt` is business time ("when it happened"), defaulting to now.
       // Legacy rows are backfilled by `backfillBatchCreatedAt`.
       createdAt: eventMs,
-      // Denormalized display fields — see schema comment and
-      // `backfillBatchDenorm`. Optional, so pre-backfill rows stay valid and
-      // reads fall back to the live documents. `receivedBy` falls back to the
-      // literal `"Unknown"` rather than `undefined`: `users.name` is optional,
-      // and an absent field is indistinguishable from "never backfilled", so
-      // every read of such a row would re-issue the fallback point read.
-      productName: product?.name,
-      productSku: product?.skuCode,
-      supplierName: supplierDoc?.companyName,
-      receivedBy: callerDoc?.name ?? "Unknown",
     })
 
     if (supplierDoc) {

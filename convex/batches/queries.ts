@@ -119,13 +119,13 @@ export const listForDispatch = query({
  * batch's `userId` is the same seeded owner and the filter could only ever
  * select "everything". It previously cost a `by_userId_createdAt` index on
  * `batches` (its only reader) plus a `users.listNames` subscription on the page.
- * `receivedBy` survives as a display field for the details dialog.
+ * `receivedBy` is part of the row's display shape for the details dialog.
  *
- * Display fields (`productName`, `supplierName`, `receivedBy`) are read from the
- * denormalized columns written by `batches.mutations.stockIn`. For rows written
- * before `backfillBatchDenorm` ran they are absent, so this falls back to the
- * live documents — deduplicated, so the fallback costs at most one read per
- * distinct product/supplier/user on the page rather than one per row.
+ * Names (`productName`, `productSku`, `supplierName`, `receivedBy`) are resolved
+ * from the live product/supplier/user documents, never from a stored copy, so a
+ * rename propagates and the list agrees with `getById`. The reads are
+ * deduplicated — at most one per distinct product/supplier/user on the page
+ * rather than one per row.
  *
  * Owner-only access, matching `stockIn`.
  */
@@ -202,42 +202,28 @@ export const listHistory = query({
 
     const page = result.page
 
-    // Only rows missing the denormalized fields need a live read.
-    const needsFallback = page.filter(
-      (b) =>
-        b.productName === undefined ||
-        b.productSku === undefined ||
-        b.supplierName === undefined ||
-        b.receivedBy === undefined
-    )
-
-    const fallbackIds = {
-      productIds: [
-        ...new Set(needsFallback.map((b) => b.productId)),
-      ] as Id<"products">[],
-      supplierIds: [
-        ...new Set(needsFallback.map((b) => b.supplierId)),
-      ] as Id<"suppliers">[],
-      userIds: [
-        ...new Set(needsFallback.map((b) => b.userId)),
-      ] as Id<"users">[],
-    }
+    // Resolve names from the live documents. Deduplicated, so this costs at most
+    // one read per distinct product/supplier/user on the page rather than one per
+    // row — and never reads the batch's stored display columns.
+    const productIds = [
+      ...new Set(page.map((b) => b.productId)),
+    ] as Id<"products">[]
+    const supplierIds = [
+      ...new Set(page.map((b) => b.supplierId)),
+    ] as Id<"suppliers">[]
+    const userIds = [...new Set(page.map((b) => b.userId))] as Id<"users">[]
 
     const [products, supplierNames, userNames] = await Promise.all([
       Promise.all(
-        fallbackIds.productIds.map(
-          async (id) => [id, await ctx.db.get(id)] as const
-        )
+        productIds.map(async (id) => [id, await ctx.db.get(id)] as const)
       ).then(Object.fromEntries),
       Promise.all(
-        fallbackIds.supplierIds.map(
+        supplierIds.map(
           async (id) => [id, (await ctx.db.get(id))?.companyName] as const
         )
       ).then(Object.fromEntries),
       Promise.all(
-        fallbackIds.userIds.map(
-          async (id) => [id, (await ctx.db.get(id))?.name] as const
-        )
+        userIds.map(async (id) => [id, (await ctx.db.get(id))?.name] as const)
       ).then(Object.fromEntries),
     ])
 
@@ -247,11 +233,10 @@ export const listHistory = query({
         const product = products[b.productId]
         return {
           ...b,
-          productName: b.productName ?? product?.name ?? "Unknown",
-          productSku: b.productSku ?? product?.skuCode ?? "—",
-          supplierName:
-            b.supplierName ?? supplierNames[b.supplierId] ?? "Unknown",
-          receivedBy: b.receivedBy ?? userNames[b.userId] ?? "Unknown",
+          productName: product?.name ?? "Unknown",
+          productSku: product?.skuCode ?? "—",
+          supplierName: supplierNames[b.supplierId] ?? "Unknown",
+          receivedBy: userNames[b.userId] ?? "Unknown",
         }
       }),
     }

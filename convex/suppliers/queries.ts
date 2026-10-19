@@ -3,7 +3,8 @@ import { v } from "convex/values"
 import { query } from "../_generated/server"
 
 /**
- * Lists all suppliers with their batch counts.
+ * Lists all suppliers. `batchCount` is read from the denormalized field,
+ * maintained by `stockIn` and seeded directly.
  */
 export const list = query({
   args: {},
@@ -11,20 +12,7 @@ export const list = query({
     const userId = await getAuthUserId(ctx)
     if (userId === null) throw new Error("Unauthorized")
 
-    const suppliers = await ctx.db.query("suppliers").collect()
-
-    return await Promise.all(
-      suppliers.map(async (supplier) => {
-        if (supplier.batchCount !== undefined) {
-          return { ...supplier, batchCount: supplier.batchCount }
-        }
-        const batches = await ctx.db
-          .query("batches")
-          .withIndex("by_supplier", (q) => q.eq("supplierId", supplier._id))
-          .collect()
-        return { ...supplier, batchCount: batches.length }
-      })
-    )
+    return await ctx.db.query("suppliers").collect()
   },
 })
 

@@ -11,10 +11,8 @@ import { query } from "../_generated/server"
  * the client only to be discarded there. `"all"` reads both index ranges, which
  * is still bounded and indexed rather than a full scan.
  *
- * `lastSupplierId` is read from the denormalized field, with a live fallback
- * for rows written before `backfillProductLastSupplierId` ran. The fallback is
- * only taken when the field is missing, so the read set stays narrow once the
- * backfill has run.
+ * `lastSupplierId` is read from the denormalized field, maintained by
+ * `stockIn` and seeded directly.
  *
  * Owner-only access.
  * @param status - Optional product status filter. Defaults to "active".
@@ -56,17 +54,6 @@ export const list = query({
 
     return await Promise.all(
       products.map(async (product) => {
-        let lastSupplierId = product.lastSupplierId
-
-        if (lastSupplierId === undefined) {
-          const lastBatch = await ctx.db
-            .query("batches")
-            .withIndex("by_product", (q) => q.eq("productId", product._id))
-            .order("desc")
-            .first()
-          lastSupplierId = lastBatch?.supplierId
-        }
-
         let imageUrl: string | undefined
         if (product.imagePath) {
           try {
@@ -79,7 +66,6 @@ export const list = query({
 
         return {
           ...product,
-          lastSupplierId,
           imageUrl,
         }
       })
@@ -109,17 +95,6 @@ export const listActive = query({
 
     return await Promise.all(
       products.map(async (product) => {
-        let lastSupplierId = product.lastSupplierId
-
-        if (lastSupplierId === undefined) {
-          const lastBatch = await ctx.db
-            .query("batches")
-            .withIndex("by_product", (q) => q.eq("productId", product._id))
-            .order("desc")
-            .first()
-          lastSupplierId = lastBatch?.supplierId
-        }
-
         let imageUrl: string | undefined
         if (product.imagePath) {
           try {
@@ -132,7 +107,6 @@ export const listActive = query({
 
         return {
           ...product,
-          lastSupplierId,
           imageUrl,
         }
       })
@@ -144,8 +118,7 @@ export const listActive = query({
  * Lists active products with their available (FIFO-ordered) batches for dispatch.
  *
  * `lastSupplierId` is read from the denormalized field rather than issuing a
- * second `batches` index range per product; the live lookup only runs for rows
- * written before `backfillProductLastSupplierId`. This halves the per-product
+ * second `batches` index range per product. This halves the per-product
  * index-range count on the staff landing page.
  *
  * Accessible to any active user (owner or staff).
@@ -166,26 +139,13 @@ export const listDispatchReady = query({
 
     return await Promise.all(
       products.map(async (product) => {
-        // `lastSupplierId` and `activeBatches` are independent — fetch in parallel.
-        const [lastBatchFallback, activeBatches] = await Promise.all([
-          product.lastSupplierId === undefined
-            ? ctx.db
-                .query("batches")
-                .withIndex("by_product", (q) => q.eq("productId", product._id))
-                .order("desc")
-                .first()
-            : null,
-          ctx.db
-            .query("batches")
-            .withIndex("by_product_status", (q) =>
-              q.eq("productId", product._id).eq("status", "active")
-            )
-            .order("asc")
-            .collect(),
-        ])
-
-        const lastSupplierId =
-          product.lastSupplierId ?? lastBatchFallback?.supplierId
+        const activeBatches = await ctx.db
+          .query("batches")
+          .withIndex("by_product_status", (q) =>
+            q.eq("productId", product._id).eq("status", "active")
+          )
+          .order("asc")
+          .collect()
 
         const fifoBatches = activeBatches.filter((b) => b.quantityRemaining > 0)
 
@@ -201,7 +161,6 @@ export const listDispatchReady = query({
 
         return {
           ...product,
-          lastSupplierId,
           imageUrl,
           availableBatches: fifoBatches.map((b) => ({
             _id: b._id,
@@ -247,17 +206,6 @@ export const getEditDetail = query({
     const product = await ctx.db.get(productId)
     if (!product) return null
 
-    let batchCount = product.batchCount
-    if (batchCount === undefined) {
-      // Legacy fallback for products created before batchCount was
-      // denormalized — the backfill migration sets this going forward.
-      const batches = await ctx.db
-        .query("batches")
-        .withIndex("by_product", (q) => q.eq("productId", productId))
-        .collect()
-      batchCount = batches.length
-    }
-
     let imageUrl: string | undefined
     if (product.imagePath) {
       try {
@@ -271,7 +219,6 @@ export const getEditDetail = query({
     return {
       ...product,
       imageUrl,
-      batchCount,
     }
   },
 })

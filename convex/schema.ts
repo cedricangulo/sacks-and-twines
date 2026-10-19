@@ -82,20 +82,10 @@ export default defineSchema({
       v.literal("voided")
     ),
     createdAt: v.optional(v.number()),
-    // Denormalized display fields. Written by `batches.mutations.stockIn`, which
-    // already holds the product, supplier and caller, and backfilled by
-    // `backfillBatchDenorm`. They let the receiving-history list render without
-    // a per-row join. Live documents remain the correctness path — reads must
-    // fall back when these are missing. See docs/PERFORMANCE-AUDIT.md Phase 3.
-    productName: v.optional(v.string()),
-    productSku: v.optional(v.string()),
-    supplierName: v.optional(v.string()),
-    receivedBy: v.optional(v.string()),
   })
     .index("by_product", ["productId"])
     .index("by_product_status", ["productId", "status"])
     .index("by_batchCode", ["batchCode"])
-    .index("by_supplier", ["supplierId"])
     .index("by_createdAt", ["createdAt"])
     .index("by_supplier_createdAt", ["supplierId", "createdAt"])
     // Receiving-history filters. Applied as index prefix equality rather than

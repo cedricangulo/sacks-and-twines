@@ -236,12 +236,8 @@ export const monthlyAggregates = query({
       // `dispatches` backs the calendar grid, which marks any day with a
       // dispatch. Read via the same helper so the range is issued once per
       // index rather than once per consumer.
-      dispatchTimestamps: [
-        ...new Set(dispatches.map((d) => d.createdAt ?? d._creationTime)),
-      ],
-      adjustmentTimestamps: [
-        ...new Set(adjustments.map((a) => a.createdAt ?? a._creationTime)),
-      ],
+      dispatchTimestamps: [...new Set(dispatches.map((d) => d.createdAt!))],
+      adjustmentTimestamps: [...new Set(adjustments.map((a) => a.createdAt!))],
     }
   },
 })
@@ -305,7 +301,7 @@ export const exportDispatchReport = query({
         items.reduce((sum, i) => sum + i.quantityDeducted * i.unitCost, 0)
       return {
         _id: d._id,
-        date: d.createdAt ?? d._creationTime,
+        date: d.createdAt!,
         orNumber: d.orNumber ?? "",
         customerRef: d.customerReference ?? "",
         dispatchedBy: userName,
@@ -319,7 +315,7 @@ export const exportDispatchReport = query({
       const userName = d.userName ?? dispatcherNames.get(d.userId)?.name ?? ""
       return itemsByDispatch[index].map((item) => ({
         dispatchId: d._id,
-        date: d.createdAt ?? d._creationTime,
+        date: d.createdAt!,
         orNumber: d.orNumber ?? "",
         customerRef: d.customerReference ?? "",
         dispatchedBy: userName,

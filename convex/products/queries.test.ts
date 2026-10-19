@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { api } from "../_generated/api"
+import type { Id } from "../_generated/dataModel"
 import schema from "../schema"
 
 const authMocks = vi.hoisted(() => ({
@@ -55,6 +56,8 @@ describe("product queries", () => {
       currentQuantity: number
       totalAssetValue: number
       status: "active" | "archived"
+      batchCount: number
+      lastSupplierId: Id<"suppliers">
     }>
   ) {
     return await t.run(async (ctx) => {
@@ -68,6 +71,8 @@ describe("product queries", () => {
         totalAssetValue: overrides.totalAssetValue ?? 0,
         lowStockThreshold: 0,
         status: overrides.status ?? "active",
+        batchCount: overrides.batchCount,
+        lastSupplierId: overrides.lastSupplierId,
       })
     })
   }
@@ -271,7 +276,7 @@ describe("product queries", () => {
     expect(result).toEqual([])
   })
 
-  it("listActive enriches with lastSupplierId from most recent batch", async () => {
+  it("listActive returns the denormalized lastSupplierId", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
       email: "owner@test.com",
@@ -280,30 +285,18 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const [productId, supplierId] = await Promise.all([
-      createProduct(t, { name: "Supplier Linked" }),
-      t.run(async (ctx) => {
-        return await ctx.db.insert("suppliers", {
-          companyName: "Supplier",
-          contactPerson: "Contact",
-          contactNumber: "09171234567",
-          address: "Address",
-        })
-      }),
-    ])
-
-    await t.run(async (ctx) => {
-      await ctx.db.insert("batches", {
-        productId,
-        supplierId,
-        userId: ownerId,
-        batchCode: "BAT-LAST",
-        totalProcurementCost: 10000,
-        unitCost: 100,
-        quantityReceived: 100,
-        quantityRemaining: 100,
-        status: "active",
+    const supplierId = await t.run(async (ctx) => {
+      return await ctx.db.insert("suppliers", {
+        companyName: "Supplier",
+        contactPerson: "Contact",
+        contactNumber: "09171234567",
+        address: "Address",
       })
+    })
+
+    await createProduct(t, {
+      name: "Supplier Linked",
+      lastSupplierId: supplierId,
     })
 
     const result = await t.query(api.products.queries.listActive)
@@ -603,7 +596,7 @@ describe("product queries", () => {
     expect(result[0].availableBatches).toEqual([])
   })
 
-  it("listDispatchReady returns lastSupplierId from most recent batch", async () => {
+  it("listDispatchReady returns the denormalized lastSupplierId", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
       email: "owner@test.com",
@@ -612,57 +605,23 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const [productId, supplierA, supplierB] = await Promise.all([
-      createProduct(t, { name: "Supplier Test" }),
-      t.run(async (ctx) => {
-        return await ctx.db.insert("suppliers", {
-          companyName: "Supplier A",
-          contactPerson: "Contact",
-          contactNumber: "09171234567",
-          address: "Address",
-        })
-      }),
-      t.run(async (ctx) => {
-        return await ctx.db.insert("suppliers", {
-          companyName: "Supplier B",
-          contactPerson: "Contact",
-          contactNumber: "09171234567",
-          address: "Address",
-        })
-      }),
-    ])
-
-    await t.run(async (ctx) => {
-      await ctx.db.insert("batches", {
-        productId,
-        supplierId: supplierA,
-        userId: ownerId,
-        batchCode: "BAT-OLD",
-        totalProcurementCost: 10000,
-        unitCost: 100,
-        quantityReceived: 50,
-        quantityRemaining: 50,
-        status: "active",
+    const supplierId = await t.run(async (ctx) => {
+      return await ctx.db.insert("suppliers", {
+        companyName: "Supplier",
+        contactPerson: "Contact",
+        contactNumber: "09171234567",
+        address: "Address",
       })
     })
 
-    await t.run(async (ctx) => {
-      await ctx.db.insert("batches", {
-        productId,
-        supplierId: supplierB,
-        userId: ownerId,
-        batchCode: "BAT-NEW",
-        totalProcurementCost: 20000,
-        unitCost: 200,
-        quantityReceived: 100,
-        quantityRemaining: 100,
-        status: "active",
-      })
+    await createProduct(t, {
+      name: "Supplier Test",
+      lastSupplierId: supplierId,
     })
 
     const result = await t.query(api.products.queries.listDispatchReady)
 
-    expect(result[0].lastSupplierId?.toString()).toBe(supplierB.toString())
+    expect(result[0].lastSupplierId?.toString()).toBe(supplierId.toString())
   })
 
   it("listDispatchReady returns undefined lastSupplierId when product has no batches", async () => {
@@ -752,7 +711,10 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const productId = await createProduct(t, { name: "No Batch Product" })
+    const productId = await createProduct(t, {
+      name: "No Batch Product",
+      batchCount: 0,
+    })
 
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
     const result = await t.query(api.products.queries.getEditDetail, {
@@ -765,7 +727,7 @@ describe("product queries", () => {
     })
   })
 
-  it("getEditDetail returns batchCount > 0 when product has batches", async () => {
+  it("getEditDetail returns a positive batchCount from the denormalized field", async () => {
     const t = makeTest()
     const ownerId = await createUser(t, {
       email: "owner@test.com",
@@ -774,30 +736,9 @@ describe("product queries", () => {
     })
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)
 
-    const [productId, supplierId] = await Promise.all([
-      createProduct(t, { name: "Has Batches" }),
-      t.run(async (ctx) => {
-        return await ctx.db.insert("suppliers", {
-          companyName: "Supplier",
-          contactPerson: "Contact",
-          contactNumber: "09171234567",
-          address: "Address",
-        })
-      }),
-    ])
-
-    await t.run(async (ctx) => {
-      await ctx.db.insert("batches", {
-        productId,
-        supplierId,
-        userId: ownerId,
-        batchCode: "BAT-COUNT",
-        totalProcurementCost: 10000,
-        unitCost: 100,
-        quantityReceived: 100,
-        quantityRemaining: 100,
-        status: "active",
-      })
+    const productId = await createProduct(t, {
+      name: "Has Batches",
+      batchCount: 1,
     })
 
     authMocks.getAuthUserId.mockResolvedValueOnce(ownerId)

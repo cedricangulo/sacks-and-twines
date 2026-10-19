@@ -1,3 +1,15 @@
+# What's new (October 19)
+
+## Stock history
+- Batch details now show each product, supplier, and receiver by its current
+  name, so renaming a product, supplier, or user no longer leaves an old name
+  behind in older history entries.
+
+## Behind the scenes
+- Stock-history and report reads take names straight from the live records
+  instead of a cached copy, and unused report-download code was removed, so
+  those pages read less data. About 757 automated checks pass.
+
 # What's new (October 15)
 
 ## Reports navigation

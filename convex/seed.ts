@@ -789,11 +789,31 @@ export const writeBase = internalMutation({
     })
     await Promise.all(voidLogPromises)
 
-    await Promise.all(
-      productBatchCounts.map(({ id, count }) =>
-        ctx.db.patch(id, { batchCount: count })
+    // Denormalized display fields: the newest batch's supplier per product and
+    // the total batch count per supplier. Mirrors `backfillProductLastSupplierId`
+    // (newest by `_creationTime`, i.e. last inserted) and `backfillSuppliers`
+    // so a seeded deployment reads identically to a backfilled one.
+    const lastSupplierByProduct = new Map<Id<"products">, Id<"suppliers">>()
+    const batchCountBySupplier = new Map<Id<"suppliers">, number>()
+    for (const plan of batchPlans) {
+      lastSupplierByProduct.set(plan.productId, plan.supplierId)
+      batchCountBySupplier.set(
+        plan.supplierId,
+        (batchCountBySupplier.get(plan.supplierId) ?? 0) + 1
       )
-    )
+    }
+
+    await Promise.all([
+      ...productBatchCounts.map(({ id, count }) =>
+        ctx.db.patch(id, {
+          batchCount: count,
+          lastSupplierId: lastSupplierByProduct.get(id),
+        })
+      ),
+      ...allSupplierIds.map((id) =>
+        ctx.db.patch(id, { batchCount: batchCountBySupplier.get(id) ?? 0 })
+      ),
+    ])
 
     await Promise.all(
       stockInLogs.map((log) =>
@@ -1249,11 +1269,17 @@ export const writeEdgeCases = internalMutation({
             lowStock.baseUom === "meter"
               ? toFloat(restockQty)
               : Math.round(restockQty)
-          await ctx.db.patch(lowStock.id, {
-            currentQuantity,
-            totalAssetValue: toFloat(currentQuantity * latest.unitCost),
-            batchCount: (lowDoc.batchCount ?? lowBatches.length) + 1,
-          })
+          await Promise.all([
+            ctx.db.patch(lowStock.id, {
+              currentQuantity,
+              totalAssetValue: toFloat(currentQuantity * latest.unitCost),
+              batchCount: (lowDoc.batchCount ?? 0) + 1,
+              lastSupplierId: supplier._id,
+            }),
+            ctx.db.patch(supplier._id, {
+              batchCount: (supplier.batchCount ?? 0) + 1,
+            }),
+          ])
         }
       }
     }
@@ -1462,6 +1488,7 @@ export const writeTest = internalMutation({
     const batchRecords: Array<{
       id: Id<"batches">
       productId: Id<"products">
+      supplierId: Id<"suppliers">
       unitCost: number
       quantityReceived: number
       quantityRemaining: number
@@ -1516,6 +1543,7 @@ export const writeTest = internalMutation({
         batchRecords.push({
           id: batchId,
           productId: pId,
+          supplierId,
           unitCost,
           quantityReceived: qty,
           quantityRemaining: qty,
@@ -1548,6 +1576,7 @@ export const writeTest = internalMutation({
       batchRecords.push({
         id: depletedBatchId,
         productId: sackProduct.id,
+        supplierId: supplierIds[0],
         unitCost: 50,
         quantityReceived: 200,
         quantityRemaining: 0,
@@ -1577,6 +1606,7 @@ export const writeTest = internalMutation({
       batchRecords.push({
         id: voidedBatchId,
         productId: twineProduct.id,
+        supplierId: supplierIds[1],
         unitCost: 150,
         quantityReceived: 100,
         quantityRemaining: 100,
@@ -1587,19 +1617,35 @@ export const writeTest = internalMutation({
       })
     }
 
-    // Denormalize per-product batch counts onto products
+    // Denormalize per-product batch counts + newest-batch supplier, and
+    // per-supplier batch counts. `batchRecords` is in insert order, so the last
+    // write per product is the newest batch (`_creationTime` order), matching
+    // `backfillProductLastSupplierId`. Counts match `backfillSuppliers`.
     const batchCountByProduct = new Map<Id<"products">, number>()
+    const lastSupplierByProduct = new Map<Id<"products">, Id<"suppliers">>()
+    const batchCountBySupplier = new Map<Id<"suppliers">, number>()
     for (const batch of batchRecords) {
       batchCountByProduct.set(
         batch.productId,
         (batchCountByProduct.get(batch.productId) ?? 0) + 1
       )
-    }
-    await Promise.all(
-      [...batchCountByProduct.entries()].map(([pId, count]) =>
-        ctx.db.patch(pId, { batchCount: count })
+      lastSupplierByProduct.set(batch.productId, batch.supplierId)
+      batchCountBySupplier.set(
+        batch.supplierId,
+        (batchCountBySupplier.get(batch.supplierId) ?? 0) + 1
       )
-    )
+    }
+    await Promise.all([
+      ...[...batchCountByProduct.entries()].map(([pId, count]) =>
+        ctx.db.patch(pId, {
+          batchCount: count,
+          lastSupplierId: lastSupplierByProduct.get(pId),
+        })
+      ),
+      ...supplierIds.map((id) =>
+        ctx.db.patch(id, { batchCount: batchCountBySupplier.get(id) ?? 0 })
+      ),
+    ])
 
     // ── 4. Insert dispatches (~15) ───────────────────────────────
     const NUM_TEST_DISPATCHES = 15

@@ -187,10 +187,6 @@ async function seedAtProductionVolume(t: TestInstance): Promise<SeedRefs> {
             quantityRemaining: 100,
             status: "active",
             createdAt: ts,
-            productName: `Product ${productIndex}`,
-            productSku: `SKU-${productIndex.toString().padStart(4, "0")}`,
-            supplierName: `Supplier ${productIndex % supplierIds.length}`,
-            receivedBy: "Stress Owner",
           })
         )
       }
@@ -371,7 +367,7 @@ describe("transaction-limit stress", () => {
       })
       expect(result.page).toHaveLength(30)
       expect(result.isDone).toBe(false)
-      // Denormalized fields resolve without any fallback reads.
+      // Names resolve from the live product/supplier/user documents.
       expect(result.page[0].productName).toBeTruthy()
       expect(result.page[0].supplierName).toBeTruthy()
       expect(result.page[0].receivedBy).toBe("Stress Owner")
@@ -474,13 +470,15 @@ describe("transaction-limit stress", () => {
       expect(result.page).toHaveLength(30)
     })
 
-    it("listHistory with a budget that leaves no room for per-row joins", async () => {
-      // 30 rows, one page. Budget: 20 index ranges. Per-row product/supplier/user
-      // reads would need ~90.
+    it("listHistory dedups name lookups to one read per distinct parent", async () => {
+      // 30 rows, one page. The rows span 30 distinct products but only 3
+      // suppliers and 1 user, so dedup keeps the point reads proportional to
+      // distinct parents (~34) rather than rows. A per-row join (~90) would
+      // blow the budget.
       const t = makeTest({
         documentsWritten: 16_000,
         documentsRead: 32_000,
-        databaseQueries: 20,
+        databaseQueries: 45,
       })
       const { ownerId } = await seedAtProductionVolume(t)
       authMocks.getAuthUserId.mockResolvedValue(ownerId)
