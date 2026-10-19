@@ -418,34 +418,23 @@ describe("transaction-limit stress", () => {
       expect(result.adjustmentTimestamps).toEqual([])
     })
 
-    it("reports.exportBatches — deduplicated point reads", async () => {
-      // Was 3 point reads per batch across a full-table collect. Now
-      // deduplicated to |products| + |suppliers| + |users|.
+    it("reports.exportDispatchReport — deduplicated point reads", async () => {
+      // The dispatch report shares the `fetchItemsByDispatch` fast path and the
+      // loadProductNames / loadBatchCodes / loadUsers dedup, so it guards the same
+      // |products| + |batches| + |users| point-read budget the removed per-entity
+      // exports used to cover.
       const t = makeSeedInstance()
       const { ownerId } = await seedAtProductionVolume(t)
       authMocks.getAuthUserId.mockResolvedValue(ownerId)
 
-      const result = await t.query(api.reports.queries.exportBatches, {
+      const result = await t.query(api.reports.queries.exportDispatchReport, {
         startMs: T0,
         endMs: WINDOW_END,
       })
-      expect(result.records.length).toBeGreaterThan(0)
-      expect(result.records[0].productName).toBeTruthy()
-      expect(result.records[0].supplier).toBeTruthy()
-    })
-
-    it("reports.exportDispatchItems — parallelised, not serialised", async () => {
-      const t = makeSeedInstance()
-      const { ownerId } = await seedAtProductionVolume(t)
-      authMocks.getAuthUserId.mockResolvedValue(ownerId)
-
-      const result = await t.query(api.reports.queries.exportDispatchItems, {
-        startMs: T0,
-        endMs: WINDOW_END,
-      })
-      expect(result.records.length).toBeGreaterThan(0)
-      expect(result.records[0].product).toBeTruthy()
-      expect(result.records[0].batchCode).toBeTruthy()
+      expect(result.dispatches.length).toBeGreaterThan(0)
+      expect(result.items.length).toBeGreaterThan(0)
+      expect(result.items[0].product).toBeTruthy()
+      expect(result.items[0].batchCode).toBeTruthy()
     })
   })
 
