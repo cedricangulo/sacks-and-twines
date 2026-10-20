@@ -7,9 +7,11 @@ import {
   TrendUpIcon,
   WarningIcon,
 } from "@phosphor-icons/react"
+import type { ReactNode } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCompact, formatCurrency } from "@/lib/formatters"
+import { cn } from "@/lib/utils"
 import { getStatsRange } from "../../constants"
 import { useReportFiltersContext } from "../../hooks/report-filters-context"
 import { useMonthlyAggregates } from "../../hooks/use-monthly-aggregates"
@@ -53,83 +55,67 @@ export default function MonthlyStatsBar() {
   return (
     <Card size="sm">
       <CardContent className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3 divide-y md:grid-cols-4 md:divide-y-0 md:divide-x divide-border">
-          <div className="flex items-end gap-3">
-            <div className="p-2 bg-yellow-100 rounded-xl dark:bg-yellow-950">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-4 md:gap-x-3 md:gap-y-0 md:divide-x md:divide-border md:[&>*:not(:first-child)]:pl-4">
+          <StatItem
+            icon={
               <ClipboardTextIcon
                 weight="fill"
-                className="text-yellow-600 size-6 dark:text-yellow-400"
+                className="size-5 text-yellow-600 md:size-6 dark:text-yellow-400"
               />
-            </div>
-            {isLoading ? (
-              <Skeleton className="w-20 h-9" />
-            ) : (
-              <div className="font-mono type-h2 tabular-nums">
-                {formatCompact(data.dispatchCount)}
-              </div>
-            )}
-            <div className="type-body-small text-muted-foreground">
-              Dispatches
-            </div>
-          </div>
+            }
+            label="Dispatches"
+            tone="bg-yellow-100 dark:bg-yellow-950"
+            value={formatCompact(data.dispatchCount)}
+            isLoading={isLoading}
+          />
 
-          <div className="flex items-end gap-3">
-            <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950">
+          <StatItem
+            icon={
               <ArrowsClockwiseIcon
                 weight="fill"
-                className="size-6 text-emerald-600 dark:text-emerald-400"
+                className="size-5 text-emerald-600 md:size-6 dark:text-emerald-400"
               />
-            </div>
-            {isLoading ? (
-              <Skeleton className="w-20 h-9" />
-            ) : (
-              <div className="font-mono type-h2 tabular-nums">
-                {formatCompact(data.adjustmentCount)}
-              </div>
-            )}
-            <div className="type-body-small text-muted-foreground">
-              Adjustments
-            </div>
-          </div>
+            }
+            label="Adjustments"
+            tone="bg-emerald-100 dark:bg-emerald-950"
+            value={formatCompact(data.adjustmentCount)}
+            isLoading={isLoading}
+          />
 
-          <div className="flex items-end gap-3">
-            <div className="p-2 rounded-xl bg-primary/10">
-              <PackageIcon weight="fill" className="size-6 text-primary" />
-            </div>
-            {isLoading ? (
-              <Skeleton className="w-20 h-9" />
-            ) : (
-              <div className="font-mono type-h2 tabular-nums">
-                {formatCompact(data.totalItems)}
-              </div>
-            )}
-            <div className="type-body-small text-muted-foreground">
-              Items Out
-            </div>
-          </div>
+          <StatItem
+            icon={
+              <PackageIcon
+                weight="fill"
+                className="size-5 text-primary md:size-6"
+              />
+            }
+            label="Items Out"
+            tone="bg-primary/10"
+            value={formatCompact(data.totalItems)}
+            isLoading={isLoading}
+          />
 
-          <div className="flex items-end gap-3">
-            <div className="p-2 rounded-xl bg-destructive/10">
-              <TrendUpIcon weight="fill" className="size-6 text-destructive" />
-            </div>
-            {isLoading ? (
-              <Skeleton className="w-20 h-9" />
-            ) : data.totalValue === null ? (
-              <div className="font-mono type-h2 tabular-nums text-muted-foreground">
-                &mdash;
-              </div>
-            ) : (
-              <div className="font-mono type-h2 tabular-nums">
-                {formatCurrency(data.totalValue, {
+          <StatItem
+            icon={
+              <TrendUpIcon
+                weight="fill"
+                className="size-5 text-destructive md:size-6"
+              />
+            }
+            label="Dispatch Value"
+            tone="bg-destructive/10"
+            value={
+              data.totalValue === null ? (
+                <span className="text-muted-foreground">&mdash;</span>
+              ) : (
+                formatCurrency(data.totalValue, {
                   notation: "compact",
                   maximumFractionDigits: 1,
-                })}
-              </div>
-            )}
-            <div className="type-body-small text-muted-foreground">
-              Dispatch Value
-            </div>
-          </div>
+                })
+              )
+            }
+            isLoading={isLoading}
+          />
         </div>
 
         {data.truncated ? (
@@ -148,5 +134,43 @@ export default function MonthlyStatsBar() {
         ) : null}
       </CardContent>
     </Card>
+  )
+}
+
+// One stat block. Stacked on phones (icon above value + label) so the 31px
+// figure never has to share a ~130px column with the icon and label, then
+// collapses back to the desktop icon | value | label row at `md`.
+function StatItem({
+  icon,
+  label,
+  tone,
+  value,
+  isLoading,
+}: {
+  icon: ReactNode
+  label: string
+  tone: string
+  value: ReactNode
+  isLoading: boolean
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-end md:gap-3">
+      <div
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-xl md:size-10",
+          tone
+        )}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0">
+        {isLoading ? (
+          <Skeleton className="w-24 h-9 md:w-20" />
+        ) : (
+          <div className="font-mono type-h2 tabular-nums">{value}</div>
+        )}
+        <div className="type-body-small text-muted-foreground">{label}</div>
+      </div>
+    </div>
   )
 }

@@ -67,8 +67,8 @@ export default function CalendarGrid() {
 
   return (
     <>
-      <div className="flex items-center justify-end gap-2">
-        <ButtonGroup>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+        <ButtonGroup className="w-full sm:w-fit">
           <Combobox
             items={availableMonths}
             value={MONTH_NAMES[month]}
@@ -79,7 +79,10 @@ export default function CalendarGrid() {
               if (idx !== -1) setMonthValue(idx)
             }}
           >
-            <ComboboxInput placeholder="Select month" className="w-32" />
+            <ComboboxInput
+              placeholder="Select month"
+              className="flex-1 min-w-0 sm:flex-none sm:w-32"
+            />
             <ComboboxContent>
               <ComboboxList>
                 {(item) => (
@@ -99,7 +102,10 @@ export default function CalendarGrid() {
               if (!Number.isNaN(y)) setYearValue(y)
             }}
           >
-            <ComboboxInput placeholder="Select year" className="w-22" />
+            <ComboboxInput
+              placeholder="Select year"
+              className="flex-1 min-w-0 sm:flex-none sm:w-22"
+            />
             <ComboboxContent>
               <ComboboxList>
                 {(item) => (
@@ -111,7 +117,7 @@ export default function CalendarGrid() {
             </ComboboxContent>
           </Combobox>
         </ButtonGroup>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <Button
             aria-label={calendarVisible ? "Hide calendar" : "Show calendar"}
             aria-expanded={calendarVisible}

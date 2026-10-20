@@ -61,13 +61,24 @@ export default function ReportPagination({
           />
         </PaginationItem>
 
+        {/* Page numbers can't fit beside the tabs on phones; show the compact
+            "Page X of Y" indicator there and the full numbered links at `sm`. */}
+        <PaginationItem className="sm:hidden">
+          <span className="flex h-9 items-center px-2 text-muted-foreground type-body-small tabular-nums">
+            Page {page} of {totalPages}
+          </span>
+        </PaginationItem>
+
         {pages.map((p, i) => {
           if (p === "...") {
             const ellipsisIndex = pages
               .slice(0, i)
               .filter((item) => item === "...").length
             return (
-              <PaginationItem key={`ellipsis-${ellipsisIndex}`}>
+              <PaginationItem
+                key={`ellipsis-${ellipsisIndex}`}
+                className="hidden sm:block"
+              >
                 <span className="flex h-9 items-center px-2 text-muted-foreground">
                   ...
                 </span>
@@ -75,7 +86,7 @@ export default function ReportPagination({
             )
           }
           return (
-            <PaginationItem key={p}>
+            <PaginationItem key={p} className="hidden sm:block">
               <PaginationLink
                 href="#"
                 isActive={p === page}

@@ -97,12 +97,18 @@ export default function CalendarDetailPanel() {
       <h3 className="mb-4 font-semibold type-body-default">{formattedDate}</h3>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="gap-4">
-        <div className="flex items-center justify-between gap-4">
-          <TabsList>
-            <TabsTrigger value="dispatches">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <TabsList className="w-full max-w-full justify-start overflow-x-auto sm:w-fit sm:justify-center sm:overflow-visible">
+            <TabsTrigger
+              value="dispatches"
+              className="gap-1 px-2 text-[13px] whitespace-nowrap sm:flex-none sm:gap-2 sm:px-3 sm:text-sm"
+            >
               Dispatches <Badge variant="warning">{dispatches.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="adjustments">
+            <TabsTrigger
+              value="adjustments"
+              className="gap-1 px-2 text-[13px] whitespace-nowrap sm:flex-none sm:gap-2 sm:px-3 sm:text-sm"
+            >
               Stock Adjustments{" "}
               <Badge variant="success">{adjustments.length}</Badge>
             </TabsTrigger>

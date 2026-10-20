@@ -16,7 +16,7 @@ export default function AuditLogsLayout({ children }: Props) {
         title="Audit Logs"
         backHref={pathname !== "/audit-logs" ? "/products" : null}
       />
-      <div className="p-6 space-y-6">{children}</div>
+      <div className="p-4 space-y-6 sm:p-6">{children}</div>
     </>
   )
 }

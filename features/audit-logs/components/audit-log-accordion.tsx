@@ -34,7 +34,7 @@ export default function AuditLogAccordion({
 
   if (isLoading) {
     return (
-      <div className="h-[calc(100vh-220px)] overflow-y-auto px-2">
+      <div className="h-[calc(100vh-220px)] overflow-x-clip overflow-y-auto px-2">
         <div className="flex w-full flex-col overflow-hidden rounded-2xl border">
           {Array.from({ length: 5 }).map((_, i) => (
             <div
@@ -47,7 +47,7 @@ export default function AuditLogAccordion({
               </div>
               <div className="flex items-baseline gap-2">
                 <Skeleton className="h-5 w-16" />
-                <Skeleton className="h-5 w-56" />
+                <Skeleton className="h-5 w-full max-w-56" />
               </div>
             </div>
           ))}
@@ -83,7 +83,7 @@ export default function AuditLogAccordion({
   }
 
   return (
-    <div className="h-[calc(100vh-220px)] overflow-y-auto px-2">
+    <div className="h-[calc(100vh-220px)] overflow-x-clip overflow-y-auto px-2">
       <Accordion
         value={expandedId ? [expandedId] : []}
         onValueChange={(value) => setExpandedId(value[0] ?? null)}

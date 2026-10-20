@@ -39,20 +39,22 @@ export default function AuditLogItem({ log, isExpanded }: AuditLogItemProps) {
 
   return (
     <AccordionItem value={log._id}>
-      <AccordionTrigger className="hover:no-underline">
+      <AccordionTrigger className="gap-2 p-3 hover:no-underline sm:gap-6 sm:p-4">
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-baseline gap-2">
-            <span className="font-medium truncate type-body-small">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 truncate font-medium type-body-small">
               {displayName}
             </span>
             <Badge variant="outline">{formatAction(log.action)}</Badge>
           </div>
-          <div className="flex items-baseline gap-2">
+          <div className="flex min-w-0 items-baseline gap-1.5">
             <span className="type-body-small shrink-0 text-muted-foreground">
               {relativeTime}
             </span>
-            <span className="text-muted-foreground type-body-small">|</span>
-            <span className="type-body-small truncate w-full text-muted-foreground">
+            <span className="shrink-0 text-muted-foreground type-body-small">
+              |
+            </span>
+            <span className="line-clamp-2 min-w-0 flex-1 wrap-anywhere type-body-small text-muted-foreground">
               {parsedDesc.summary}
             </span>
           </div>
@@ -86,7 +88,7 @@ function DetailBody({
   formattedTimestamp: string
 }) {
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 type-body-small">
+    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 type-body-small sm:gap-x-6">
       <DetailRow label={FIELD_LABELS.timestamp} value={formattedTimestamp} />
       <DetailRow
         label={FIELD_LABELS.action}
@@ -164,7 +166,7 @@ function GroupedDetails({
     <>
       <dt className="text-muted-foreground">{FIELD_LABELS.details}</dt>
       <dd>
-        <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
+        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 sm:gap-x-6">
           {Object.entries(parsedDesc.details).map(([key, value]) => (
             <GroupedField key={key} label={key} value={String(value)} />
           ))}
@@ -186,7 +188,7 @@ function GroupedChanges({
     <>
       <dt className="text-muted-foreground">{FIELD_LABELS.changes}</dt>
       <dd>
-        <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
+        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 sm:gap-x-6">
           {Object.entries(parsedDesc.changes).map(
             ([key, change]: [string, { old: unknown; new: unknown }]) => (
               <ChangeEntry
@@ -208,7 +210,9 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <>
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-mono truncate text-foreground">{value}</dd>
+      <dd className="min-w-0 font-mono wrap-anywhere text-foreground">
+        {value}
+      </dd>
     </>
   )
 }
@@ -218,7 +222,9 @@ function GroupedField({ label, value }: { label: string; value: string }) {
   return (
     <>
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-mono text-foreground">{value}</span>
+      <span className="min-w-0 font-mono wrap-anywhere text-foreground">
+        {value}
+      </span>
     </>
   )
 }
@@ -243,7 +249,7 @@ function DetailSkeleton({
     parsedDesc.changes && Object.keys(parsedDesc.changes).length > 0
 
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 type-body-small">
+    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 type-body-small sm:gap-x-6">
       {DETAIL_CORE_FIELDS.map((field) => (
         <DetailSkeletonRow key={field} label={FIELD_LABELS[field]} />
       ))}
@@ -258,7 +264,7 @@ function DetailSkeleton({
             <>
               <dt className="text-muted-foreground">{FIELD_LABELS.details}</dt>
               <dd>
-                <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
+                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 sm:gap-x-6">
                   {Object.keys(parsedDesc.details!).map((key) => (
                     <GroupedSkeletonRow key={key} label={key} />
                   ))}
@@ -270,12 +276,12 @@ function DetailSkeleton({
             <>
               <dt className="text-muted-foreground">{FIELD_LABELS.changes}</dt>
               <dd>
-                <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1">
+                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 sm:gap-x-6">
                   {Object.keys(parsedDesc.changes!).map((key) => (
                     <GroupedSkeletonRow
                       key={key}
                       label={formatChangeLabel(key)}
-                      valueWidth="w-44"
+                      valueWidth="w-full max-w-44"
                     />
                   ))}
                 </div>
@@ -294,7 +300,7 @@ function DetailSkeleton({
 // Skeleton row matching the DetailRow layout: known label text + placeholder value.
 function DetailSkeletonRow({
   label,
-  valueWidth = "w-40",
+  valueWidth = "w-full max-w-40",
 }: {
   label: string
   valueWidth?: string
@@ -302,7 +308,7 @@ function DetailSkeletonRow({
   return (
     <>
       <dt className="text-muted-foreground">{label}</dt>
-      <dd>
+      <dd className="min-w-0">
         <Skeleton className={`h-5 ${valueWidth}`} />
       </dd>
     </>
@@ -312,7 +318,7 @@ function DetailSkeletonRow({
 // Skeleton row matching the GroupedField layout inside nested sections.
 function GroupedSkeletonRow({
   label,
-  valueWidth = "w-40",
+  valueWidth = "w-full max-w-40",
 }: {
   label: string
   valueWidth?: string
@@ -320,7 +326,7 @@ function GroupedSkeletonRow({
   return (
     <>
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-mono text-foreground">
+      <span className="min-w-0 font-mono text-foreground">
         <Skeleton className={`h-5 ${valueWidth}`} />
       </span>
     </>
@@ -340,7 +346,7 @@ function ChangeEntry({
   return (
     <>
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-mono text-foreground">
+      <span className="min-w-0 font-mono wrap-anywhere text-foreground">
         <span className="text-destructive line-through">{oldVal}</span>
         <span> → </span>
         <span className="text-emerald-500">{newVal}</span>
