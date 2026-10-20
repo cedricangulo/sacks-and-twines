@@ -35,7 +35,6 @@ accounts.
 | email                 | VARCHAR   | 254    | UQ  | No   | —              | Unique email used for login.           |
 | role                  | ENUM      | —      | —   | Yes  | staff          | Account role: owner or staff.          |
 | status                | ENUM      | —      | —   | Yes  | active         | Account status: active or deactivated. |
-| emailVerificationTime | TIMESTAMP | —      | —   | Yes  | NULL           | Time the email was verified.           |
 
 ## products
 
