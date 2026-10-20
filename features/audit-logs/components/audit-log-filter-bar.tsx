@@ -13,14 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Kbd } from "@/components/ui/kbd"
 import {
   Select,
   SelectContent,
@@ -64,15 +57,13 @@ export default function AuditLogFilterBar({
     actions,
     isExporting,
     exportDialogOpen,
-    exportMenuOpen,
     exportResult,
     exportFailed,
     exportError,
     recordCount,
     summaryLines,
-    handleFormatSelect,
+    openExportDialog,
     handleExportConfirm,
-    setExportMenuOpen,
     setExportDialogOpen,
   } = useAuditLogExport(search, filterArgs)
 
@@ -132,29 +123,16 @@ export default function AuditLogFilterBar({
         </SelectContent>
       </Select>
 
-      <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              nativeButton={true}
-              type="button"
-              variant="secondary"
-              disabled={isExporting || disabled}
-            />
-          }
-        >
-          <UploadIcon weight="fill" className="text-muted-foreground" />
-          Export
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => handleFormatSelect("csv")}>
-            CSV <Kbd>.csv</Kbd>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleFormatSelect("json")}>
-            JSON <Kbd>.json</Kbd>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={isExporting || disabled}
+        aria-haspopup="dialog"
+        onClick={openExportDialog}
+      >
+        <UploadIcon weight="fill" className="text-muted-foreground" />
+        Export
+      </Button>
 
       <AlertDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
         <AlertDialogContent size="sm">

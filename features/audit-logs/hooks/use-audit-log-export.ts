@@ -80,47 +80,6 @@ const AUDIT_DATE_FMT = new Intl.DateTimeFormat("en-PH", {
   timeZone: "Asia/Manila",
 })
 
-// Formats audit log data as a formatted JSON string.
-type EnrichedAuditLog = Doc<"auditLogs"> & {
-  userName: string | null
-  userEmail: string | null
-  userRole: string | null
-}
-
-const formatAsJson = (data: {
-  records: EnrichedAuditLog[]
-  truncated: boolean
-  limit: number
-}) => {
-  const pick = (log: EnrichedAuditLog): Record<string, unknown> => ({
-    timestamp: log.createdAt ?? log._creationTime,
-    user: log.userName,
-    email: log.userEmail,
-    role: log.userRole,
-    action: log.action,
-    resourceType: log.resourceType,
-    resourceId: log.resourceId,
-    description: extractSummary(log.description),
-    ipAddress: log.ipAddress,
-    userAgent: log.userAgent,
-  })
-  // The truncation flag travels with the payload — a downstream reader must not
-  // be able to mistake a capped result set for the complete audit trail.
-  return JSON.stringify(
-    {
-      exportedAt: new Date().toISOString(),
-      truncated: data.truncated,
-      limit: data.limit,
-      recordCount: data.records.length,
-      records: data.records.map(pick),
-    },
-    null,
-    2
-  )
-}
-
-type ExportFormat = "csv" | "json"
-
 // Query args for the export query: only defined filters travel, so an empty
 // search or "all" action never constrains the export.
 function buildExportArgs(search: string, filterArgs: AuditLogFilters) {
@@ -181,17 +140,14 @@ function downloadExportFile({
 // Human-readable summary of the active export filters for the confirm dialog.
 function buildSummaryLines(
   search: string,
-  filterArgs: AuditLogFilters,
-  selectedFormat: ExportFormat
+  filterArgs: AuditLogFilters
 ): string[] {
   const lines: string[] = [formatPeriodLine(filterArgs)]
   lines.push(
     `Action: ${filterArgs.action && filterArgs.action !== "all" ? filterArgs.action : "All actions"}`
   )
   lines.push(`Search: ${search || "None"}`)
-  lines.push(
-    `Format: ${selectedFormat === "csv" ? "CSV (.csv)" : "JSON (.json)"}`
-  )
+  lines.push("Format: CSV (.csv)")
   return lines
 }
 
@@ -209,19 +165,17 @@ function formatPeriodLine(filterArgs: AuditLogFilters): string {
   return `Time period: ${from} – ${to}`
 }
 
-// Manages audit log export: fetches filtered data from Convex, formats as CSV/JSON, and triggers a browser download.
+// Manages audit log export: fetches filtered data from Convex, formats as CSV, and triggers a browser download.
 export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
   const { isAuthenticated } = useCurrentUser()
   const [isExporting, setIsExporting] = useState(false)
   const logExport = useMutation(api.auditLogs.mutations.logExport)
-  const [exportMenuOpen, setExportMenuOpen] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("csv")
 
   const actions = AUDIT_LOG_ACTIONS
 
   const exportResult = useQueries(
-    isAuthenticated && (exportMenuOpen || exportDialogOpen)
+    isAuthenticated && exportDialogOpen
       ? {
           _default: {
             query: api.auditLogs.queries.exportData,
@@ -234,30 +188,21 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
   const { exportFailed, exportError, exportData } =
     resolveExportData(exportResult)
 
-  const handleFormatSelect = (format: ExportFormat) => {
-    setSelectedFormat(format)
-    setExportMenuOpen(false)
-    setExportDialogOpen(true)
-  }
+  const openExportDialog = () => setExportDialogOpen(true)
 
   const handleExportConfirm = () => {
     if (!exportData) return
     setIsExporting(true)
     setExportDialogOpen(false)
 
-    const isCsv = selectedFormat === "csv"
     downloadExportFile({
-      content: isCsv
-        ? formatAsCsv(exportData.records)
-        : formatAsJson(exportData),
-      mimeType: isCsv
-        ? "text/csv;charset=utf-8"
-        : "application/json;charset=utf-8",
-      extension: isCsv ? "csv" : "json",
+      content: formatAsCsv(exportData.records),
+      mimeType: "text/csv;charset=utf-8",
+      extension: "csv",
     })
 
     logExport({
-      format: selectedFormat,
+      format: "csv",
       recordCount: exportData.records.length,
       truncated: exportData.truncated,
       filters: JSON.stringify({
@@ -272,16 +217,14 @@ export function useAuditLogExport(search: string, filterArgs: AuditLogFilters) {
   }
 
   const recordCount = exportData?.records.length ?? 0
-  const summaryLines = buildSummaryLines(search, filterArgs, selectedFormat)
+  const summaryLines = buildSummaryLines(search, filterArgs)
 
   return {
     actions,
     isExporting,
-    exportMenuOpen,
-    setExportMenuOpen,
     exportDialogOpen,
     setExportDialogOpen,
-    handleFormatSelect,
+    openExportDialog,
     handleExportConfirm,
     recordCount,
     summaryLines,

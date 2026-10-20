@@ -41,8 +41,8 @@ export const log = internalMutation({
 
 /**
  * Logs an audit log export action. Callable from the client after
- * an owner exports audit logs as CSV or JSON. Records who exported,
- * what format, and the filter parameters used.
+ * an owner exports audit logs as CSV. Records who exported,
+ * the format, and the filter parameters used.
  */
 export const logExport = mutation({
   args: {

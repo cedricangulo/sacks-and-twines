@@ -630,7 +630,7 @@ export const getCountByProduct = query({
 | P10 | Dispatch history `.take(500)` + search on truncated set | **Deferred** — not changed (see below) |
 | P11 | Unbounded fetch helpers / "All Time" | **Fixed** — `UNBOUNDED_RANGE_LIMIT` default cap on all three helpers, each returning `{ docs, truncated }` so a capped read is visible to its caller. Cap lowered 5,000 → 1,000 and `order` added so list/export callers keep the newest rows |
 | P12 | `createdAt` never written | **Fixed** — written for `batches`, `products`, `dispatchItems`; 5 backfill migrations added |
-| P13 | Audit export caps at 2000, lies in audit trail | **Fixed** — `truncated` surfaced in JSON, CSV footer and the audit record |
+| P13 | Audit export caps at 2000, lies in audit trail | **Fixed** — `truncated` surfaced in the CSV footer and the audit record |
 | P14 | Dead/redundant indexes | **Deferred** — removal must follow a production `insights` check, not a code review |
 | P15 | `getCountByProduct` dead query | **Fixed** — deleted |
 
