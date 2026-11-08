@@ -25,7 +25,7 @@ export default function DemandComparisonChart({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-heading text-base font-medium">
-            Predictive vs. Actual Demand
+            Historical Demand vs Actual Demand
           </h3>
           <p className="text-sm text-muted-foreground">Weekly breakdown</p>
         </div>

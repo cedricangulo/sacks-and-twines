@@ -90,8 +90,8 @@ export const DEFAULT_CONVERSION_FACTOR = {
 // effect (`seedAll` no-ops when data exists), and demo charts go stale as the
 // end date ages.
 export const SUPPLIER_COUNT = 4
-export const SEED_DATE_START = "2026-07-01"
-export const SEED_DATE_END = "2026-10-14"
+export const SEED_DATE_START = "2026-08-01"
+export const SEED_DATE_END = "2026-11-08"
 
 // ─── Dense dispatch seed (every calendar day ≥ 20 dispatches) ──────────────
 export const DENSE_DAYS = 90
